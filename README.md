@@ -1,107 +1,115 @@
 # TikTok Lyric Video Pipeline
 
-An automated, modular pipeline for producing 10 to 15 short TikTok lyric videos per day with minimal manual intervention. The design favors low compute, repeatable outputs, and queue-based execution so rendering and uploading stay decoupled.
+An automated Python pipeline for generating 10 to 15 TikTok-ready lyric videos per day from licensed audio, timed lyrics, and trend metadata. The project is built around modular stages so intake, lyrics, segment scoring, rendering, scheduling, and upload can evolve independently.
 
-## Architecture
+## What It Does
 
-The pipeline is organized into stages:
-
-1. `Song intake` pulls from two sources: a manual priority folder and automated trending feeds.
-2. `Lyric fetching` resolves timestamped lyrics from public sources in LRC, SRT, or JSON form.
-3. `Alignment fallback` maps lyrics onto the audio when timestamps are missing.
-4. `SSS segment detection` scores candidate moments and picks 3 to 5 non-overlapping clips per song.
-5. `Style selection` chooses lyric display, layout, typography, color, and hook text.
-6. `Rendering` produces vertical 1080x1920 MP4 files with subtitle-driven lyric treatment.
-7. `Scheduling` writes upload jobs into a queue for the next-day posting window.
-8. `Upload` hands queued clips to the TikTok API layer, with Instagram Reels left open for later expansion.
-
-Manual priority always wins. If a user drops audio into the manual folder, that song is processed before any automated queue item, even if the automated feeds already contain trending entries.
+- Prioritizes `data/manual_priority/` over automated trend feeds every run.
+- Pulls metadata from normalized Spotify and TikTok feed exports.
+- Resolves timed lyrics from LRC, SRT, or JSON, then falls back to lightweight alignment for plain text.
+- Uses the Song Segment System (SSS) to choose 3 to 5 non-overlapping clips per song.
+- Randomizes lyric style, video layout, fonts, highlight color, and optional hook text using the requested weighting rules.
+- Plans or renders 1080x1920 MP4 outputs and writes upload jobs for next-day posting.
 
 ## Repository Layout
 
 ```text
 .
-├─ config/
-│  └─ pipeline.example.json
-├─ data/
-│  ├─ automated_queue/
-│  ├─ lyrics_cache/
-│  ├─ manual_priority/
-│  └─ provider_feeds/
-├─ output/
-│  ├─ render_work/
-│  ├─ scheduled_uploads.json
-│  └─ videos/
-├─ src/
-│  └─ tiktok_lyric_pipeline/
-└─ pyproject.toml
+|-- config/
+|   `-- pipeline.example.json
+|-- data/
+|   |-- automated_queue/
+|   |-- lyrics_cache/
+|   |-- manual_priority/
+|   `-- provider_feeds/
+|-- output/
+|   |-- render_work/
+|   `-- videos/
+|-- src/
+|   `-- tiktok_lyric_pipeline/
+|-- pyproject.toml
+`-- run_pipeline.py
 ```
 
-Expected usage:
+## Quick Start
 
-- Put forced-process audio files in `data/manual_priority/`.
-- Drop feed exports or queue inputs into `data/automated_queue/` and `data/provider_feeds/`.
-- Write rendered MP4s to `output/videos/`.
-- Store scheduled upload jobs in `output/scheduled_uploads.json`.
+### Option A: Run Without Installing The Package
 
-## Setup
+This is the simplest path on Windows and works directly from the repo root:
 
-1. Install Python 3.11 or newer.
-2. Create and activate a virtual environment.
-3. Install the project in editable mode.
+```powershell
+python run_pipeline.py --config config/pipeline.example.json --dry-run
+```
 
-```bash
+### Option B: Install In A Virtual Environment
+
+```powershell
 python -m venv .venv
 .venv\Scripts\activate
-pip install -e .
+python -m pip install -e .
+python -m tiktok_lyric_pipeline --config config/pipeline.example.json --dry-run
 ```
 
-If you render locally, install `ffmpeg` separately and make sure it is on `PATH`.
+If you want actual MP4 rendering, install `ffmpeg` and make sure it is on `PATH`.
 
-## Configuration
+## Common Windows Gotcha
 
-Use `config/pipeline.example.json` as the starting point. The JSON mirrors the dataclasses in `src/tiktok_lyric_pipeline/config.py`, so the top-level keys are:
+If you see a `>>>` prompt, you are inside the Python REPL. Shell commands such as `python -m ...` will fail there with `SyntaxError`.
 
-- `root_dir`
-- `paths`
-- `intake`
-- `lyrics`
-- `alignment`
-- `segments`
-- `render`
-- `schedule`
-- `random_seed`
+Exit the REPL first:
 
-Important behavior:
+```text
+exit()
+```
 
-- `intake.target_videos_min` and `intake.target_videos_max` define the daily production target.
-- `intake.automated_feed_files` lists the trending-feed payloads to pull from.
-- `lyrics.use_alignment_fallback` enables lightweight lyric-to-audio alignment when timestamped lyrics are unavailable.
-- `segments` controls the SSS window length, minimum gap, and how many clips can be chosen per song.
-- `schedule.upload_window_start_hour` and `schedule.upload_window_end_hour` define the next-day posting window.
+Then run the command from PowerShell or Command Prompt.
 
-## Scheduling And Queue Output
+## Why A Dry Run May Return Zero Clips
 
-The system does not upload directly from the renderer. Instead, it exports an upload-ready queue containing the final MP4 path, caption text, hook category, and scheduled publish time.
+The repository ships with placeholder feed examples and empty runtime folders. A successful dry run with zero clips usually means the app started correctly, but there were no real input songs to process yet.
 
-Typical flow:
+To get actual planned clips:
 
-1. Render MP4 files into `output/videos/`.
-2. Create queue entries in `output/scheduled_uploads.json`.
-3. The upload worker reads that queue and posts each clip through the TikTok API.
+1. Put licensed audio files in `data/manual_priority/` for immediate processing.
+2. Or create real `spotify_trending.json` and `tiktok_trending.json` files in `data/provider_feeds/`.
+3. Add matching lyric sources through sidecar files, cached lyric files, or lyric URLs in the feed payload.
 
-Posting times are spread across the next day using hour buckets and randomized minutes so uploads do not cluster at the same minute mark.
+## Input Expectations
 
-## Legal And Platform Notes
+### Manual Priority
 
-- Spotify metadata such as charts, audio analysis, and section loudness can be used as reference signals.
-- Do not sync Spotify-streamed audio directly into generated videos unless you have the rights and a compliant source file.
-- The safest approach is to render from locally owned or licensed audio files only.
-- TikTok upload automation should use the official API flow and respect account and content policies.
+- Drop audio files into `data/manual_priority/`.
+- Supported extensions default to `.mp3`, `.wav`, `.m4a`, and `.flac`.
+- Manual songs always run before automated songs.
+
+### Automated Feeds
+
+- The default config expects `data/provider_feeds/spotify_trending.json`.
+- The default config expects `data/provider_feeds/tiktok_trending.json`.
+- Example payload shapes live in `data/provider_feeds/*.example.json`.
+
+Each song record can include:
+
+- `song_id`, `title`, `artist`
+- `audio_path`, `album_cover_path`
+- `lyrics_url` or `lyrics_urls`
+- `duration_seconds`
+- trend scores, audio features, and section metadata
+
+## Pipeline Stages
+
+1. Song intake merges manual and automated sources, with manual priority first.
+2. Lyrics resolution loads LRC, SRT, JSON, or text sources.
+3. Alignment fallback estimates timings when only untimed lyrics exist.
+4. SSS segment detection scores chorus-like and high-energy moments while avoiding overlap.
+5. Style selection applies lyric, layout, typography, color, and hook distributions.
+6. Render planning writes subtitle and manifest artifacts before optional ffmpeg rendering.
+7. Scheduling spreads uploads across the next day using randomized minute offsets.
+8. Queue export writes upload-ready JSON and NDJSON records.
 
 ## Hook Categories
 
-The hook system should always label the category in captions, even when no hook phrase is added on-screen. Good starter categories include:
+Starter categories included in the design:
 
 - late night songs
 - songs that hurt
@@ -114,23 +122,27 @@ The hook system should always label the category in captions, even when no hook 
 - sad girl songs
 - window seat songs
 
-## Notes For Expansion
+## Key Config Areas
 
-- The current design keeps layout templates, lyric styles, fonts, and color choices modular so new styles can be added without changing the pipeline core.
-- Instagram Reels can be added later by reusing the same render output and scheduling abstraction.
+`config/pipeline.example.json` maps directly to the dataclasses in `src/tiktok_lyric_pipeline/config.py`.
 
-## CLI Usage
+The most useful sections to tweak first are:
 
-Run the pipeline in dry-run mode first:
+- `intake` for daily clip targets and automated feed filenames
+- `lyrics` for source order and alignment fallback
+- `segments` for clip length, gap rules, and per-song segment count
+- `render` for codec, canvas size, grain, and default font families
+- `schedule` for upload windows and posting buckets
 
-```powershell
-python -m tiktok_lyric_pipeline --config config/pipeline.example.json --dry-run
-```
+## Output Files
 
-Useful flags:
+- Planned or rendered videos go to `output/videos/`
+- Render manifests and subtitle assets go to `output/render_work/`
+- Upload queue files go to `output/scheduled_uploads.json` and `output/scheduled_uploads.ndjson`
+- Run summaries go to `output/run_summary.json`
 
-- `--dry-run` writes subtitle files, render manifests, and upload queue records without invoking ffmpeg.
-- `--max-clips 12` overrides the daily clip target for a single run.
-- `--force-automated` reruns automated-feed songs even if they already exist in the pipeline state file.
+## Notes
 
-Example normalized provider payloads are included in `data/provider_feeds/*.example.json`.
+- Spotify metadata can inform ranking, but the renderer should use only licensed or locally owned audio.
+- TikTok upload automation should go through the official API and comply with platform policy.
+- Instagram Reels support can be added later by reusing the same render and scheduling outputs.
