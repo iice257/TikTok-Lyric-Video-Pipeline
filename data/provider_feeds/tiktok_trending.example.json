@@ -1,0 +1,44 @@
+[
+  {
+    "song_id": "tiktok-audio-001",
+    "title": "Another Example",
+    "artist": "Sample Creator",
+    "audio_path": "C:/media/licensed/another-example.mp3",
+    "album_cover_path": "C:/media/licensed/another-example.png",
+    "lyrics_urls": [
+      "https://example.com/another-example.json",
+      "https://example.com/another-example.srt"
+    ],
+    "tiktok_audio_id": "tiktok_audio_12345",
+    "duration_seconds": 201.0,
+    "chart_rank": 3,
+    "trend_score": 94.8,
+    "dominant_color": "#F97316",
+    "audio_features": {
+      "danceability": 0.82,
+      "energy": 0.73,
+      "speechiness": 0.05,
+      "tempo_norm": 0.61
+    },
+    "sections": [
+      {
+        "start": 35.0,
+        "duration": 21.2,
+        "loudness": -5.4,
+        "tempo": 128.4,
+        "danceability": 0.84,
+        "energy": 0.79,
+        "confidence": 0.9
+      },
+      {
+        "start": 92.8,
+        "duration": 23.1,
+        "loudness": -4.9,
+        "tempo": 128.6,
+        "danceability": 0.86,
+        "energy": 0.82,
+        "confidence": 0.93
+      }
+    ]
+  }
+]

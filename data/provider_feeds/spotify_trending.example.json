@@ -1,0 +1,41 @@
+[
+  {
+    "song_id": "spotify-track-001",
+    "title": "Example Song",
+    "artist": "Example Artist",
+    "audio_path": "C:/media/licensed/example-song.mp3",
+    "album_cover_path": "C:/media/licensed/example-song.jpg",
+    "lyrics_url": "https://example.com/example-song.lrc",
+    "spotify_track_id": "6rqhFgbbKwnb9MLmUQDhG6",
+    "duration_seconds": 183.2,
+    "chart_rank": 12,
+    "trend_score": 87.5,
+    "dominant_color": "#F2C94C",
+    "audio_features": {
+      "danceability": 0.76,
+      "energy": 0.69,
+      "speechiness": 0.08,
+      "tempo_norm": 0.52
+    },
+    "sections": [
+      {
+        "start": 18.4,
+        "duration": 22.6,
+        "loudness": -7.8,
+        "tempo": 121.3,
+        "danceability": 0.78,
+        "energy": 0.71,
+        "confidence": 0.92
+      },
+      {
+        "start": 63.5,
+        "duration": 24.3,
+        "loudness": -6.1,
+        "tempo": 121.1,
+        "danceability": 0.81,
+        "energy": 0.77,
+        "confidence": 0.94
+      }
+    ]
+  }
+]
