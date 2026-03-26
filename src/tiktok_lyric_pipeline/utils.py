@@ -3,9 +3,11 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import random
 import shutil
 import subprocess
+import time
 from collections.abc import Iterable
 from pathlib import Path
 from typing import TypeVar
@@ -62,7 +64,21 @@ def read_json(path: Path, default: T) -> T:
 
 def write_json(path: Path, payload: object) -> None:
     ensure_directory(path.parent)
-    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    body = json.dumps(payload, indent=2, ensure_ascii=False)
+    temp_path = path.with_name(f"{path.name}.tmp")
+    last_error: OSError | None = None
+    for _ in range(5):
+        try:
+            temp_path.write_text(body, encoding="utf-8")
+            os.replace(temp_path, path)
+            return
+        except OSError as exc:
+            last_error = exc
+            time.sleep(0.2)
+    if temp_path.exists():
+        temp_path.unlink(missing_ok=True)
+    if last_error:
+        raise last_error
 
 
 def which(command: str) -> str | None:

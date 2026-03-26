@@ -272,12 +272,12 @@ class TikTokLyricPipeline:
         return f"[{hook_category}] {base} | {song.artist} - {song.title}"
 
     def _should_skip(self, song: SongAsset, state: dict[str, object], *, force_automated: bool) -> bool:
-        if song.manual_priority:
-            return False
-        if force_automated:
-            return False
         if not song.audio_path.exists() or not song.audio_path.is_file():
             return True
+        if song.manual_priority:
+            return song.song_id in state.get("processed_songs", {})
+        if force_automated:
+            return False
         return song.song_id in state.get("processed_songs", {})
 
     def _ensure_runtime_directories(self) -> None:

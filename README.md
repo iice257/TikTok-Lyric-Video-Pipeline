@@ -41,6 +41,12 @@ This is the simplest path on Windows and works directly from the repo root:
 python run_pipeline.py --config config/pipeline.example.json --dry-run
 ```
 
+For continuous operation:
+
+```powershell
+python run_pipeline.py --config config/pipeline.example.json --watch --poll-interval-seconds 60
+```
+
 ### Option B: Install In A Virtual Environment
 
 ```powershell
@@ -73,6 +79,44 @@ To get actual planned clips:
 1. Put licensed audio files in `data/manual_priority/` for immediate processing.
 2. Or create real `spotify_trending.json` and `tiktok_trending.json` files in `data/provider_feeds/`.
 3. Add matching lyric sources through sidecar files, cached lyric files, or lyric URLs in the feed payload.
+
+## First Video Tutorial
+
+This is the fastest path to the first actual MP4:
+
+1. Put a licensed audio file in `data/manual_priority/`.
+2. Name it `Artist Name - Song Title.mp3` so artist and title are inferred correctly.
+3. Put a matching sidecar lyrics file beside it with the same base name:
+   `Artist Name - Song Title.lrc`
+4. Optionally add cover art beside it with the same base name:
+   `Artist Name - Song Title.jpg`
+5. Run a dry-run first to confirm the clip is discovered:
+
+```powershell
+python run_pipeline.py --config config/pipeline.example.json --dry-run --max-clips 1
+```
+
+6. If the dry-run shows `produced_clip_count: 1`, run the real render:
+
+```powershell
+python run_pipeline.py --config config/pipeline.example.json --max-clips 1
+```
+
+7. Check these outputs:
+   `output/videos/` for the rendered MP4
+   `output/render_work/` for `.ass` subtitles and render manifests
+   `output/scheduled_uploads.json` for the upload queue record
+
+Minimal LRC example:
+
+```text
+[00:00.00]first line here
+[00:08.00]second line here
+[00:16.00]repeatable chorus line
+[00:24.00]repeatable chorus line
+```
+
+If you only have plain untimed lyrics, use `.txt` instead of `.lrc`. The pipeline will use lightweight alignment as a fallback.
 
 ## Input Expectations
 
@@ -141,8 +185,26 @@ The most useful sections to tweak first are:
 - Upload queue files go to `output/scheduled_uploads.json` and `output/scheduled_uploads.ndjson`
 - Run summaries go to `output/run_summary.json`
 
+## Continuous Operation
+
+`--watch` keeps the generation loop running until interrupted with `Ctrl+C`.
+
+Behavior in watch mode:
+
+- polls the manual and automated inputs every cycle
+- processes manual files first
+- skips already processed inputs unless the file identity changes
+- appends new scheduled jobs into the queue instead of overwriting previous ones
+
+Example:
+
+```powershell
+python run_pipeline.py --config config/pipeline.example.json --watch --poll-interval-seconds 120
+```
+
 ## Notes
 
 - Spotify metadata can inform ranking, but the renderer should use only licensed or locally owned audio.
 - TikTok upload automation should go through the official API and comply with platform policy.
 - Instagram Reels support can be added later by reusing the same render and scheduling outputs.
+- This repository currently covers intake, lyric resolution, segment selection, rendering, and queue generation. A live TikTok API upload worker is not implemented yet.

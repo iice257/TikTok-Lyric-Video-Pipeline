@@ -35,9 +35,11 @@ class SongIntakeService:
         )
         songs: list[SongAsset] = []
         for audio_path in audio_paths:
+            stat = audio_path.stat()
+            manual_fingerprint = f"{audio_path.stem}:{stat.st_size}:{stat.st_mtime_ns}"
             songs.append(
                 SongAsset(
-                    song_id=stable_id("manual", audio_path.stem),
+                    song_id=stable_id("manual", manual_fingerprint),
                     title=self._extract_title(audio_path.stem),
                     artist=self._extract_artist(audio_path.stem),
                     audio_path=audio_path,
@@ -46,6 +48,10 @@ class SongIntakeService:
                     manual_priority=True,
                     lyrics_path=self._find_lyrics_asset(audio_path),
                     duration_seconds=None,
+                    metadata={
+                        "manual_fingerprint": manual_fingerprint,
+                        "manual_audio_path": str(audio_path),
+                    },
                 )
             )
         return songs

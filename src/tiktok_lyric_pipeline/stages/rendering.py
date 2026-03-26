@@ -233,11 +233,12 @@ class RenderPlanner:
         return self.rng.choice(["black", "yellow"])
 
     def describe_layout(self, style: StyleDecision, song: SongAsset, segment: SegmentSelection) -> str:
-        if style.layout_template == "blurred_cover_center_lyrics":
+        layout_template = self.normalize_layout_template(style.layout_template)
+        if layout_template == "blurred_cover_center_lyrics":
             return "Blurred album-art background with centered cover and lyrics below"
-        if style.layout_template == "fullscreen_cover_overlay":
+        if layout_template == "fullscreen_cover_overlay":
             return "Fullscreen album cover with lyric overlay"
-        if style.layout_template == "blurred_background_small_cover":
+        if layout_template == "blurred_background_small_cover":
             return "Blurred animated background with a small cover and centered lyrics"
         return "Minimal typography on a black background"
 
@@ -268,11 +269,12 @@ class RenderPlanner:
             placeholder = self.fallback_ass_lines(segment)
             return placeholder
 
-        if style.lyric_style in {"karaoke", "karaoke_highlight"}:
+        lyric_style = self.normalize_lyric_style(style.lyric_style)
+        if lyric_style == "karaoke":
             return self.build_karaoke_ass_lines(lines, style, segment)
-        if style.lyric_style in {"stacked_3_line", "stacked_three_line"}:
+        if lyric_style == "stacked_3_line":
             return self.build_stacked_ass_lines(lines, style, segment)
-        if style.lyric_style == "line_swap":
+        if lyric_style == "line_swap":
             return self.build_line_swap_ass_lines(lines, style, segment)
         return self.build_beat_pulse_ass_lines(lines, style, segment)
 
@@ -408,8 +410,10 @@ class RenderPlanner:
         fontsize_delta: int = 0,
         margin_v: int | None = None,
     ) -> AssStyle:
-        fontsize = 74 if style.layout_template == "minimal_typography_black" else 62
-        if style.lyric_style in {"karaoke", "karaoke_highlight"}:
+        layout_template = self.normalize_layout_template(style.layout_template)
+        lyric_style = self.normalize_lyric_style(style.lyric_style)
+        fontsize = 74 if layout_template == "minimal_typography_black" else 62
+        if lyric_style == "karaoke":
             fontsize = 58
         return AssStyle(
             name=name,
@@ -528,19 +532,20 @@ class RenderPlanner:
     ) -> str:
         width = self.config.render.width
         height = self.config.render.height
+        layout_template = self.normalize_layout_template(style.layout_template)
         ass_filter = f"ass={self.escape_filter_path(ass_path)}"
-        if style.layout_template == "minimal_typography_black":
+        if layout_template == "minimal_typography_black":
             return (
                 f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
                 f"crop={width}:{height},drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill,{ass_filter}[vout]"
             )
         if song.album_cover_path:
-            if style.layout_template == "fullscreen_cover_overlay":
+            if layout_template == "fullscreen_cover_overlay":
                 return (
                     f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
                     f"crop={width}:{height},{ass_filter}[vout]"
                 )
-            overlay_width = 420 if style.layout_template == "blurred_cover_center_lyrics" else 300
+            overlay_width = 420 if layout_template == "blurred_cover_center_lyrics" else 300
             return (
                 f"[0:v]split[base][art];"
                 f"[base]scale={width}:{height}:force_original_aspect_ratio=increase,"
@@ -556,8 +561,23 @@ class RenderPlanner:
         )
 
     def escape_filter_path(self, path: Path) -> str:
-        text = str(path).replace("\\", "\\\\").replace(":", r"\:")
-        return text
+        text = path.resolve().as_posix().replace(":", r"\:").replace("'", r"\'")
+        return f"filename='{text}'"
+
+    def normalize_layout_template(self, layout_template: str) -> str:
+        aliases = {
+            "blurred_background_center_cover_lyrics_below": "blurred_cover_center_lyrics",
+            "animated_blur_small_cover_center_lyrics": "blurred_background_small_cover",
+            "minimal_black_typography": "minimal_typography_black",
+        }
+        return aliases.get(layout_template, layout_template)
+
+    def normalize_lyric_style(self, lyric_style: str) -> str:
+        aliases = {
+            "karaoke_highlight": "karaoke",
+            "stacked_three_line": "stacked_3_line",
+        }
+        return aliases.get(lyric_style, lyric_style)
 
     def _rebase_lines(self, lines: list[LyricLine], clip_start: float, clip_end: float) -> list[LyricLine]:
         rebased: list[LyricLine] = []
@@ -570,7 +590,7 @@ class RenderPlanner:
             for token in line.tokens:
                 token_start = max(token.start, clip_start) - clip_start
                 token_end = min(token.end, clip_end) - clip_start
-                if token_end <= 0:
+                if token_end <= 0 or token_end <= token_start:
                     continue
                 rebased_tokens.append(LyricToken(token.text, token_start, token_end))
             rebased.append(
