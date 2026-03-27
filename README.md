@@ -2,6 +2,26 @@
 
 An automated Python pipeline for generating 10 to 15 TikTok-ready lyric videos per day from licensed audio, timed lyrics, and trend metadata. The project is built around modular stages so intake, lyrics, segment scoring, rendering, scheduling, and upload can evolve independently.
 
+## Platform Architecture
+
+The repository now contains two layers:
+
+- `src/tiktok_lyric_pipeline`: the original media engine for lyrics, segments, rendering, and scheduling
+- `src/tiktok_platform_api` + `src/tiktok_platform_worker` + `apps/web`: the control plane, always-on worker, and mobile-first admin panel
+
+Target deployment split:
+
+- `apps/web` on Vercel
+- FastAPI API + worker + ffmpeg on one always-on Linux host
+- Postgres as the system of record
+- persistent media storage mounted on the backend host
+
+Production rules:
+
+- production audio must be licensed/local or otherwise explicitly approved
+- Spotify is metadata/trend input only in production
+- lab-mode items can render/analyze but must not publish
+
 ## What It Does
 
 - Prioritizes `data/manual_priority/` over automated trend feeds every run.
@@ -15,6 +35,8 @@ An automated Python pipeline for generating 10 to 15 TikTok-ready lyric videos p
 
 ```text
 .
+|-- apps/
+|   `-- web/
 |-- config/
 |   `-- pipeline.example.json
 |-- data/
@@ -22,16 +44,66 @@ An automated Python pipeline for generating 10 to 15 TikTok-ready lyric videos p
 |   |-- lyrics_cache/
 |   |-- manual_priority/
 |   `-- provider_feeds/
+|-- docker/
+|   `-- platform.Dockerfile
 |-- output/
 |   |-- render_work/
 |   `-- videos/
 |-- src/
-|   `-- tiktok_lyric_pipeline/
+|   |-- tiktok_lyric_pipeline/
+|   |-- tiktok_platform/
+|   |-- tiktok_platform_api/
+|   `-- tiktok_platform_worker/
+|-- tests/
+|-- docker-compose.yml
 |-- pyproject.toml
 `-- run_pipeline.py
 ```
 
 ## Quick Start
+
+### Full Stack Local Start
+
+1. Copy `.env.example` to `.env`
+2. Copy `apps/web/.env.example` to `apps/web/.env.local`
+3. Install Python dependencies
+4. Install frontend dependencies
+5. Start the API
+6. Start the worker
+7. Start the web app
+
+Commands:
+
+```powershell
+python -m pip install -e .
+cd apps/web
+npm install
+cd ../..
+python -m tiktok_platform_api.app
+python -m tiktok_platform_worker.main --poll-interval-seconds 20
+cd apps/web
+npm run dev
+```
+
+Recommended local defaults:
+
+- backend `.env`: keep `APP_ENV=dev`, `COOKIE_SECURE=false`, `COOKIE_SAME_SITE=lax`, `TIKTOK_SIMULATE_UPLOADS=true`
+- frontend `apps/web/.env.local`: set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+
+Production split for Vercel + backend host:
+
+- backend `.env`: set `APP_ENV=prod`, `DATABASE_URL` to Postgres, `COOKIE_SECURE=true`, `COOKIE_SAME_SITE=none`, and real admin/TikTok secrets
+- Vercel env: set `NEXT_PUBLIC_API_BASE_URL` to the public HTTPS backend API URL
+- ensure the backend `FRONTEND_BASE_URL` exactly matches the Vercel app origin
+
+### Docker Local Start
+
+```powershell
+copy .env.example .env
+docker compose up --build
+```
+
+The API will be available on `http://localhost:8000` and the web app can point to it with `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
 
 ### Option A: Run Without Installing The Package
 
@@ -207,4 +279,5 @@ python run_pipeline.py --config config/pipeline.example.json --watch --poll-inte
 - Spotify metadata can inform ranking, but the renderer should use only licensed or locally owned audio.
 - TikTok upload automation should go through the official API and comply with platform policy.
 - Instagram Reels support can be added later by reusing the same render and scheduling outputs.
-- This repository currently covers intake, lyric resolution, segment selection, rendering, and queue generation. A live TikTok API upload worker is not implemented yet.
+- This repository now includes the always-on control plane, mobile-first admin web app, DB-backed worker loops, and a simulated upload adapter for end-to-end local testing.
+- Real production posting still requires TikTok app approval, real credentials, and completion of the non-simulated upload adapter branch.

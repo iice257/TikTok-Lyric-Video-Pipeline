@@ -2,6 +2,16 @@
 .tmp/
 __pycache__/
 *.py[cod]
+*.egg-info/
+pytest-cache-files-*/
+.pytest_cache/
+.next/
+node_modules/
+.env
+apps/web/.env.local
+storage/
+output/platform.db
+output/platform.db-*
 
 output/run_summary.json
 output/pipeline_state.json

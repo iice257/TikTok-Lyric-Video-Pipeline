@@ -11,13 +11,27 @@ requires-python = ">=3.11"
 authors = [
   { name = "OpenAI Codex" }
 ]
-dependencies = []
+dependencies = [
+  "fastapi>=0.116,<1.0",
+  "sqlalchemy>=2.0,<3.0",
+  "uvicorn>=0.35,<1.0",
+  "python-multipart>=0.0.20,<1.0",
+  "psycopg[binary]>=3.2,<4.0",
+  "httpx>=0.28,<1.0",
+  "pytest>=8.4,<9.0",
+]
 
 [project.scripts]
 tiktok-lyric-pipeline = "tiktok_lyric_pipeline.cli:main"
+tiktok-platform-api = "tiktok_platform_api.app:main"
+tiktok-platform-worker = "tiktok_platform_worker.main:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+addopts = "--basetemp=./.tmp/pytest"
+cache_dir = "./.tmp/pytest-cache"

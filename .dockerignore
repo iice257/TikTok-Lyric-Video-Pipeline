@@ -1,0 +1,11 @@
+.git
+.venv
+.tmp
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+node_modules
+apps/web/.next
+storage
+output

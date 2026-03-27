@@ -1,0 +1,43 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: platform
+      POSTGRES_USER: platform
+      POSTGRES_PASSWORD: platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/platform.Dockerfile
+    env_file:
+      - .env
+    command: ["python", "-m", "tiktok_platform_api.app"]
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./storage:/app/storage
+      - ./config:/app/config
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/platform.Dockerfile
+    env_file:
+      - .env
+    command: ["python", "-m", "tiktok_platform_worker.main", "--poll-interval-seconds", "20"]
+    depends_on:
+      - postgres
+      - api
+    volumes:
+      - ./storage:/app/storage
+      - ./config:/app/config
+
+volumes:
+  postgres-data:
