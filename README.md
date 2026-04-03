@@ -281,5 +281,5 @@ python run_pipeline.py --config config/pipeline.example.json --watch --poll-inte
 - Spotify metadata can inform ranking, but the renderer should use only licensed or locally owned audio.
 - TikTok upload automation should go through the official API and comply with platform policy.
 - Instagram Reels support can be added later by reusing the same render and scheduling outputs.
-- This repository now includes the always-on control plane, mobile-first admin web app, DB-backed worker loops, and a simulated upload adapter for end-to-end local testing.
-- Real production posting still requires TikTok app approval, real credentials, and completion of the non-simulated upload adapter branch.
+- This repository now includes the always-on control plane, mobile-first admin web app, DB-backed worker loops, TikTok OAuth connection routes, and a real Content Posting API uploader with polling/retry handling.
+- Direct posting still depends on TikTok app approval and account capability. When `UPLOAD_MODE=hybrid`, the worker falls back to inbox/draft upload if direct-post scopes are unavailable.

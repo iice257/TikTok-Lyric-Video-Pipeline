@@ -219,6 +219,16 @@ button, input, textarea, select {
   gap: 8px;
 }
 
+.checkboxField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkboxField input {
+  width: auto;
+}
+
 .fieldGroup {
   grid-template-columns: 1fr 1fr;
 }

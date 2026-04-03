@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
 import shutil
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -29,6 +28,7 @@ from tiktok_platform.services import (
     create_alert,
     ensure_media_root,
     get_setting,
+    get_oauth_token,
     guess_extension,
     log_operator_action,
     persist_upload_file,
@@ -43,8 +43,10 @@ from tiktok_platform.services import (
     serialize_upload_job,
     serialize_worker,
     set_setting,
+    upsert_oauth_token,
 )
 from tiktok_platform.settings import PlatformSettings
+from tiktok_platform.tiktok_api import DEFAULT_SCOPES, TikTokApiClient, TikTokApiError
 
 from ..dependencies import get_current_user, get_platform_settings, require_mutation_auth
 
@@ -71,6 +73,57 @@ class SettingsPatchRequest(BaseModel):
     upload_mode: str | None = None
     target_videos_min: int | None = None
     target_videos_max: int | None = None
+
+
+class TikTokPreferencesPatchRequest(BaseModel):
+    preferred_privacy_level: str | None = None
+    allow_comment: bool | None = None
+    allow_duet: bool | None = None
+    allow_stitch: bool | None = None
+
+
+def _default_tiktok_preferences() -> dict[str, object]:
+    return {
+        "preferred_privacy_level": "SELF_ONLY",
+        "allow_comment": False,
+        "allow_duet": False,
+        "allow_stitch": False,
+    }
+
+
+def _creator_info_cache(db: Session) -> dict[str, object]:
+    return get_setting(db, "tiktok_creator_info_cache", {})
+
+
+def _serialize_tiktok_status(db: Session, settings: PlatformSettings) -> dict[str, object]:
+    token = get_oauth_token(db, "tiktok")
+    creator_cache = _creator_info_cache(db)
+    creator_info = creator_cache.get("data") if isinstance(creator_cache.get("data"), dict) else None
+    scopes = token.scopes_json if token else []
+    return {
+        "configured": bool(settings.tiktok_client_key and settings.tiktok_client_secret and settings.tiktok_redirect_uri),
+        "connected": token is not None,
+        "subject": token.subject if token else None,
+        "expires_at": token.expires_at.isoformat() if token and token.expires_at else None,
+        "scopes": scopes,
+        "preferences": get_setting(db, "tiktok_preferences", _default_tiktok_preferences()),
+        "creator_info": creator_info,
+        "creator_info_fetched_at": creator_cache.get("fetched_at"),
+        "last_error": creator_cache.get("last_error"),
+        "upload_mode": settings.upload_mode,
+        "simulate_uploads": settings.simulate_uploads,
+        "required_scopes": list(DEFAULT_SCOPES),
+    }
+
+
+def _build_tiktok_client(settings: PlatformSettings) -> TikTokApiClient:
+    if not settings.tiktok_client_key or not settings.tiktok_client_secret or not settings.tiktok_redirect_uri:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth settings are incomplete.")
+    return TikTokApiClient(
+        client_key=settings.tiktok_client_key,
+        client_secret=settings.tiktok_client_secret,
+        redirect_uri=settings.tiktok_redirect_uri,
+    )
 
 
 def _job_payload(job: RenderJob | UploadJob) -> dict[str, object]:
@@ -129,6 +182,155 @@ def _validate_job_transition(subject: RenderJob | UploadJob, new_status: str) ->
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Render jobs cannot transition to posted.")
     if subject.status in terminal_states and new_status == subject.status:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Job is already in that terminal state.")
+
+
+@router.get("/integrations/tiktok/status")
+def get_tiktok_status(
+    _: object = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> dict[str, object]:
+    return {"integration": _serialize_tiktok_status(db, settings)}
+
+
+@router.post("/integrations/tiktok/connect")
+def connect_tiktok(
+    request: Request,
+    user: object = Depends(require_mutation_auth),
+    db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> dict[str, object]:
+    client = _build_tiktok_client(settings)
+    state = client.new_state()
+    set_setting(
+        db,
+        "tiktok_oauth_state",
+        {
+            "value": state,
+            "requested_at": utcnow().isoformat(),
+            "requested_by_id": user.id,
+            "scopes": list(DEFAULT_SCOPES),
+        },
+    )
+    log_operator_action(
+        db,
+        user_id=user.id,
+        action="connect_tiktok",
+        target_type="integration",
+        target_id="tiktok",
+        request=request,
+        details={"scopes": list(DEFAULT_SCOPES)},
+    )
+    db.commit()
+    return {"auth_url": client.build_authorize_url(state, DEFAULT_SCOPES)}
+
+
+@router.get("/integrations/tiktok/callback", response_class=HTMLResponse)
+def tiktok_callback(
+    code: str | None = None,
+    state: str | None = None,
+    error: str | None = None,
+    error_description: str | None = None,
+    db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> HTMLResponse:
+    if error:
+        return HTMLResponse(
+            f"<html><body><h1>TikTok connection failed</h1><p>{error_description or error}</p></body></html>",
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+    expected = get_setting(db, "tiktok_oauth_state", {})
+    if not code or not state or state != expected.get("value"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth state did not match.")
+    client = _build_tiktok_client(settings)
+    try:
+        bundle = client.exchange_code(code)
+        upsert_oauth_token(
+            db,
+            provider="tiktok",
+            subject=bundle.open_id,
+            access_token=bundle.access_token,
+            refresh_token=bundle.refresh_token,
+            scopes=bundle.scope,
+            expires_at=bundle.expires_at,
+        )
+    except TikTokApiError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    creator_info = client.query_creator_info(bundle.access_token)
+    set_setting(
+        db,
+        "tiktok_creator_info_cache",
+        {"data": creator_info, "fetched_at": utcnow().isoformat(), "last_error": None},
+    )
+    set_setting(db, "tiktok_oauth_state", {"state": None, "updated_at": utcnow().isoformat()})
+    return HTMLResponse(
+        """
+        <html>
+          <body style="font-family:Segoe UI,sans-serif;padding:24px;background:#f4efe7;color:#1f1d1b;">
+            <h1 style="margin:0 0 12px;">TikTok account connected</h1>
+            <p style="margin:0 0 12px;">Return to the control panel. This tab can be closed.</p>
+            <script>
+              if (window.opener) {
+                window.opener.location.reload();
+              }
+              setTimeout(function () { window.close(); }, 400);
+            </script>
+          </body>
+        </html>
+        """
+    )
+
+
+@router.post("/integrations/tiktok/disconnect")
+def disconnect_tiktok(
+    request: Request,
+    user: object = Depends(require_mutation_auth),
+    db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> dict[str, object]:
+    token = get_oauth_token(db, "tiktok")
+    if token is not None:
+        try:
+            _build_tiktok_client(settings).revoke(token.access_token)
+        except (HTTPException, TikTokApiError):
+            pass
+        db.delete(token)
+        db.commit()
+    set_setting(db, "tiktok_creator_info_cache", {})
+    log_operator_action(
+        db,
+        user_id=user.id,
+        action="disconnect_tiktok",
+        target_type="integration",
+        target_id="tiktok",
+        request=request,
+        details={"subject": token.subject if token else None},
+    )
+    db.commit()
+    return {"disconnected": True}
+
+
+@router.patch("/integrations/tiktok/preferences")
+def patch_tiktok_preferences(
+    payload: TikTokPreferencesPatchRequest,
+    request: Request,
+    user: object = Depends(require_mutation_auth),
+    db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> dict[str, object]:
+    merged = {**get_setting(db, "tiktok_preferences", _default_tiktok_preferences()), **payload.model_dump(exclude_none=True), "updated_at": utcnow().isoformat()}
+    record = set_setting(db, "tiktok_preferences", merged)
+    log_operator_action(
+        db,
+        user_id=user.id,
+        action="patch_tiktok_preferences",
+        target_type="integration",
+        target_id="tiktok",
+        request=request,
+        details=payload.model_dump(exclude_none=True),
+    )
+    db.commit()
+    return {"preferences": record.value_json}
 
 
 @router.get("/songs")
@@ -592,6 +794,7 @@ def pause_pipeline(
 ) -> dict[str, object]:
     record = set_setting(db, "pipeline", {"paused": True, "updated_at": utcnow().isoformat()})
     log_operator_action(db, user_id=user.id, action="pause_pipeline", target_type="pipeline", target_id=record.key, request=request, details={"paused": True})
+    db.commit()
     return {"settings": record.value_json}
 
 
@@ -603,6 +806,7 @@ def resume_pipeline(
 ) -> dict[str, object]:
     record = set_setting(db, "pipeline", {"paused": False, "updated_at": utcnow().isoformat()})
     log_operator_action(db, user_id=user.id, action="resume_pipeline", target_type="pipeline", target_id=record.key, request=request, details={"paused": False})
+    db.commit()
     return {"settings": record.value_json}
 
 
@@ -634,6 +838,7 @@ def patch_pipeline_settings(
     merged = {**existing, **payload.model_dump(exclude_none=True), "updated_at": utcnow().isoformat()}
     record = set_setting(db, "pipeline", merged)
     log_operator_action(db, user_id=user.id, action="patch_pipeline_settings", target_type="pipeline", target_id=record.key, request=request, details=payload.model_dump(exclude_none=True))
+    db.commit()
     return {"settings": record.value_json}
 
 

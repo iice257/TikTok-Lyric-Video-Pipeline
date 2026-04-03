@@ -8,6 +8,7 @@ import shutil
 
 from fastapi import HTTPException, Request, UploadFile, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .db import ensure_utc, utcnow
@@ -15,6 +16,7 @@ from .models import (
     Alert,
     AppSetting,
     Clip,
+    OAuthToken,
     OperatorAction,
     RenderJob,
     SessionRecord,
@@ -35,7 +37,14 @@ def ensure_admin_user(db: Session, settings: PlatformSettings) -> User:
     password_hash = settings.admin_password_hash or hash_password("admin123")
     user = User(email=settings.admin_email, password_hash=password_hash, role="admin", status="active")
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        existing = db.scalar(select(User).where(User.email == settings.admin_email))
+        if existing:
+            return existing
+        raise
     db.refresh(user)
     return user
 
@@ -126,6 +135,50 @@ def set_setting(db: Session, key: str, value: dict[str, object]) -> AppSetting:
         record = AppSetting(key=key, value_json=value)
     else:
         record.value_json = value
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+    return record
+
+
+def get_oauth_token(db: Session, provider: str, subject: str | None = None) -> OAuthToken | None:
+    query = select(OAuthToken).where(OAuthToken.provider == provider)
+    if subject is not None:
+        query = query.where(OAuthToken.subject == subject)
+    query = query.order_by(OAuthToken.updated_at.desc())
+    return db.scalar(query.limit(1))
+
+
+def upsert_oauth_token(
+    db: Session,
+    *,
+    provider: str,
+    subject: str,
+    access_token: str,
+    refresh_token: str | None,
+    scopes: list[str],
+    expires_at,
+) -> OAuthToken:
+    record = db.scalar(
+        select(OAuthToken).where(
+            OAuthToken.provider == provider,
+            OAuthToken.subject == subject,
+        )
+    )
+    if record is None:
+        record = OAuthToken(
+            provider=provider,
+            subject=subject,
+            access_token=access_token,
+            refresh_token=refresh_token,
+            scopes_json=scopes,
+            expires_at=expires_at,
+        )
+    else:
+        record.access_token = access_token
+        record.refresh_token = refresh_token
+        record.scopes_json = scopes
+        record.expires_at = expires_at
     db.add(record)
     db.commit()
     db.refresh(record)

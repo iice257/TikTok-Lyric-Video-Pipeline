@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 import json
+from pathlib import Path
 import time
 
 from sqlalchemy import or_, select, update
@@ -24,9 +25,10 @@ from tiktok_platform.models import (
     UploadJob,
     WorkerHeartbeat,
 )
-from tiktok_platform.services import create_alert, get_setting, record_state_event
+from tiktok_platform.services import create_alert, get_oauth_token, get_setting, record_state_event, upsert_oauth_token
 from tiktok_platform.services import create_alert_once
 from tiktok_platform.settings import PlatformSettings, get_settings
+from tiktok_platform.tiktok_api import TikTokApiClient, TikTokApiError, build_chunk_plan
 
 from .adapters import build_pipeline_config, clip_to_style, lyrics_artifact_to_bundle, new_job_key, segment_candidate_to_selection, song_to_asset
 
@@ -34,13 +36,147 @@ from .adapters import build_pipeline_config, clip_to_style, lyrics_artifact_to_b
 class TikTokUploadAdapter:
     def __init__(self, settings: PlatformSettings) -> None:
         self.settings = settings
+        self.client = TikTokApiClient(
+            client_key=settings.tiktok_client_key,
+            client_secret=settings.tiktok_client_secret,
+            redirect_uri=settings.tiktok_redirect_uri,
+        )
 
-    def publish(self, clip: Clip, upload_job: UploadJob) -> tuple[str, dict[str, object]]:
+    def publish(self, db: Session, clip: Clip, upload_job: UploadJob) -> tuple[str, dict[str, object]]:
         if self.settings.simulate_uploads:
             return "posted", {"simulated": True, "platform_post_id": new_job_key("tiktok-post")}
-        if not self.settings.tiktok_client_key or not self.settings.tiktok_client_secret:
+        if not self.settings.tiktok_client_key or not self.settings.tiktok_client_secret or not self.settings.tiktok_redirect_uri:
             return "failed", {"error": "TikTok credentials are not configured."}
-        return "failed", {"error": "Real TikTok upload integration is not implemented in this scaffold."}
+
+        token = get_oauth_token(db, "tiktok")
+        if token is None:
+            return "failed", {"error": "No TikTok account is connected."}
+        try:
+            refreshed = self.client.ensure_fresh_token(token)
+            if refreshed is not None:
+                token = upsert_oauth_token(
+                    db,
+                    provider="tiktok",
+                    subject=refreshed.open_id,
+                    access_token=refreshed.access_token,
+                    refresh_token=refreshed.refresh_token,
+                    scopes=refreshed.scope,
+                    expires_at=refreshed.expires_at,
+                )
+
+            access_token = token.access_token
+            publish_id = str(upload_job.platform_post_id or (upload_job.platform_response_json or {}).get("publish_id") or "")
+            if publish_id:
+                status_payload = self.client.fetch_post_status(access_token, publish_id)
+                return self._map_status(publish_id, status_payload)
+
+            video_path = Path(clip.video_path or "")
+            if not video_path.exists():
+                return "failed", {"error": "Rendered video file is missing."}
+
+            preferences = get_setting(
+                db,
+                "tiktok_preferences",
+                {
+                    "preferred_privacy_level": "SELF_ONLY",
+                    "allow_comment": False,
+                    "allow_duet": False,
+                    "allow_stitch": False,
+                },
+            )
+            pipeline_settings = get_setting(db, "pipeline", {"paused": False})
+            upload_mode = str(pipeline_settings.get("upload_mode") or self.settings.upload_mode)
+            publish_mode = self._resolve_publish_mode(
+                token.scopes_json,
+                upload_mode,
+                clip.review_required,
+                upload_job.publish_mode,
+            )
+
+            creator_info: dict[str, object] = {}
+            if publish_mode == "direct":
+                creator_info = self.client.query_creator_info(access_token)
+                max_duration = creator_info.get("max_video_post_duration_sec")
+                if max_duration is not None and clip.duration_seconds and clip.duration_seconds > float(max_duration):
+                    return "failed", {
+                        "error": f"Clip duration exceeds TikTok direct-post limit ({max_duration}s).",
+                        "creator_info": creator_info,
+                    }
+                privacy_level = self._select_privacy_level(preferences, creator_info)
+                init_payload = self.client.init_direct_post(
+                    access_token=access_token,
+                    video_path=video_path,
+                    title=clip.caption[:150],
+                    privacy_level=privacy_level,
+                    disable_comment=not bool(preferences.get("allow_comment")),
+                    disable_duet=not bool(preferences.get("allow_duet")),
+                    disable_stitch=not bool(preferences.get("allow_stitch")),
+                )
+            else:
+                init_payload = self.client.init_inbox_upload(
+                    access_token=access_token,
+                    video_path=video_path,
+                    title=clip.caption[:150],
+                )
+
+            publish_id = str(init_payload["publish_id"])
+            upload_url = str(init_payload.get("upload_url") or "")
+            if upload_url:
+                self.client.upload_file(upload_url, video_path, chunk_plan=build_chunk_plan(video_path))
+            status_payload = self.client.fetch_post_status(access_token, publish_id)
+            mapped_status, payload = self._map_status(publish_id, status_payload)
+            payload["mode"] = publish_mode
+            payload["init_payload"] = {key: value for key, value in init_payload.items() if key != "upload_url"}
+            if creator_info:
+                payload["creator_info"] = creator_info
+            return mapped_status, payload
+        except TikTokApiError as exc:
+            return "failed", {"error": str(exc), "code": exc.code, "details": exc.payload}
+
+    def _resolve_publish_mode(self, scopes: list[str], upload_mode: str, review_required: bool, job_publish_mode: str) -> str:
+        if upload_mode == "draft":
+            return "draft"
+        if upload_mode == "direct":
+            return "direct"
+        if review_required or job_publish_mode == "review":
+            return "draft"
+        return "direct" if "video.publish" in scopes else "draft"
+
+    @staticmethod
+    def _select_privacy_level(preferences: dict[str, object], creator_info: dict[str, object]) -> str:
+        requested = str(preferences.get("preferred_privacy_level") or "SELF_ONLY")
+        options = creator_info.get("privacy_level_options") or []
+        if requested in options:
+            return requested
+        if "SELF_ONLY" in options:
+            return "SELF_ONLY"
+        return str(options[0]) if options else "SELF_ONLY"
+
+    @staticmethod
+    def _map_status(publish_id: str, status_payload: dict[str, object]) -> tuple[str, dict[str, object]]:
+        platform_status = str(status_payload.get("status") or "")
+        public_post_ids = status_payload.get("publicaly_available_post_id") or status_payload.get("publicly_available_post_id") or []
+        platform_post_id = str(public_post_ids[0]) if public_post_ids else None
+        payload: dict[str, object] = {
+            "publish_id": publish_id,
+            "platform_status": platform_status,
+            "platform_post_id": platform_post_id,
+            "status_payload": status_payload,
+        }
+        if platform_status == "PUBLISH_COMPLETE":
+            return "posted", payload
+        if platform_status == "FAILED":
+            payload["error"] = status_payload.get("fail_reason") or status_payload.get("reason") or "TikTok publish failed."
+            return "failed", payload
+        if platform_status == "SEND_TO_USER_INBOX":
+            payload["next_poll_after_seconds"] = 300
+            payload["requires_creator_action"] = True
+            return "processing", payload
+        if platform_status in {"PROCESSING_UPLOAD", "PROCESSING_DOWNLOAD"}:
+            payload["next_poll_after_seconds"] = 30
+            return "processing", payload
+        payload["next_poll_after_seconds"] = 60
+        return "processing", payload
 
 
 class PlatformWorker:
@@ -353,6 +489,7 @@ class PlatformWorker:
         for job_id in candidates:
             result = db.execute(
                 update(RenderJob)
+                .execution_options(synchronize_session=False)
                 .where(
                     RenderJob.id == job_id,
                     RenderJob.status.in_(["queued", "retry_wait"]),
@@ -368,7 +505,7 @@ class PlatformWorker:
             )
             if result.rowcount:
                 db.commit()
-                return db.get(RenderJob, job_id)
+                return db.get(RenderJob, job_id, populate_existing=True)
             db.rollback()
         return None
 
@@ -490,7 +627,7 @@ class PlatformWorker:
         jobs = db.scalars(
             select(UploadJob)
             .where(
-                UploadJob.status.in_(["queued", "waiting_window"]),
+                UploadJob.status.in_(["queued", "waiting_window", "processing"]),
                 UploadJob.scheduled_at <= now,
                 or_(UploadJob.lease_expires_at.is_(None), UploadJob.lease_expires_at < now),
             )
@@ -502,9 +639,10 @@ class PlatformWorker:
                 continue
             result = db.execute(
                 update(UploadJob)
+                .execution_options(synchronize_session=False)
                 .where(
                     UploadJob.id == job.id,
-                    UploadJob.status.in_(["queued", "waiting_window"]),
+                    UploadJob.status.in_(["queued", "waiting_window", "processing"]),
                     UploadJob.scheduled_at <= now,
                     or_(UploadJob.lease_expires_at.is_(None), UploadJob.lease_expires_at < now),
                 )
@@ -518,7 +656,7 @@ class PlatformWorker:
             )
             if result.rowcount:
                 db.commit()
-                return db.get(UploadJob, job.id)
+                return db.get(UploadJob, job.id, populate_existing=True)
             db.rollback()
         return None
 
@@ -555,18 +693,43 @@ class PlatformWorker:
             db.add(job)
             db.commit()
             return
-        status_text, payload = self.uploader.publish(clip, job)
+        status_text, payload = self.uploader.publish(db, clip, job)
         job.status = status_text
         job.platform_response_json = payload
-        job.platform_post_id = payload.get("platform_post_id")
-        job.completed_at = utcnow() if status_text in {"posted", "failed"} else None
-        if status_text != "posted":
+        job.platform_post_id = payload.get("platform_post_id") or payload.get("publish_id")
+        job.claimed_by = None
+        job.claimed_at = None
+        job.lease_expires_at = None
+        if status_text == "processing":
+            next_poll_after_seconds = int(payload.get("next_poll_after_seconds") or 60)
+            job.completed_at = None
+            job.last_error = None
+            job.scheduled_at = utcnow() + timedelta(seconds=max(next_poll_after_seconds, 15))
+            clip.last_error = None
+            db.add_all([job, song, clip])
+            record_state_event(
+                db,
+                subject_type="upload_job",
+                subject_id=job.id,
+                event_type="upload_processing",
+                from_state="uploading",
+                to_state=job.status,
+                payload={"clip_id": clip.id, "song_id": song.id, "publish_id": payload.get("publish_id")},
+            )
+            db.commit()
+            return
+        else:
+            job.completed_at = utcnow() if status_text in {"posted", "failed", "quarantined", "cancelled"} else None
+        if status_text == "failed":
             job.last_error = str(payload.get("error", "Upload failed."))
             create_alert(db, kind="upload_failed", severity="error", message=job.last_error, source_type="upload_job", source_id=job.id)
             song.status = "failed"
-        else:
+        elif status_text == "posted":
             song.status = "posted"
             clip.status = "posted"
+            clip.last_error = None
+            job.last_error = None
+        else:
             clip.last_error = None
         db.add_all([job, song, clip])
         record_state_event(
