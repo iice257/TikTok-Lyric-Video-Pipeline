@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { EmptyState, useResource } from "@/components/client-page";
 import { Panel, Shell } from "@/components/shell";
+import { buildMediaUrl } from "@/lib/api";
 
 export default function SongDetailPage({ params }) {
   const { data, loading, error } = useResource(`/songs/${params.id}`);
@@ -23,6 +24,11 @@ export default function SongDetailPage({ params }) {
               </span>
             </div>
             <p className="muted">{data.song.audio_path}</p>
+            <div className="actions">
+              {data.song.audio_path ? <a className="button" href={buildMediaUrl(data.song.audio_path)} target="_blank" rel="noreferrer">Audio</a> : null}
+              {data.song.cover_path ? <a className="button secondary" href={buildMediaUrl(data.song.cover_path)} target="_blank" rel="noreferrer">Cover</a> : null}
+              {data.song.lyrics_path ? <a className="button ghost" href={buildMediaUrl(data.song.lyrics_path)} target="_blank" rel="noreferrer">Lyrics</a> : null}
+            </div>
           </div>
         ) : null}
       </Panel>

@@ -83,3 +83,7 @@ def test_manual_intake_dedupes_by_audio_hash(tmp_path, monkeypatch) -> None:
     assert duplicate.status_code == 200
     assert duplicate.json()["duplicate"] is True
     assert duplicate.json()["song"]["id"] == first.json()["song"]["id"]
+
+    media = client.get("/media", params={"path": first.json()["song"]["audio_path"]})
+    assert media.status_code == 200
+    assert media.content == b"same-audio-binary"

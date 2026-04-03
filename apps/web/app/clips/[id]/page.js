@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { EmptyState, useResource } from "@/components/client-page";
 import { Panel, Shell } from "@/components/shell";
-import { apiFetch, toDatetimeLocal } from "@/lib/api";
+import { apiFetch, buildMediaUrl, toDatetimeLocal } from "@/lib/api";
 
 export default function ClipDetailPage({ params }) {
   const { data, loading, error, setData } = useResource(`/clips/${params.id}`);
@@ -101,6 +101,20 @@ export default function ClipDetailPage({ params }) {
           </div>
         ) : (
           <EmptyState title="No jobs yet" body="Render and upload attempts will appear here." />
+        )}
+      </Panel>
+      <Panel title="Media" subtitle="Preview rendered output and download artifacts">
+        {data?.clip?.video_path ? (
+          <div className="stack">
+            <video className="mediaFrame" controls playsInline src={buildMediaUrl(data.clip.video_path)} />
+            <div className="actions">
+              <a className="button" href={buildMediaUrl(data.clip.video_path)} target="_blank" rel="noreferrer">Open Video</a>
+              {data.clip.subtitle_path ? <a className="button secondary" href={buildMediaUrl(data.clip.subtitle_path)} target="_blank" rel="noreferrer">Subtitles</a> : null}
+              {data.clip.render_manifest_path ? <a className="button ghost" href={buildMediaUrl(data.clip.render_manifest_path)} target="_blank" rel="noreferrer">Manifest</a> : null}
+            </div>
+          </div>
+        ) : (
+          <EmptyState title="No render output yet" body="Rendered video and artifact links will appear here after the render job succeeds." />
         )}
       </Panel>
       <Panel title="Audit Trail" subtitle="Recent state changes for this clip and its jobs">

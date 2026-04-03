@@ -5,6 +5,9 @@ const API_BASE_URL =
 
 export const getApiBaseUrl = () => API_BASE_URL.replace(/\/$/, "");
 
+export const buildMediaUrl = (path) =>
+  `${getApiBaseUrl()}/media?path=${encodeURIComponent(path)}`;
+
 export function getCsrfToken() {
   if (typeof window === "undefined") {
     return "";

@@ -1,33 +1,73 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
+
 import { EmptyState, useResource } from "@/components/client-page";
 import { Panel, Shell } from "@/components/shell";
+import { apiFetch } from "@/lib/api";
 
 export default function OverviewPage() {
-  const { data, loading, error } = useResource("/dashboard/summary");
+  const { data, loading, error, setData } = useResource("/dashboard/summary");
+  const [busy, setBusy] = useState(false);
+
+  async function togglePipeline(paused) {
+    setBusy(true);
+    try {
+      const payload = await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
+      setData((current) => ({ ...current, pipeline: payload.settings }));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <Shell title="Overview">
-      <Panel title="System Health" subtitle="Live queue and worker summary">
+      <Panel
+        title="System Health"
+        subtitle="Live queue and worker summary"
+        action={
+          data ? (
+            <button type="button" className="button secondary" onClick={() => togglePipeline(Boolean(data.pipeline?.paused))} disabled={busy}>
+              {data.pipeline?.paused ? "Resume" : "Pause"}
+            </button>
+          ) : null
+        }
+      >
         {loading ? <p>Loading dashboard...</p> : null}
         {error ? <p className="errorText">{error}</p> : null}
         {data ? (
-          <div className="metrics">
-            <div className="metric">
-              <span>Health</span>
-              <strong>{data.health}</strong>
+          <div className="stack">
+            <div className="metrics">
+              <div className="metric">
+                <span>Health</span>
+                <strong>{data.health}</strong>
+              </div>
+              <div className="metric">
+                <span>Pipeline</span>
+                <strong>{data.pipeline?.paused ? "paused" : "running"}</strong>
+              </div>
+              <div className="metric">
+                <span>Songs</span>
+                <strong>{data.counts.songs}</strong>
+              </div>
+              <div className="metric">
+                <span>Render Backlog</span>
+                <strong>{data.counts.render_backlog}</strong>
+              </div>
+              <div className="metric">
+                <span>Upload Backlog</span>
+                <strong>{data.counts.upload_backlog}</strong>
+              </div>
+              <div className="metric">
+                <span>Next Publish</span>
+                <strong>{data.next_publish_at ? new Date(data.next_publish_at).toLocaleString() : "none"}</strong>
+              </div>
             </div>
-            <div className="metric">
-              <span>Songs</span>
-              <strong>{data.counts.songs}</strong>
-            </div>
-            <div className="metric">
-              <span>Render Backlog</span>
-              <strong>{data.counts.render_backlog}</strong>
-            </div>
-            <div className="metric">
-              <span>Upload Backlog</span>
-              <strong>{data.counts.upload_backlog}</strong>
+            <div className="actions">
+              <Link className="button" href="/intake">Manual Intake</Link>
+              <Link className="button secondary" href="/queue">Open Queue</Link>
+              <Link className="button ghost" href="/settings">Settings</Link>
             </div>
           </div>
         ) : null}

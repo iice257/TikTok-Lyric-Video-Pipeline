@@ -95,6 +95,8 @@ Production split for Vercel + backend host:
 - backend `.env`: set `APP_ENV=prod`, `DATABASE_URL` to Postgres, `COOKIE_SECURE=true`, `COOKIE_SAME_SITE=none`, and real admin/TikTok secrets
 - Vercel env: set `NEXT_PUBLIC_API_BASE_URL` to the public HTTPS backend API URL
 - ensure the backend `FRONTEND_BASE_URL` exactly matches the Vercel app origin
+- the web UI is the main operator surface once deployed: manual intake, queue actions, clip edits, alerts, and pipeline pause/resume all run through the browser
+- media previews and artifact downloads are exposed through authenticated backend `/media` access, so remote devices do not need shell access to the host filesystem
 
 ### Docker Local Start
 

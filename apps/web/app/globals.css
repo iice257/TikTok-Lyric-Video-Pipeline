@@ -138,6 +138,14 @@ button, input, textarea, select {
   background: var(--surface);
 }
 
+.mediaFrame {
+  width: 100%;
+  max-height: 70vh;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: #171513;
+}
+
 .tagRow {
   display: flex;
   gap: 8px;

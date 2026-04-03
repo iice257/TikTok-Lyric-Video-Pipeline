@@ -5,7 +5,8 @@ from pathlib import Path
 import shutil
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -32,6 +33,7 @@ from tiktok_platform.services import (
     log_operator_action,
     persist_upload_file,
     record_state_event,
+    resolve_managed_path,
     serialize_alert,
     serialize_clip,
     serialize_operator_action,
@@ -136,6 +138,16 @@ def list_songs(
 ) -> dict[str, object]:
     songs = db.scalars(select(Song).order_by(Song.updated_at.desc())).all()
     return {"songs": [serialize_song(song) for song in songs]}
+
+
+@router.get("/media")
+def get_media(
+    path: str = Query(...),
+    _: object = Depends(get_current_user),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> FileResponse:
+    target = resolve_managed_path(settings, path)
+    return FileResponse(target, filename=target.name)
 
 
 @router.get("/songs/{song_id}")

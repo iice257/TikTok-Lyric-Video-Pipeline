@@ -254,6 +254,26 @@ def ensure_media_root(settings: PlatformSettings) -> Path:
     return settings.media_root
 
 
+def get_repo_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def resolve_managed_path(settings: PlatformSettings, raw_path: str | None) -> Path:
+    if not raw_path:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File path is missing.")
+    candidate = Path(raw_path).expanduser().resolve(strict=False)
+    allowed_roots = [
+        ensure_media_root(settings),
+        (get_repo_root() / "data").resolve(),
+        (get_repo_root() / "output").resolve(),
+    ]
+    if not candidate.exists() or not candidate.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found.")
+    if not any(candidate.is_relative_to(root) for root in allowed_roots):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="File is outside managed storage.")
+    return candidate
+
+
 def persist_upload_file(file: UploadFile, target: Path) -> dict[str, object]:
     target.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
