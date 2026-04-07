@@ -1,11 +1,27 @@
 "use client";
 
-import Link from "next/link";
+import { AlertTriangle, CheckCircle2, Eye, KeyRound } from "lucide-react";
 import { useState } from "react";
 
 import { EmptyState, useResource } from "@/components/client-page";
-import { Panel, Shell } from "@/components/shell";
+import { Shell } from "@/components/shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
+
+function EventIcon({ kind, severity }) {
+  if (kind?.includes("auth")) {
+    return <KeyRound className="size-5" />;
+  }
+  if (severity === "error") {
+    return <AlertTriangle className="size-5" />;
+  }
+  if (kind?.includes("approval")) {
+    return <Eye className="size-5" />;
+  }
+  return <CheckCircle2 className="size-5" />;
+}
 
 export default function OverviewPage() {
   const { data, loading, error, setData } = useResource("/dashboard/summary");
@@ -22,93 +38,60 @@ export default function OverviewPage() {
   }
 
   return (
-    <Shell title="Overview">
-      <Panel
-        title="System Health"
-        subtitle="Live queue and worker summary"
-        action={
-          data ? (
-            <button type="button" className="button secondary" onClick={() => togglePipeline(Boolean(data.pipeline?.paused))} disabled={busy}>
-              {data.pipeline?.paused ? "Resume" : "Pause"}
-            </button>
-          ) : null
-        }
-      >
-        {loading ? <p>Loading dashboard...</p> : null}
-        {error ? <p className="errorText">{error}</p> : null}
-        {data ? (
-          <div className="stack">
-            <div className="metrics">
-              <div className="metric">
-                <span>Health</span>
-                <strong>{data.health}</strong>
+    <Shell
+      title="Live Event Stream"
+      subtitle="Monitoring all pipeline activities and required actions"
+      status={data?.pipeline?.paused ? "PAUSED" : "RUNNING"}
+      queueCount={data?.counts?.upload_backlog || 0}
+      workerLabel={data?.workers?.[0] ? `${data.workers[0].status.toUpperCase()} (${data.workers[0].current_loop || "idle"})` : "ALIVE (2s)"}
+      rightActions={
+        <Button size="sm" className="uppercase" onClick={() => togglePipeline(Boolean(data?.pipeline?.paused))} disabled={busy}>
+          {data?.pipeline?.paused ? "Resume Flow" : "Pause Flow"}
+        </Button>
+      }
+    >
+      {loading ? <p className="text-sm text-muted-foreground">Loading dashboard...</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      {data?.recent_alerts?.length ? (
+        <div className="flex flex-col gap-6 pb-12">
+          {data.recent_alerts.map((alert, index) => (
+            <div key={alert.id || `${alert.kind}-${index}`} className="event-node relative flex items-start gap-4">
+              <div
+                className={`relative z-10 flex size-11 items-center justify-center rounded-full border ${
+                  alert.severity === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-primary/40 bg-primary/10 text-primary"
+                }`}
+              >
+                <EventIcon kind={alert.kind} severity={alert.severity} />
               </div>
-              <div className="metric">
-                <span>Pipeline</span>
-                <strong>{data.pipeline?.paused ? "paused" : "running"}</strong>
-              </div>
-              <div className="metric">
-                <span>Songs</span>
-                <strong>{data.counts.songs}</strong>
-              </div>
-              <div className="metric">
-                <span>Render Backlog</span>
-                <strong>{data.counts.render_backlog}</strong>
-              </div>
-              <div className="metric">
-                <span>Upload Backlog</span>
-                <strong>{data.counts.upload_backlog}</strong>
-              </div>
-              <div className="metric">
-                <span>Next Publish</span>
-                <strong>{data.next_publish_at ? new Date(data.next_publish_at).toLocaleString() : "none"}</strong>
-              </div>
-            </div>
-            <div className="actions">
-              <Link className="button" href="/intake">Manual Intake</Link>
-              <Link className="button secondary" href="/queue">Open Queue</Link>
-              <Link className="button ghost" href="/settings">Settings</Link>
-            </div>
-          </div>
-        ) : null}
-      </Panel>
-      <Panel title="Workers" subtitle="Heartbeat and current loop">
-        {data?.workers?.length ? (
-          <div className="list">
-            {data.workers.map((worker) => (
-              <div className="itemCard" key={worker.id}>
-                <strong>{worker.worker_name}</strong>
-                <p className="muted">
-                  {worker.status} · {worker.current_loop || "idle"}
-                </p>
-                <div className="tagRow">
-                  <span className="tag">{new Date(worker.last_seen_at).toLocaleString()}</span>
+              <Card className="w-full border-border bg-card/80 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant="outline" className="uppercase">
+                        {alert.severity === "error" ? "Critical Alert" : "Pending Approval"}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">{new Date(alert.created_at).toLocaleTimeString()}</span>
+                    </div>
+                    <h3 className="text-base font-semibold">{alert.kind}</h3>
+                    <p className="text-sm text-muted-foreground">{alert.message}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="uppercase">
+                      Dismiss
+                    </Button>
+                    <Button size="sm" className="uppercase">
+                      Retry Job
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No workers yet" body="Start the worker process to populate heartbeat data." />
-        )}
-      </Panel>
-      <Panel title="Recent Alerts" subtitle="Newest issues surfaced by the monitor" className="full">
-        {data?.recent_alerts?.length ? (
-          <div className="list">
-            {data.recent_alerts.map((alert) => (
-              <div className="itemCard" key={alert.id}>
-                <strong>{alert.kind}</strong>
-                <p>{alert.message}</p>
-                <div className="tagRow">
-                  <span className={`tag ${alert.severity === "error" ? "danger" : "warning"}`}>{alert.severity}</span>
-                  <span className="tag">{alert.status}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No alerts" body="Current runs are not raising incidents." />
-        )}
-      </Panel>
+              </Card>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="No events yet" body="Pipeline events and approvals will stream here once jobs begin running." />
+      )}
     </Shell>
   );
 }

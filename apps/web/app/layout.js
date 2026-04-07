@@ -1,4 +1,17 @@
 import "./globals.css";
+import { Inter, Space_Grotesk } from "next/font/google";
+
+import { TooltipProvider } from "@/components/ui/tooltip";
+
+const bodyFont = Inter({
+  variable: "--font-body",
+  subsets: ["latin"],
+});
+
+const headlineFont = Space_Grotesk({
+  variable: "--font-headline",
+  subsets: ["latin"],
+});
 
 export const metadata = {
   title: "TikTok Lyric Platform",
@@ -8,7 +21,9 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={`${bodyFont.variable} ${headlineFont.variable} dark`}>
+        <TooltipProvider>{children}</TooltipProvider>
+      </body>
     </html>
   );
 }
