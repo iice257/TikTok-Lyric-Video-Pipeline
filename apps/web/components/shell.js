@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, Clapperboard, Home, Music2, Settings, ShieldAlert, Terminal, Waves, ListChecks, FileClock, LogOut } from "lucide-react";
+import { Clapperboard, Home, Music2, Settings, Terminal, Waves, LogOut } from "lucide-react";
 import { useState } from "react";
 
 import { IntakeSheet } from "@/components/intake-sheet";
@@ -16,12 +16,6 @@ const primaryNav = [
   { href: "/", label: "Event Console", icon: Terminal },
   { href: "/songs", label: "Clip Browser", icon: Clapperboard },
   { href: "/settings", label: "Configuration", icon: Settings },
-];
-
-const secondaryNav = [
-  { href: "/queue", label: "Queue", icon: ListChecks },
-  { href: "/alerts", label: "Alerts", icon: ShieldAlert },
-  { href: "/logs", label: "Logs", icon: FileClock },
 ];
 
 export function Shell({
@@ -101,25 +95,6 @@ export function Shell({
               <span>TikTok Sync</span>
             </Link>
           </nav>
-          <Separator />
-          <nav className="space-y-1 px-3 py-5">
-            {secondaryNav.map((item) => {
-              const Icon = item.icon;
-              const active = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                    active ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
-                  }`}
-                >
-                  <Icon className="size-4" />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
           <div className="mt-auto border-t border-border px-3 py-4">
             <Button variant="ghost" className="w-full justify-start" onClick={logout}>
               <LogOut className="size-4" />
@@ -189,24 +164,22 @@ export function Shell({
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-popover/95 p-2 backdrop-blur lg:hidden">
-        {[...primaryNav, { href: "/queue", label: "Queue", icon: ListChecks }, { href: "/alerts", label: "Alerts", icon: AlertTriangle }].map(
-          (item) => {
-            const Icon = item.icon;
-            const active = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-1 flex-col items-center gap-1 rounded-md px-2 py-1 text-[0.625rem] uppercase ${
-                  active ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                <Icon className="size-4" />
-                <span>{item.label}</span>
-              </Link>
-            );
-          }
-        )}
+        {primaryNav.map((item) => {
+          const Icon = item.icon;
+          const active = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex flex-1 flex-col items-center gap-1 rounded-md px-2 py-1 text-[0.625rem] uppercase ${
+                active ? "text-primary" : "text-muted-foreground"
+              }`}
+            >
+              <Icon className="size-4" />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
       </div>
 
       <IntakeSheet open={intakeOpen} onOpenChange={setIntakeOpen} />

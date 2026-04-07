@@ -3,7 +3,10 @@
 import { useState } from "react";
 
 import { EmptyState, useResource } from "@/components/client-page";
-import { Panel, Shell } from "@/components/shell";
+import { Shell } from "@/components/shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api";
 
 export default function AlertsPage() {
@@ -24,32 +27,36 @@ export default function AlertsPage() {
   }
 
   return (
-    <Shell title="Alerts">
-      <Panel title="Active Alerts" subtitle="Failures, stalls, and token issues">
-        {loading ? <p>Loading alerts...</p> : null}
-        {error ? <p className="errorText">{error}</p> : null}
-        {data?.alerts?.length ? (
-          <div className="list">
-            {data.alerts.map((alert) => (
-              <div className="itemCard" key={alert.id}>
-                <strong>{alert.kind}</strong>
-                <p>{alert.message}</p>
-                <div className="tagRow">
-                  <span className={`tag ${alert.severity === "error" ? "danger" : "warning"}`}>{alert.severity}</span>
-                  <span className="tag">{alert.status}</span>
+    <Shell title="Active Alerts" subtitle="Failures, stalls, and token issues requiring action.">
+      {loading ? <p className="text-sm text-muted-foreground">Loading alerts...</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {data?.alerts?.length ? (
+        <div className="space-y-4">
+          {data.alerts.map((alert) => (
+            <Card key={alert.id} className="space-y-4 border-border bg-card p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <h3 className="text-base font-semibold">{alert.kind}</h3>
+                  <p className="text-sm text-muted-foreground">{alert.message}</p>
                 </div>
-                {alert.status !== "acknowledged" ? (
-                  <div className="actions" style={{ marginTop: 12 }}>
-                    <button onClick={() => acknowledge(alert.id)} disabled={busyId === alert.id}>Acknowledge</button>
-                  </div>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  <Badge className={alert.severity === "error" ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-primary/30 bg-primary/10 text-primary"}>
+                    {alert.severity}
+                  </Badge>
+                  <Badge variant="outline">{alert.status}</Badge>
+                </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No alerts" body="The monitor has not raised any issues." />
-        )}
-      </Panel>
+              {alert.status !== "acknowledged" ? (
+                <Button size="sm" onClick={() => acknowledge(alert.id)} disabled={busyId === alert.id}>
+                  Acknowledge
+                </Button>
+              ) : null}
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="No alerts" body="The monitor has not raised any active incidents." />
+      )}
     </Shell>
   );
 }

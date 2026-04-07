@@ -1,10 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 
 import { EmptyState, useResource } from "@/components/client-page";
-import { Panel, Shell } from "@/components/shell";
+import { Shell } from "@/components/shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { apiFetch, toDatetimeLocal } from "@/lib/api";
 
 export default function QueuePage() {
@@ -30,57 +34,92 @@ export default function QueuePage() {
   }
 
   return (
-    <Shell title="Queue">
-      <Panel title="Upcoming Uploads" subtitle="Review, approve, reschedule, or force publish">
-        {loading ? <p>Loading queue...</p> : null}
-        {error ? <p className="errorText">{error}</p> : null}
-        {data?.upload_jobs?.length ? (
-          <div className="list">
-            {data.upload_jobs.map((job) => (
-              <div className="itemCard" key={job.id}>
-                <strong>{job.clip_id}</strong>
-                <p className="muted">{job.scheduled_at ? new Date(job.scheduled_at).toLocaleString() : "unscheduled"}</p>
-                <div className="tagRow">
-                  <span className="tag">{job.publish_mode}</span>
-                  <span className="tag">{job.status}</span>
+    <Shell title="Upload Queue" subtitle="Review, approve, reschedule, or force publish jobs.">
+      {loading ? <p className="text-sm text-muted-foreground">Loading queue...</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {data?.upload_jobs?.length ? (
+        <div className="space-y-4">
+          {data.upload_jobs.map((job) => (
+            <Card key={job.id} className="space-y-4 border-border bg-card p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold">{job.clip_id}</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {job.scheduled_at ? new Date(job.scheduled_at).toLocaleString() : "unscheduled"}
+                  </p>
                 </div>
-                {job.last_error ? <p className="errorText">{job.last_error}</p> : null}
-                <label className="field" style={{ marginTop: 12 }}>
-                  <span>Schedule</span>
-                  <input
-                    type="datetime-local"
-                    value={scheduleEdits[job.id] ?? toDatetimeLocal(job.scheduled_at)}
-                    onChange={(event) =>
-                      setScheduleEdits((current) => ({ ...current, [job.id]: event.target.value }))
-                    }
-                  />
-                </label>
-                <div className="actions" style={{ marginTop: 12 }}>
-                  <button onClick={() => runAction(job.id, `/upload-jobs/${job.id}/approve`)} disabled={busyId === job.id}>Approve</button>
-                  <button
-                    className="button secondary"
-                    onClick={() =>
-                      runAction(job.id, `/upload-jobs/${job.id}/reschedule`, {
-                        scheduled_at: new Date(scheduleEdits[job.id] || job.scheduled_at).toISOString(),
-                      })
-                    }
-                    disabled={busyId === job.id}
-                  >
-                    Reschedule
-                  </button>
-                  <button className="button ghost" onClick={() => runAction(job.id, `/jobs/${job.id}/retry`, { reason: "retried from queue" })} disabled={busyId === job.id}>Retry</button>
-                  <button className="button ghost" onClick={() => runAction(job.id, `/jobs/${job.id}/quarantine`, { reason: "quarantined from queue" })} disabled={busyId === job.id}>Quarantine</button>
-                  <button className="button secondary" onClick={() => runAction(job.id, `/upload-jobs/${job.id}/force-publish`)} disabled={busyId === job.id}>Force</button>
-                  <button className="button ghost" onClick={() => runAction(job.id, `/jobs/${job.id}/cancel`, { reason: "cancelled from queue" })} disabled={busyId === job.id}>Cancel</button>
-                  <Link className="button ghost" href={`/clips/${job.clip_id}`}>Clip</Link>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{job.publish_mode}</Badge>
+                  <Badge variant="outline">{job.status}</Badge>
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="Queue is empty" body="Rendered clips will appear here once upload jobs are created." />
-        )}
-      </Panel>
+              {job.last_error ? <p className="text-sm text-destructive">{job.last_error}</p> : null}
+              <div className="max-w-xs space-y-2">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Schedule</p>
+                <Input
+                  type="datetime-local"
+                  value={scheduleEdits[job.id] ?? toDatetimeLocal(job.scheduled_at)}
+                  onChange={(event) => setScheduleEdits((current) => ({ ...current, [job.id]: event.target.value }))}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => runAction(job.id, `/upload-jobs/${job.id}/approve`)} disabled={busyId === job.id}>
+                  Approve
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    runAction(job.id, `/upload-jobs/${job.id}/reschedule`, {
+                      scheduled_at: new Date(scheduleEdits[job.id] || job.scheduled_at).toISOString(),
+                    })
+                  }
+                  disabled={busyId === job.id}
+                >
+                  Reschedule
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => runAction(job.id, `/jobs/${job.id}/retry`, { reason: "retried from queue" })}
+                  disabled={busyId === job.id}
+                >
+                  Retry
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => runAction(job.id, `/jobs/${job.id}/quarantine`, { reason: "quarantined from queue" })}
+                  disabled={busyId === job.id}
+                >
+                  Quarantine
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => runAction(job.id, `/upload-jobs/${job.id}/force-publish`)}
+                  disabled={busyId === job.id}
+                >
+                  Force
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => runAction(job.id, `/jobs/${job.id}/cancel`, { reason: "cancelled from queue" })}
+                  disabled={busyId === job.id}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" variant="ghost" asChild>
+                  <Link href={`/clips/${job.clip_id}`}>Clip</Link>
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <EmptyState title="Queue is empty" body="Rendered clips will appear here once upload jobs are created." />
+      )}
     </Shell>
   );
 }
