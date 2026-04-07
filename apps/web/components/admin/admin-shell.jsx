@@ -81,12 +81,12 @@ function BoltBadge() {
 
 function NavButton({ active, children, icon: Icon, disabled, href, onClick }) {
   const classes = cn(
-    "flex h-10 items-center gap-3 border-l-2 px-4 text-sm font-medium transition-colors",
+    "mx-3 flex h-10 items-center gap-3 rounded-sm px-4 text-sm transition-colors",
     active
-      ? "border-primary bg-primary/10 text-primary"
+      ? "bg-primary/10 font-semibold text-primary"
       : disabled
-        ? "border-transparent text-muted-foreground/45"
-        : "border-transparent text-muted-foreground hover:bg-muted hover:text-foreground"
+        ? "text-muted-foreground/45"
+        : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
   );
 
   if (href) {
@@ -124,7 +124,8 @@ function StatusBlock({ label, value, accent }) {
       <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </span>
-      <span className={cn("text-base font-semibold uppercase tracking-tight", accent && "text-primary")}>
+      <span className={cn("flex items-center gap-2 text-base font-semibold uppercase tracking-tight", accent && "text-primary")}>
+        {accent ? <span className="size-2 rounded-full bg-primary" /> : null}
         {value}
       </span>
     </div>
@@ -217,8 +218,10 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
 
       <div className="flex min-h-[calc(100vh-1.5rem)]">
         <aside className="hidden w-64 shrink-0 border-r border-border bg-card md:flex md:flex-col">
-          <div className="flex items-center gap-3 border-b border-border px-5 py-5">
-            <BoltBadge />
+          <div className="flex items-center gap-3 border-b border-border px-6 py-6">
+            <div className="rounded-sm ring-1 ring-border/70">
+              <BoltBadge />
+            </div>
             <div className="min-w-0">
               <p className="truncate text-base font-semibold tracking-tight">Pipeline Cockpit</p>
               <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-primary">
@@ -279,7 +282,7 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
                 <div className="flex flex-wrap items-center gap-5">
                   <StatusBlock label="State" value={status?.state || "RUNNING"} accent />
                   <Separator orientation="vertical" className="hidden h-8 sm:block" />
-                  <StatusBlock label="Worker" value={status?.worker || "ALIVE (2s)"} accent />
+                  <StatusBlock label="Worker" value={status?.worker || "ALIVE (2s)"} />
                   <Separator orientation="vertical" className="hidden h-8 sm:block" />
                   <StatusBlock label="Queue" value={status?.queue || "18 Jobs"} />
                 </div>

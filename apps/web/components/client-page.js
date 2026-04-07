@@ -37,8 +37,8 @@ export function useResource(path, initial = null) {
     const interval = window.setInterval(() => load(false), 15000);
     return () => {
       cancelled = true;
-        window.clearInterval(interval);
-      };
+      window.clearInterval(interval);
+    };
   }, [path]);
 
   reloadRef.current = async (showSpinner = true) => {

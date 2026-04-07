@@ -8,7 +8,7 @@ import { apiFetch } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
 const PRIVACY_AUTO = "__auto__";
@@ -54,6 +54,7 @@ function SettingRow({ title, description, control }) {
 export default function SettingsPage() {
   const pipelineResource = useResource("/pipeline/settings");
   const tiktokResource = useResource("/integrations/tiktok/status");
+  const dashboardResource = useResource("/dashboard/summary");
   const [pipelineMessage, setPipelineMessage] = useState("");
   const [tiktokMessage, setTiktokMessage] = useState("");
   const [pipelinePaused, setPipelinePaused] = useState(false);
@@ -106,6 +107,7 @@ export default function SettingsPage() {
         }),
       });
       await pipelineResource.reload();
+      await dashboardResource.reload(false);
       setPipelineMessage("SETTINGS SAVED");
     } catch (err) {
       setPipelineMessage(`ERROR: ${err.message}`);
@@ -132,6 +134,7 @@ export default function SettingsPage() {
     try {
       await apiFetch("/integrations/tiktok/disconnect", { method: "POST" });
       await tiktokResource.reload();
+      await dashboardResource.reload(false);
       setTiktokMessage("ACCOUNT DISCONNECTED");
     } catch (err) {
       setTiktokMessage(`ERROR: ${err.message}`);
@@ -150,6 +153,7 @@ export default function SettingsPage() {
         }),
       });
       await tiktokResource.reload();
+      await dashboardResource.reload(false);
       setTiktokMessage("PREFERENCES SAVED");
     } catch (err) {
       setTiktokMessage(`ERROR: ${err.message}`);
@@ -162,6 +166,7 @@ export default function SettingsPage() {
     try {
       await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
       await pipelineResource.reload();
+      await dashboardResource.reload(false);
     } finally {
       setBusy(false);
     }
@@ -171,6 +176,12 @@ export default function SettingsPage() {
   const tiktokData = tiktokResource.data?.integration;
   const creatorInfo = tiktokData?.creator_info;
   const privacyOptions = creatorInfo?.privacy_level_options || [];
+  const dashboardData = dashboardResource.data;
+  const openAlerts = dashboardData?.counts?.open_alerts ?? 0;
+  const uploadBacklog = dashboardData?.counts?.upload_backlog ?? 0;
+  const renderBacklog = dashboardData?.counts?.render_backlog ?? 0;
+  const workerCount = dashboardData?.workers?.length ?? 0;
+  const pendingApprovals = dashboardData?.pending_upload_jobs?.length ?? 0;
 
   return (
     <AdminShell
@@ -218,9 +229,11 @@ export default function SettingsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="hybrid">hybrid</SelectItem>
-                        <SelectItem value="draft">draft</SelectItem>
-                        <SelectItem value="direct">direct</SelectItem>
+                        <SelectGroup>
+                          <SelectItem value="hybrid">hybrid</SelectItem>
+                          <SelectItem value="draft">draft</SelectItem>
+                          <SelectItem value="direct">direct</SelectItem>
+                        </SelectGroup>
                       </SelectContent>
                     </Select>
                   }
@@ -320,12 +333,14 @@ export default function SettingsPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={PRIVACY_AUTO}>auto select</SelectItem>
-                          {privacyOptions.map((option) => (
-                            <SelectItem key={option} value={option}>
-                              {option}
-                            </SelectItem>
-                          ))}
+                          <SelectGroup>
+                            <SelectItem value={PRIVACY_AUTO}>auto select</SelectItem>
+                            {privacyOptions.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
                         </SelectContent>
                       </Select>
                     }
@@ -382,6 +397,202 @@ export default function SettingsPage() {
                 </Button>
               </>
             ) : null}
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Authentication
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <SettingRow
+              title="TikTok Session"
+              description="OAuth token state for scheduled uploads"
+              control={
+                <Badge variant={tiktokData?.connected ? "default" : "secondary"} className="uppercase tracking-[0.18em]">
+                  {tiktokData?.connected ? "Connected" : "Disconnected"}
+                </Badge>
+              }
+            />
+            <SettingRow
+              title="Active Subject"
+              description="Connected TikTok account subject"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {tiktokData?.subject || "Unavailable"}
+                </span>
+              }
+            />
+            <SettingRow
+              title="Token Expiry"
+              description="Current access token expiration"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {tiktokData?.expires_at ? new Date(tiktokData.expires_at).toLocaleString() : "Unavailable"}
+                </span>
+              }
+            />
+            <SettingRow
+              title="Creator Account"
+              description="Current TikTok creator profile"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {creatorInfo?.creator_nickname || creatorInfo?.creator_username || "Unavailable"}
+                </span>
+              }
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <SettingRow
+              title="Critical Alerts"
+              description="Open alerts requiring operator review"
+              control={
+                <Badge variant={openAlerts ? "secondary" : "outline"} className="uppercase tracking-[0.18em]">
+                  {openAlerts} Open
+                </Badge>
+              }
+            />
+            <SettingRow
+              title="Approval Queue"
+              description="Pending upload reviews in the event console"
+              control={
+                <Badge variant={pendingApprovals ? "default" : "outline"} className="uppercase tracking-[0.18em]">
+                  {pendingApprovals} Pending
+                </Badge>
+              }
+            />
+            <SettingRow
+              title="Delivery Mode"
+              description="Verified notification surface in this build"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  In-console only
+                </span>
+              }
+            />
+            <div className="rounded-md border border-border bg-background px-4 py-4 text-sm text-muted-foreground">
+              External webhook delivery is not exposed by the current project API, so alerts remain operator-visible inside the terminal.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Automation
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <SettingRow
+              title="Publish Strategy"
+              description="Current output mode for upload jobs"
+              control={
+                <Badge variant="outline" className="uppercase tracking-[0.18em]">
+                  {uploadMode}
+                </Badge>
+              }
+            />
+            <SettingRow
+              title="Target Window"
+              description="Daily clip target range"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {minVideos} to {maxVideos}
+                </span>
+              }
+            />
+            <SettingRow
+              title="Approval Flow"
+              description="Posting approval model backed by existing endpoints"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  Manual review
+                </span>
+              }
+            />
+            <SettingRow
+              title="Pipeline State"
+              description="Current automation gate"
+              control={
+                <Badge variant={pipelinePaused ? "secondary" : "default"} className="uppercase tracking-[0.18em]">
+                  {pipelinePaused ? "Paused" : "Running"}
+                </Badge>
+              }
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              System
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <SettingRow
+              title="Health"
+              description="Current dashboard summary state"
+              control={
+                <Badge variant={dashboardData?.health === "healthy" ? "default" : "secondary"} className="uppercase tracking-[0.18em]">
+                  {dashboardData?.health || "Unknown"}
+                </Badge>
+              }
+            />
+            <SettingRow
+              title="Workers"
+              description="Heartbeat records visible to the dashboard"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {workerCount} Active
+                </span>
+              }
+            />
+            <SettingRow
+              title="Render Backlog"
+              description="Queued render work"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {renderBacklog} Jobs
+                </span>
+              }
+            />
+            <SettingRow
+              title="Upload Backlog"
+              description="Queued upload work"
+              control={
+                <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {uploadBacklog} Jobs
+                </span>
+              }
+            />
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="uppercase tracking-[0.18em]">
+                {pipelineData?.env?.app_env || "unknown"}
+              </Badge>
+              <Badge variant={pipelineData?.env?.lab_enabled ? "secondary" : "outline"} className="uppercase tracking-[0.18em]">
+                Lab {pipelineData?.env?.lab_enabled ? "On" : "Off"}
+              </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => dashboardResource.reload()}
+                className="uppercase tracking-[0.18em] text-muted-foreground"
+              >
+                Refresh Status
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

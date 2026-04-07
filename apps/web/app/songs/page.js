@@ -168,7 +168,7 @@ export default function SongsPage() {
                       <div className="min-w-0">
                         <p className="truncate text-lg font-semibold tracking-tight">{clip.caption || clip.id}</p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          {clip.duration_seconds ? `0${Math.floor(clip.duration_seconds / 60)}:${String(clip.duration_seconds % 60).padStart(2, "0")}` : "00:00"} • {new Date(clip.updated_at).toLocaleString()}
+                          {clip.duration_seconds ? `0${Math.floor(clip.duration_seconds / 60)}:${String(clip.duration_seconds % 60).padStart(2, "0")}` : "00:00"} | {new Date(clip.updated_at).toLocaleString()}
                         </p>
                       </div>
                       <Badge variant={clipBadge(clip.status)} className="uppercase tracking-[0.18em]">
@@ -204,7 +204,7 @@ export default function SongsPage() {
                         {song.artist} - {song.title}
                       </p>
                       <p className="mt-2 text-sm text-muted-foreground">
-                        {song.source_type} • {song.rights_status}
+                        {song.source_type} | {song.rights_status}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">

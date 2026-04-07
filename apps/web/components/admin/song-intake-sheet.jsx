@@ -25,11 +25,6 @@ export function SongIntakeSheet({ open, onOpenChange }) {
   async function onSubmit(event) {
     event.preventDefault();
 
-    if (method !== "manual_upload") {
-      setMessage("SOURCE URL DISPATCH IS NOT YET CONNECTED. SWITCH TO MANUAL UPLOAD.");
-      return;
-    }
-
     setSubmitting(true);
     setMessage("");
     const form = new FormData(event.currentTarget);
@@ -189,12 +184,23 @@ export function SongIntakeSheet({ open, onOpenChange }) {
                 </p>
               ) : (
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Sequence ready for execution
+                  {method === "manual_upload"
+                    ? "Sequence ready for execution"
+                    : "Manual upload is the active intake path"}
                 </p>
               )}
 
-              <Button type="submit" disabled={submitting} size="lg" className="h-11 uppercase tracking-[0.2em]">
-                {submitting ? "Dispatching..." : "Dispatch To Pipeline"}
+              <Button
+                type="submit"
+                disabled={submitting || method !== "manual_upload"}
+                size="lg"
+                className="h-11 uppercase tracking-[0.2em]"
+              >
+                {submitting
+                  ? "Dispatching..."
+                  : method === "manual_upload"
+                    ? "Dispatch To Pipeline"
+                    : "Switch To Manual Upload"}
               </Button>
             </div>
           </SheetFooter>

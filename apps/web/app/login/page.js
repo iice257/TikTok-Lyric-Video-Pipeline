@@ -35,29 +35,40 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-md border-border bg-card">
-        <CardHeader className="space-y-2">
-          <p className="text-xs uppercase tracking-widest text-primary">Control Panel</p>
-          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="space-y-4" onSubmit={onSubmit}>
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Email</Label>
-              <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/40" />
-            </div>
-            <div className="grid gap-2">
-              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Password</Label>
-              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/40" />
-            </div>
-            {error ? <p className="text-xs uppercase tracking-widest text-destructive">{error}</p> : null}
-            <Button type="submit" disabled={submitting} className="w-full uppercase tracking-widest">
-              {submitting ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+    <main className="min-h-screen bg-background text-foreground">
+      <div className="flex h-6 items-center gap-4 border-b border-border bg-card px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+        <span className="flex items-center gap-2 text-primary">
+          <span className="size-1.5 rounded-full bg-primary" />
+          Sys Log: Control surface locked
+        </span>
+        <span className="hidden md:inline">Secure session required</span>
+      </div>
+
+      <div className="flex min-h-[calc(100vh-1.5rem)] items-center justify-center px-4 py-8">
+        <Card className="w-full max-w-md border-border bg-card/90">
+          <CardHeader className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Pipeline Cockpit</p>
+            <CardTitle className="text-3xl font-semibold tracking-tight">Sign In</CardTitle>
+            <p className="text-sm text-muted-foreground">Authenticate to access the admin terminal.</p>
+          </CardHeader>
+          <CardContent>
+            <form className="flex flex-col gap-4" onSubmit={onSubmit}>
+              <div className="grid gap-2">
+                <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Email</Label>
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 border-border bg-background" />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
+                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 border-border bg-background" />
+              </div>
+              {error ? <p className="text-xs uppercase tracking-[0.18em] text-destructive">{error}</p> : null}
+              <Button type="submit" disabled={submitting} size="lg" className="w-full uppercase tracking-[0.2em]">
+                {submitting ? "Signing In..." : "Sign In"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }
