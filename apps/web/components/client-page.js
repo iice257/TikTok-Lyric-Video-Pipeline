@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
 
@@ -8,6 +8,7 @@ export function useResource(path, initial = null) {
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const reloadRef = useRef(async () => {});
 
   useEffect(() => {
     let cancelled = false;
@@ -36,18 +37,28 @@ export function useResource(path, initial = null) {
     const interval = window.setInterval(() => load(false), 15000);
     return () => {
       cancelled = true;
-      window.clearInterval(interval);
-    };
+        window.clearInterval(interval);
+      };
   }, [path]);
 
-  return { data, loading, error, setData };
-}
+  reloadRef.current = async (showSpinner = true) => {
+    if (showSpinner) {
+      setLoading(true);
+    }
+    try {
+      const payload = await apiFetch(path);
+      setData(payload);
+      setError("");
+      return payload;
+    } catch (err) {
+      setError(err.message);
+      throw err;
+    } finally {
+      if (showSpinner) {
+        setLoading(false);
+      }
+    }
+  };
 
-export function EmptyState({ title, body }) {
-  return (
-    <div className="emptyState">
-      <h3>{title}</h3>
-      <p>{body}</p>
-    </div>
-  );
+  return { data, loading, error, setData, reload: reloadRef.current };
 }

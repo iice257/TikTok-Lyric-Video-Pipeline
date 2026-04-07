@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
-import { buildMediaUrl } from "@/lib/api";
+import { apiFetch, buildMediaUrl } from "@/lib/api";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -22,13 +22,25 @@ function clipBadge(status) {
   return "outline";
 }
 
+function describeClip(clip) {
+  return `${clip.caption || ""} ${clip.status || ""}`.toLowerCase();
+}
+
+function describeSong(song) {
+  return `${song.artist || ""} ${song.title || ""} ${song.rights_status || ""}`.toLowerCase();
+}
+
 export default function SongsPage() {
   const clipResource = useResource("/clips");
   const songResource = useResource("/songs");
+  const pipelineResource = useResource("/pipeline/settings");
 
   const router = useRouter();
   const pathname = usePathname();
   const [queryString, setQueryString] = useState("");
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -49,105 +61,175 @@ export default function SongsPage() {
     router.push(`${pathname}?${nextQuery}`);
   }
 
+  async function togglePipeline() {
+    const paused = Boolean(pipelineResource.data?.pipeline?.paused);
+    setBusy(true);
+    try {
+      await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
+      await pipelineResource.reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const filteredClips = useMemo(() => {
+    const clips = clipResource.data?.clips || [];
+    if (!deferredQuery) {
+      return clips;
+    }
+    return clips.filter((clip) => describeClip(clip).includes(deferredQuery));
+  }, [clipResource.data?.clips, deferredQuery]);
+
+  const filteredSongs = useMemo(() => {
+    const songs = songResource.data?.songs || [];
+    if (!deferredQuery) {
+      return songs;
+    }
+    return songs.filter((song) => describeSong(song).includes(deferredQuery));
+  }, [songResource.data?.songs, deferredQuery]);
+
   return (
     <AdminShell
       title="Clip Browser"
       subtitle="Manage and review all pipeline media assets."
+      status={{
+        state: pipelineResource.data?.pipeline?.paused ? "PAUSED" : "RUNNING",
+      }}
       actions={
-        <Button size="sm" className="uppercase tracking-widest">
-          Pause Flow
-        </Button>
+        <>
+          <Button variant="destructive" size="sm" disabled className="uppercase tracking-[0.18em]">
+            Emergency Stop
+          </Button>
+          <Button
+            size="sm"
+            disabled={busy}
+            onClick={togglePipeline}
+            className="uppercase tracking-[0.18em]"
+          >
+            {pipelineResource.data?.pipeline?.paused ? "Resume Flow" : "Pause Flow"}
+          </Button>
+        </>
       }
     >
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2 border border-border bg-card p-2">
+      <Tabs value={view} onValueChange={setView} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 rounded-md border border-border bg-card/80 p-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <TabsList className="grid w-full max-w-60 grid-cols-2 rounded-md border border-border bg-background p-1">
+              <TabsTrigger value="clips" className="uppercase tracking-[0.18em]">
+                Clips
+              </TabsTrigger>
+              <TabsTrigger value="songs" className="uppercase tracking-[0.18em]">
+                Songs
+              </TabsTrigger>
+            </TabsList>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em]">
+                Status
+              </Button>
+              <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em]">
+                Type
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setQuery("")} className="uppercase tracking-[0.18em]">
+                Reset
+              </Button>
+            </div>
+          </div>
+
           <Input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
             placeholder="Quick search..."
-            className="h-9 flex-1 bg-secondary/40 text-xs"
+            className="h-10 border-border bg-background"
           />
-          <Button variant="outline" size="sm" className="uppercase tracking-widest">
-            Status
-          </Button>
-          <Button variant="outline" size="sm" className="uppercase tracking-widest">
-            Type
-          </Button>
-          <Button variant="ghost" size="sm" className="uppercase tracking-widest text-muted-foreground">
-            Reset
-          </Button>
         </div>
 
-        <Tabs value={view} onValueChange={setView}>
-          <TabsList className="grid h-auto w-full max-w-sm grid-cols-2 bg-secondary/40 p-1">
-            <TabsTrigger value="clips" className="h-9 uppercase tracking-widest">Clips</TabsTrigger>
-            <TabsTrigger value="songs" className="h-9 uppercase tracking-widest">Songs</TabsTrigger>
-          </TabsList>
+        <TabsContent value="clips" className="m-0">
+          {clipResource.loading ? <p className="text-sm text-muted-foreground">Loading clips...</p> : null}
+          {clipResource.error ? <p className="text-sm text-destructive">{clipResource.error}</p> : null}
 
-          <TabsContent value="clips" className="mt-4">
-            {clipResource.loading ? <p className="text-sm text-muted-foreground">Loading clips...</p> : null}
-            {clipResource.error ? <p className="text-sm text-destructive">{clipResource.error}</p> : null}
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {(clipResource.data?.clips || []).map((clip) => (
-                <Link key={clip.id} href={`/clips/${clip.id}`}>
-                  <Card className="h-full border-border bg-card transition-colors hover:border-primary/60">
-                    <CardContent className="space-y-3 p-3">
-                      <div className="aspect-video overflow-hidden border border-border bg-background/60">
-                        {clip.preview_path || clip.video_path ? (
-                          <video
-                            className="h-full w-full object-cover"
-                            muted
-                            playsInline
-                            preload="metadata"
-                            src={buildMediaUrl(clip.preview_path || clip.video_path)}
-                          />
-                        ) : null}
-                      </div>
-                      <div className="space-y-2">
-                        <p className="truncate text-sm font-semibold">{clip.caption || clip.id}</p>
-                        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                          <span>{clip.duration_seconds ? `${clip.duration_seconds}s` : "n/a"}</span>
-                          <span>{new Date(clip.updated_at).toLocaleString()}</span>
-                        </div>
-                        <Badge variant={clipBadge(clip.status)} className="uppercase tracking-widest">
-                          {clip.status}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="songs" className="mt-4">
-            {songResource.loading ? <p className="text-sm text-muted-foreground">Loading songs...</p> : null}
-            {songResource.error ? <p className="text-sm text-destructive">{songResource.error}</p> : null}
-            <div className="space-y-3">
-              {(songResource.data?.songs || []).map((song) => (
-                <Link key={song.id} href={`/songs/${song.id}`}>
-                  <Card className="border-border bg-card transition-colors hover:border-primary/60">
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-                      <div className="min-w-0 space-y-1">
-                        <p className="truncate text-sm font-semibold">
-                          {song.artist} - {song.title}
-                        </p>
-                        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-                          {song.source_type} | {song.rights_status}
+          <div className="grid gap-5 lg:grid-cols-3">
+            {filteredClips.map((clip) => (
+              <Link key={clip.id} href={`/clips/${clip.id}`}>
+                <Card className="h-full overflow-hidden border-border bg-card/80 transition-colors hover:border-primary/50">
+                  <div className="aspect-video border-b border-border bg-background">
+                    {clip.preview_path || clip.video_path ? (
+                      <video
+                        className="h-full w-full object-cover"
+                        muted
+                        playsInline
+                        preload="metadata"
+                        src={buildMediaUrl(clip.preview_path || clip.video_path)}
+                      />
+                    ) : null}
+                  </div>
+                  <CardContent className="flex flex-col gap-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-lg font-semibold tracking-tight">{clip.caption || clip.id}</p>
+                        <p className="mt-2 text-sm text-muted-foreground">
+                          {clip.duration_seconds ? `0${Math.floor(clip.duration_seconds / 60)}:${String(clip.duration_seconds % 60).padStart(2, "0")}` : "00:00"} • {new Date(clip.updated_at).toLocaleString()}
                         </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="uppercase tracking-widest">{song.status}</Badge>
-                        <Badge variant={song.publish_eligible ? "default" : "secondary"} className="uppercase tracking-widest">
-                          {song.publish_eligible ? "eligible" : "review"}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
+                      <Badge variant={clipBadge(clip.status)} className="uppercase tracking-[0.18em]">
+                        {clip.status}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {!clipResource.loading && !filteredClips.length ? (
+            <Card className="border-border bg-card">
+              <CardContent className="p-5 text-sm text-muted-foreground">
+                No clips match the current filters.
+              </CardContent>
+            </Card>
+          ) : null}
+        </TabsContent>
+
+        <TabsContent value="songs" className="m-0">
+          {songResource.loading ? <p className="text-sm text-muted-foreground">Loading songs...</p> : null}
+          {songResource.error ? <p className="text-sm text-destructive">{songResource.error}</p> : null}
+
+          <div className="space-y-3">
+            {filteredSongs.map((song) => (
+              <Link key={song.id} href={`/songs/${song.id}`}>
+                <Card className="border-border bg-card/80 transition-colors hover:border-primary/50">
+                  <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="truncate text-lg font-semibold tracking-tight">
+                        {song.artist} - {song.title}
+                      </p>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {song.source_type} • {song.rights_status}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className="uppercase tracking-[0.18em]">
+                        {song.status}
+                      </Badge>
+                      <Badge variant={song.publish_eligible ? "default" : "secondary"} className="uppercase tracking-[0.18em]">
+                        {song.publish_eligible ? "Eligible" : "Review"}
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+
+          {!songResource.loading && !filteredSongs.length ? (
+            <Card className="border-border bg-card">
+              <CardContent className="p-5 text-sm text-muted-foreground">
+                No songs match the current filters.
+              </CardContent>
+            </Card>
+          ) : null}
+        </TabsContent>
+      </Tabs>
     </AdminShell>
   );
 }

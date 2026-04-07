@@ -8,20 +8,48 @@ import { apiFetch } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
 const PRIVACY_AUTO = "__auto__";
 
 export const dynamic = "force-dynamic";
+
+function Stepper({ value, onChange, min = 1 }) {
+  return (
+    <div className="flex items-center rounded-md border border-border bg-background">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(min, value - 1))}
+        className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+      >
+        -
+      </button>
+      <span className="flex min-w-10 items-center justify-center border-x border-border px-3 text-sm font-semibold">
+        {value}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(value + 1)}
+        className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+      >
+        +
+      </button>
+    </div>
+  );
+}
+
+function SettingRow({ title, description, control }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      {control}
+    </div>
+  );
+}
 
 export default function SettingsPage() {
   const pipelineResource = useResource("/pipeline/settings");
@@ -29,27 +57,34 @@ export default function SettingsPage() {
   const [pipelineMessage, setPipelineMessage] = useState("");
   const [tiktokMessage, setTiktokMessage] = useState("");
   const [pipelinePaused, setPipelinePaused] = useState(false);
+  const [uploadMode, setUploadMode] = useState("hybrid");
+  const [minVideos, setMinVideos] = useState(10);
+  const [maxVideos, setMaxVideos] = useState(15);
   const [prefs, setPrefs] = useState({
     preferred_privacy_level: PRIVACY_AUTO,
     allow_comment: false,
     allow_duet: false,
     allow_stitch: false,
   });
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    function handleTikTokConnected(event) {
-      if (event?.data?.type !== "tiktok-connected") {
-        return;
-      }
-      window.location.reload();
+    const pipeline = pipelineResource.data?.pipeline;
+    const env = pipelineResource.data?.env;
+    if (!pipeline) {
+      return;
     }
-    window.addEventListener("message", handleTikTokConnected);
-    return () => window.removeEventListener("message", handleTikTokConnected);
-  }, []);
+    setPipelinePaused(Boolean(pipeline.paused));
+    setUploadMode(pipeline.upload_mode || env?.upload_mode || "hybrid");
+    setMinVideos(pipeline.target_videos_min || 10);
+    setMaxVideos(pipeline.target_videos_max || 15);
+  }, [pipelineResource.data]);
 
   useEffect(() => {
     const stored = tiktokResource.data?.integration?.preferences;
-    if (!stored) return;
+    if (!stored) {
+      return;
+    }
     setPrefs({
       preferred_privacy_level: stored.preferred_privacy_level || PRIVACY_AUTO,
       allow_comment: Boolean(stored.allow_comment),
@@ -58,32 +93,24 @@ export default function SettingsPage() {
     });
   }, [tiktokResource.data?.integration?.preferences]);
 
-  useEffect(() => {
-    const paused = pipelineResource.data?.pipeline?.paused;
-    if (typeof paused === "boolean") {
-      setPipelinePaused(paused);
-    }
-  }, [pipelineResource.data?.pipeline?.paused]);
-
-  async function patchSettings(event) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const targetVideosMin = Number(form.get("target_videos_min"));
-    const targetVideosMax = Number(form.get("target_videos_max"));
+  async function patchSettings() {
+    setBusy(true);
     try {
-      const payload = await apiFetch("/pipeline/settings", {
+      await apiFetch("/pipeline/settings", {
         method: "PATCH",
         body: JSON.stringify({
           paused: pipelinePaused,
-          upload_mode: form.get("upload_mode"),
-          target_videos_min: Number.isNaN(targetVideosMin) ? null : targetVideosMin,
-          target_videos_max: Number.isNaN(targetVideosMax) ? null : targetVideosMax,
+          upload_mode: uploadMode,
+          target_videos_min: minVideos,
+          target_videos_max: maxVideos,
         }),
       });
-      pipelineResource.setData((current) => ({ ...current, pipeline: payload.settings }));
+      await pipelineResource.reload();
       setPipelineMessage("SETTINGS SAVED");
     } catch (err) {
       setPipelineMessage(`ERROR: ${err.message}`);
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -103,18 +130,17 @@ export default function SettingsPage() {
 
   async function disconnectTikTok() {
     try {
-      const payload = await apiFetch("/integrations/tiktok/disconnect", { method: "POST" });
-      tiktokResource.setData(payload);
+      await apiFetch("/integrations/tiktok/disconnect", { method: "POST" });
+      await tiktokResource.reload();
       setTiktokMessage("ACCOUNT DISCONNECTED");
     } catch (err) {
       setTiktokMessage(`ERROR: ${err.message}`);
     }
   }
 
-  async function patchTikTokPreferences(event) {
-    event.preventDefault();
+  async function patchTikTokPreferences() {
     try {
-      const payload = await apiFetch("/integrations/tiktok/preferences", {
+      await apiFetch("/integrations/tiktok/preferences", {
         method: "PATCH",
         body: JSON.stringify({
           preferred_privacy_level: prefs.preferred_privacy_level === PRIVACY_AUTO ? null : prefs.preferred_privacy_level,
@@ -123,10 +149,21 @@ export default function SettingsPage() {
           allow_stitch: prefs.allow_stitch,
         }),
       });
-      tiktokResource.setData(payload);
+      await tiktokResource.reload();
       setTiktokMessage("PREFERENCES SAVED");
     } catch (err) {
       setTiktokMessage(`ERROR: ${err.message}`);
+    }
+  }
+
+  async function togglePipeline() {
+    const paused = Boolean(pipelineResource.data?.pipeline?.paused);
+    setBusy(true);
+    try {
+      await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
+      await pipelineResource.reload();
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -139,192 +176,210 @@ export default function SettingsPage() {
     <AdminShell
       title="Configuration"
       subtitle="Manage system settings, integrations, and operational parameters."
+      status={{
+        state: pipelinePaused ? "PAUSED" : "RUNNING",
+      }}
       actions={
         <>
-          <Button variant="destructive" size="sm" className="uppercase tracking-widest">
+          <Button variant="destructive" size="sm" disabled className="uppercase tracking-[0.18em]">
             Emergency Stop
           </Button>
-          <Button size="sm" className="uppercase tracking-widest">
-            Pause Flow
+          <Button size="sm" disabled={busy} onClick={togglePipeline} className="uppercase tracking-[0.18em]">
+            {pipelinePaused ? "Resume Flow" : "Pause Flow"}
           </Button>
         </>
       }
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="border-border bg-card">
+        <Card className="border-border bg-card/80">
           <CardHeader>
-            <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">
+            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Pipeline Settings
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-5">
             {pipelineResource.loading ? <p className="text-sm text-muted-foreground">Loading settings...</p> : null}
             {pipelineResource.error ? <p className="text-sm text-destructive">{pipelineResource.error}</p> : null}
 
             {pipelineData ? (
-              <form className="space-y-4" onSubmit={patchSettings}>
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold">Auto-Scaling</p>
-                    <p className="text-xs text-muted-foreground">Enable processing pipeline</p>
-                  </div>
-                  <Switch checked={!pipelinePaused} onCheckedChange={(checked) => setPipelinePaused(!checked)} />
-                </div>
+              <>
+                <SettingRow
+                  title="Auto-Scaling"
+                  description="Enable processing pipeline"
+                  control={<Switch checked={!pipelinePaused} onCheckedChange={(checked) => setPipelinePaused(!checked)} />}
+                />
 
-                <div className="grid gap-2">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">Upload Mode</Label>
-                  <Select name="upload_mode" defaultValue={pipelineData.env.upload_mode}>
-                    <SelectTrigger className="bg-secondary/40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="hybrid">hybrid</SelectItem>
-                      <SelectItem value="draft">draft</SelectItem>
-                      <SelectItem value="direct">direct</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                <SettingRow
+                  title="Upload Mode"
+                  description="Current publish strategy"
+                  control={
+                    <Select value={uploadMode} onValueChange={setUploadMode}>
+                      <SelectTrigger className="min-w-32 border-border bg-background">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hybrid">hybrid</SelectItem>
+                        <SelectItem value="draft">draft</SelectItem>
+                        <SelectItem value="direct">direct</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  }
+                />
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Min Videos</Label>
-                    <Input
-                      name="target_videos_min"
-                      type="number"
-                      min="1"
-                      defaultValue={pipelineData.pipeline.target_videos_min || 10}
-                      className="bg-secondary/40"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Max Videos</Label>
-                    <Input
-                      name="target_videos_max"
-                      type="number"
-                      min="1"
-                      defaultValue={pipelineData.pipeline.target_videos_max || 15}
-                      className="bg-secondary/40"
-                    />
-                  </div>
-                </div>
+                <SettingRow
+                  title="Min Videos"
+                  description="Lower production target"
+                  control={<Stepper value={minVideos} onChange={setMinVideos} />}
+                />
+
+                <SettingRow
+                  title="Max Videos"
+                  description="Upper production target"
+                  control={<Stepper value={maxVideos} onChange={setMaxVideos} />}
+                />
 
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className="uppercase tracking-widest">{pipelineData.env.app_env}</Badge>
-                  <Badge variant={pipelineData.env.lab_enabled ? "secondary" : "default"} className="uppercase tracking-widest">
-                    LAB {pipelineData.env.lab_enabled ? "ON" : "OFF"}
+                  <Badge variant="outline" className="uppercase tracking-[0.18em]">
+                    {pipelineData.env.app_env}
+                  </Badge>
+                  <Badge variant={pipelineData.env.lab_enabled ? "secondary" : "outline"} className="uppercase tracking-[0.18em]">
+                    Lab {pipelineData.env.lab_enabled ? "On" : "Off"}
                   </Badge>
                 </div>
 
                 {pipelineMessage ? (
-                  <p className={pipelineMessage.startsWith("ERROR") ? "text-xs uppercase tracking-widest text-destructive" : "text-xs uppercase tracking-widest text-primary"}>
+                  <p className={pipelineMessage.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}>
                     {pipelineMessage}
                   </p>
                 ) : null}
 
-                <Button type="submit" className="w-full uppercase tracking-widest">
+                <Button onClick={patchSettings} disabled={busy} className="w-full uppercase tracking-[0.18em]">
                   Save Pipeline Settings
                 </Button>
-              </form>
+              </>
             ) : null}
           </CardContent>
         </Card>
 
-        <Card className="border-border bg-card">
+        <Card className="border-border bg-card/80">
           <CardHeader>
-            <CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">
+            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
               Integrations
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-col gap-5">
             {tiktokResource.loading ? <p className="text-sm text-muted-foreground">Loading integrations...</p> : null}
             {tiktokResource.error ? <p className="text-sm text-destructive">{tiktokResource.error}</p> : null}
 
             {tiktokData ? (
               <>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3 border border-border bg-background/40 p-3">
+                <div className="rounded-md border border-border bg-background px-4 py-4">
+                  <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold">TikTok API</p>
+                      <p className="text-sm font-medium">TikTok API</p>
                       <p className="text-xs text-muted-foreground">Upload lyric clips and synchronize account state</p>
                     </div>
-                    <Badge variant={tiktokData.connected ? "default" : "secondary"} className="uppercase tracking-widest">
+                    <Badge variant={tiktokData.connected ? "default" : "secondary"} className="uppercase tracking-[0.18em]">
                       {tiktokData.connected ? "Connected" : "Disconnected"}
                     </Badge>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button onClick={connectTikTok} disabled={!tiktokData.configured} className="uppercase tracking-widest">
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <Button onClick={connectTikTok} disabled={!tiktokData.configured} className="uppercase tracking-[0.18em]">
                       {tiktokData.connected ? "Reconnect" : "Connect"}
                     </Button>
-                    <Button variant="outline" onClick={disconnectTikTok} disabled={!tiktokData.connected} className="uppercase tracking-widest">
+                    <Button variant="outline" onClick={disconnectTikTok} disabled={!tiktokData.connected} className="uppercase tracking-[0.18em]">
                       Disconnect
                     </Button>
                   </div>
                 </div>
 
                 {creatorInfo ? (
-                  <div className="space-y-2 border border-border bg-background/40 p-3">
-                    <p className="text-sm font-semibold">
+                  <div className="rounded-md border border-border bg-background px-4 py-4">
+                    <p className="text-sm font-medium">
                       {creatorInfo.creator_nickname || creatorInfo.creator_username || "Connected creator"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Max direct-post video length: {creatorInfo.max_video_post_duration_sec || "unknown"}s
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Max direct-post duration: {creatorInfo.max_video_post_duration_sec || "unknown"}s
                     </p>
                   </div>
                 ) : null}
 
-                <form className="space-y-4" onSubmit={patchTikTokPreferences}>
-                  <div className="grid gap-2">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Preferred Privacy Level</Label>
-                    <Select
-                      value={prefs.preferred_privacy_level}
-                      onValueChange={(value) => setPrefs((current) => ({ ...current, preferred_privacy_level: value }))}
-                    >
-                      <SelectTrigger className="bg-secondary/40">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={PRIVACY_AUTO}>auto select</SelectItem>
-                        {privacyOptions.map((option) => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="flex flex-col gap-4 rounded-md border border-border bg-background px-4 py-4">
+                  <SettingRow
+                    title="Preferred Privacy"
+                    description="Default publish privacy selection"
+                    control={
+                      <Select
+                        value={prefs.preferred_privacy_level}
+                        onValueChange={(value) =>
+                          setPrefs((current) => ({ ...current, preferred_privacy_level: value }))
+                        }
+                      >
+                        <SelectTrigger className="min-w-36 border-border bg-background">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={PRIVACY_AUTO}>auto select</SelectItem>
+                          {privacyOptions.map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    }
+                  />
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm">Allow comments</p>
+                  <SettingRow
+                    title="Allow Comments"
+                    description="Carry comment permission into uploads"
+                    control={
                       <Switch
                         checked={prefs.allow_comment}
-                        onCheckedChange={(checked) => setPrefs((current) => ({ ...current, allow_comment: checked }))}
+                        onCheckedChange={(checked) =>
+                          setPrefs((current) => ({ ...current, allow_comment: checked }))
+                        }
                       />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm">Allow duet</p>
+                    }
+                  />
+
+                  <SettingRow
+                    title="Allow Duet"
+                    description="Carry duet permission into uploads"
+                    control={
                       <Switch
                         checked={prefs.allow_duet}
-                        onCheckedChange={(checked) => setPrefs((current) => ({ ...current, allow_duet: checked }))}
+                        onCheckedChange={(checked) =>
+                          setPrefs((current) => ({ ...current, allow_duet: checked }))
+                        }
                       />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm">Allow stitch</p>
+                    }
+                  />
+
+                  <SettingRow
+                    title="Allow Stitch"
+                    description="Carry stitch permission into uploads"
+                    control={
                       <Switch
                         checked={prefs.allow_stitch}
-                        onCheckedChange={(checked) => setPrefs((current) => ({ ...current, allow_stitch: checked }))}
+                        onCheckedChange={(checked) =>
+                          setPrefs((current) => ({ ...current, allow_stitch: checked }))
+                        }
                       />
-                    </div>
-                  </div>
+                    }
+                  />
+                </div>
 
-                  {tiktokMessage ? (
-                    <p className={tiktokMessage.startsWith("ERROR") ? "text-xs uppercase tracking-widest text-destructive" : "text-xs uppercase tracking-widest text-primary"}>
-                      {tiktokMessage}
-                    </p>
-                  ) : null}
+                {tiktokMessage ? (
+                  <p className={tiktokMessage.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}>
+                    {tiktokMessage}
+                  </p>
+                ) : null}
 
-                  <Button type="submit" className="w-full uppercase tracking-widest">
-                    Save TikTok Preferences
-                  </Button>
-                </form>
+                <Button onClick={patchTikTokPreferences} className="w-full uppercase tracking-[0.18em]">
+                  Save TikTok Preferences
+                </Button>
               </>
             ) : null}
           </CardContent>
