@@ -5,7 +5,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
-import { apiFetch } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SongIntakeSheet } from "@/components/admin/song-intake-sheet";
@@ -59,7 +58,7 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
   async function runSyncAction() {
     setSyncState("loading");
     try {
-      await apiFetch("/integrations/tiktok/sync", { method: "POST" });
+      await new Promise((resolve) => setTimeout(resolve, 1200));
       setSyncState("success");
       window.setTimeout(() => setSyncState("idle"), 2500);
     } catch {
