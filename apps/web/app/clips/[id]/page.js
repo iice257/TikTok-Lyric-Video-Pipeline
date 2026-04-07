@@ -2,9 +2,14 @@
 
 import { useState } from "react";
 
-import { EmptyState, useResource } from "@/components/client-page";
-import { Panel, Shell } from "@/components/shell";
 import { apiFetch, buildMediaUrl, toDatetimeLocal } from "@/lib/api";
+import { useResource } from "@/components/client-page";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function ClipDetailPage({ params }) {
   const { data, loading, error, setData } = useResource(`/clips/${params.id}`);
@@ -26,9 +31,9 @@ export default function ClipDetailPage({ params }) {
         }),
       });
       setData((current) => ({ ...current, clip: payload.clip }));
-      setMessage("Clip updated.");
+      setMessage("CLIP UPDATED");
     } catch (err) {
-      setMessage(err.message);
+      setMessage(`ERROR: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -39,101 +44,107 @@ export default function ClipDetailPage({ params }) {
     setMessage("");
     try {
       await apiFetch(`/clips/${params.id}/rerender`, { method: "POST" });
-      setMessage("Rerender job queued.");
+      setMessage("RERENDER QUEUED");
     } catch (err) {
-      setMessage(err.message);
+      setMessage(`ERROR: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <Shell title="Clip Detail">
-      <Panel title="Clip" subtitle="Edit caption, inspect style, rerender">
-        {loading ? <p>Loading clip...</p> : null}
-        {error ? <p className="errorText">{error}</p> : null}
+    <AdminShell title="Clip Detail" subtitle="Edit caption, inspect jobs, and preview media.">
+      <div className="space-y-4">
+        {loading ? <p className="text-sm text-muted-foreground">Loading clip...</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
         {data?.clip ? (
-          <form className="stack" onSubmit={saveClip}>
-            <label className="field">
-              <span>Caption</span>
-              <textarea name="caption" defaultValue={data.clip.caption} />
-            </label>
-            <label className="field">
-              <span>Hook category</span>
-              <input name="hook_category" defaultValue={data.clip.hook_category || ""} />
-            </label>
-            <label className="field">
-              <span>Scheduled at</span>
-              <input name="scheduled_at" type="datetime-local" defaultValue={toDatetimeLocal(data.clip.scheduled_at)} />
-            </label>
-            <div className="tagRow">
-              <span className="tag">{data.clip.lyric_style}</span>
-              <span className="tag">{data.clip.layout_template}</span>
-              <span className="tag">{data.clip.status}</span>
-            </div>
-            {message ? <p className={message.includes("updated") || message.includes("queued") ? "muted" : "errorText"}>{message}</p> : null}
-            <div className="actions">
-              <button type="submit" disabled={submitting}>Save</button>
-              <button className="button secondary" type="button" onClick={rerender} disabled={submitting}>Queue Rerender</button>
-            </div>
-          </form>
-        ) : (
-          <EmptyState title="Clip not found" body="This clip may have been deleted or not created yet." />
-        )}
-      </Panel>
-      <Panel title="Jobs" subtitle="Render and upload attempts">
-        {data?.render_jobs?.length || data?.upload_jobs?.length ? (
-          <div className="list">
-            {data.render_jobs?.map((job) => (
-              <div className="itemCard" key={job.id}>
-                <strong>Render job</strong>
-                <p className="muted">{job.status}</p>
-                {job.stderr_text ? <p className="errorText">{job.stderr_text}</p> : null}
+          <Card className="border-border bg-card">
+            <CardContent className="space-y-4 p-4">
+              <form className="space-y-4" onSubmit={saveClip}>
+                <div className="grid gap-2">
+                  <p className="text-xs uppercase tracking-widest text-muted-foreground">Caption</p>
+                  <Textarea name="caption" defaultValue={data.clip.caption} className="min-h-24 bg-secondary/40" />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Hook Category</p>
+                    <Input name="hook_category" defaultValue={data.clip.hook_category || ""} className="bg-secondary/40" />
+                  </div>
+                  <div className="grid gap-2">
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Scheduled At</p>
+                    <Input name="scheduled_at" type="datetime-local" defaultValue={toDatetimeLocal(data.clip.scheduled_at)} className="bg-secondary/40" />
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="uppercase tracking-widest">{data.clip.lyric_style}</Badge>
+                  <Badge variant="outline" className="uppercase tracking-widest">{data.clip.layout_template}</Badge>
+                  <Badge variant="secondary" className="uppercase tracking-widest">{data.clip.status}</Badge>
+                </div>
+                {message ? (
+                  <p className={message.startsWith("ERROR") ? "text-xs uppercase tracking-widest text-destructive" : "text-xs uppercase tracking-widest text-primary"}>
+                    {message}
+                  </p>
+                ) : null}
+                <div className="flex flex-wrap gap-2">
+                  <Button type="submit" disabled={submitting} className="uppercase tracking-widest">Save</Button>
+                  <Button type="button" variant="outline" onClick={rerender} disabled={submitting} className="uppercase tracking-widest">
+                    Queue Rerender
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        <Card className="border-border bg-card">
+          <CardContent className="space-y-3 p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Jobs</p>
+            {(data?.render_jobs || []).map((job) => (
+              <div key={job.id} className="space-y-1 border border-border bg-background/40 p-3">
+                <p className="text-sm font-semibold">Render job</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{job.status}</p>
+                {job.stderr_text ? <p className="text-xs text-destructive">{job.stderr_text}</p> : null}
               </div>
             ))}
-            {data.upload_jobs?.map((job) => (
-              <div className="itemCard" key={job.id}>
-                <strong>Upload job</strong>
-                <p className="muted">{job.status} · {job.publish_mode}</p>
-                {job.last_error ? <p className="errorText">{job.last_error}</p> : null}
+            {(data?.upload_jobs || []).map((job) => (
+              <div key={job.id} className="space-y-1 border border-border bg-background/40 p-3">
+                <p className="text-sm font-semibold">Upload job</p>
+                <p className="text-xs uppercase tracking-wider text-muted-foreground">{job.status} | {job.publish_mode}</p>
+                {job.last_error ? <p className="text-xs text-destructive">{job.last_error}</p> : null}
               </div>
             ))}
-          </div>
-        ) : (
-          <EmptyState title="No jobs yet" body="Render and upload attempts will appear here." />
-        )}
-      </Panel>
-      <Panel title="Media" subtitle="Preview rendered output and download artifacts">
-        {data?.clip?.video_path ? (
-          <div className="stack">
-            <video className="mediaFrame" controls playsInline src={buildMediaUrl(data.clip.video_path)} />
-            <div className="actions">
-              <a className="button" href={buildMediaUrl(data.clip.video_path)} target="_blank" rel="noreferrer">Open Video</a>
-              {data.clip.subtitle_path ? <a className="button secondary" href={buildMediaUrl(data.clip.subtitle_path)} target="_blank" rel="noreferrer">Subtitles</a> : null}
-              {data.clip.render_manifest_path ? <a className="button ghost" href={buildMediaUrl(data.clip.render_manifest_path)} target="_blank" rel="noreferrer">Manifest</a> : null}
-            </div>
-          </div>
-        ) : (
-          <EmptyState title="No render output yet" body="Rendered video and artifact links will appear here after the render job succeeds." />
-        )}
-      </Panel>
-      <Panel title="Audit Trail" subtitle="Recent state changes for this clip and its jobs">
-        {data?.state_events?.length ? (
-          <div className="list">
-            {data.state_events.map((event) => (
-              <div className="itemCard" key={event.id}>
-                <strong>{event.event_type}</strong>
-                <p className="muted">
-                  {event.subject_type} · {event.from_state || "none"} to {event.to_state || "none"}
-                </p>
-                <p className="muted">{new Date(event.created_at).toLocaleString()}</p>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No state events yet" body="Lifecycle changes will appear here as the worker and operator actions run." />
-        )}
-      </Panel>
-    </Shell>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border bg-card">
+          <CardContent className="space-y-3 p-4">
+            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Media</p>
+            {data?.clip?.video_path ? (
+              <>
+                <video className="aspect-video w-full border border-border bg-background/40 object-cover" controls playsInline src={buildMediaUrl(data.clip.video_path)} />
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild size="sm" className="uppercase tracking-widest">
+                    <a href={buildMediaUrl(data.clip.video_path)} target="_blank" rel="noreferrer">Open Video</a>
+                  </Button>
+                  {data.clip.subtitle_path ? (
+                    <Button asChild variant="outline" size="sm" className="uppercase tracking-widest">
+                      <a href={buildMediaUrl(data.clip.subtitle_path)} target="_blank" rel="noreferrer">Subtitles</a>
+                    </Button>
+                  ) : null}
+                  {data.clip.render_manifest_path ? (
+                    <Button asChild variant="ghost" size="sm" className="uppercase tracking-widest">
+                      <a href={buildMediaUrl(data.clip.render_manifest_path)} target="_blank" rel="noreferrer">Manifest</a>
+                    </Button>
+                  ) : null}
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No render output yet.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AdminShell>
   );
 }

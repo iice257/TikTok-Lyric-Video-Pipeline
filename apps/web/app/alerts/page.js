@@ -2,9 +2,18 @@
 
 import { useState } from "react";
 
-import { EmptyState, useResource } from "@/components/client-page";
-import { Panel, Shell } from "@/components/shell";
 import { apiFetch } from "@/lib/api";
+import { useResource } from "@/components/client-page";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+function alertVariant(severity) {
+  if (severity === "error") return "destructive";
+  if (severity === "warning") return "secondary";
+  return "outline";
+}
 
 export default function AlertsPage() {
   const { data, loading, error, setData } = useResource("/alerts");
@@ -24,32 +33,47 @@ export default function AlertsPage() {
   }
 
   return (
-    <Shell title="Alerts">
-      <Panel title="Active Alerts" subtitle="Failures, stalls, and token issues">
-        {loading ? <p>Loading alerts...</p> : null}
-        {error ? <p className="errorText">{error}</p> : null}
-        {data?.alerts?.length ? (
-          <div className="list">
-            {data.alerts.map((alert) => (
-              <div className="itemCard" key={alert.id}>
-                <strong>{alert.kind}</strong>
-                <p>{alert.message}</p>
-                <div className="tagRow">
-                  <span className={`tag ${alert.severity === "error" ? "danger" : "warning"}`}>{alert.severity}</span>
-                  <span className="tag">{alert.status}</span>
+    <AdminShell title="Alerts" subtitle="Failures, stalls, and token issues.">
+      <div className="space-y-4">
+        {loading ? <p className="text-sm text-muted-foreground">Loading alerts...</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+        {(data?.alerts || []).map((alert) => (
+          <Card key={alert.id} className="border-border bg-card">
+            <CardContent className="space-y-3 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm font-semibold">{alert.kind}</p>
+                <div className="flex gap-2">
+                  <Badge variant={alertVariant(alert.severity)} className="uppercase tracking-widest">
+                    {alert.severity}
+                  </Badge>
+                  <Badge variant="outline" className="uppercase tracking-widest">
+                    {alert.status}
+                  </Badge>
                 </div>
-                {alert.status !== "acknowledged" ? (
-                  <div className="actions" style={{ marginTop: 12 }}>
-                    <button onClick={() => acknowledge(alert.id)} disabled={busyId === alert.id}>Acknowledge</button>
-                  </div>
-                ) : null}
               </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No alerts" body="The monitor has not raised any issues." />
-        )}
-      </Panel>
-    </Shell>
+              <p className="text-sm">{alert.message}</p>
+              <p className="text-xs text-muted-foreground">{new Date(alert.created_at).toLocaleString()}</p>
+              {alert.status !== "acknowledged" ? (
+                <Button
+                  onClick={() => acknowledge(alert.id)}
+                  disabled={busyId === alert.id}
+                  size="sm"
+                  className="uppercase tracking-widest"
+                >
+                  Acknowledge
+                </Button>
+              ) : null}
+            </CardContent>
+          </Card>
+        ))}
+
+        {!loading && !(data?.alerts || []).length ? (
+          <Card className="border-border bg-card">
+            <CardContent className="p-5 text-sm text-muted-foreground">No alerts found.</CardContent>
+          </Card>
+        ) : null}
+      </div>
+    </AdminShell>
   );
 }

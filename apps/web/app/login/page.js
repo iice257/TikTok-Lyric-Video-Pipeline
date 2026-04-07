@@ -4,6 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch, setCsrfToken } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -31,31 +35,29 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="page" style={{ minHeight: "100vh", alignContent: "center" }}>
-      <section className="panel full">
-        <div className="panelHeader">
-          <div>
-            <p className="eyebrow">Control Panel</p>
-            <h1>Sign In</h1>
-          </div>
-        </div>
-        <div className="panelBody">
-          <form className="stack" onSubmit={onSubmit}>
-            <label className="field">
-              <span>Email</span>
-              <input value={email} onChange={(e) => setEmail(e.target.value)} />
-            </label>
-            <label className="field">
-              <span>Password</span>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </label>
-            {error ? <p className="errorText">{error}</p> : null}
-            <button type="submit" disabled={submitting}>
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
+      <Card className="w-full max-w-md border-border bg-card">
+        <CardHeader className="space-y-2">
+          <p className="text-xs uppercase tracking-widest text-primary">Control Panel</p>
+          <CardTitle className="text-2xl font-bold">Sign In</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="grid gap-2">
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Email</Label>
+              <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/40" />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-xs uppercase tracking-widest text-muted-foreground">Password</Label>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="bg-secondary/40" />
+            </div>
+            {error ? <p className="text-xs uppercase tracking-widest text-destructive">{error}</p> : null}
+            <Button type="submit" disabled={submitting} className="w-full uppercase tracking-widest">
               {submitting ? "Signing in..." : "Sign In"}
-            </button>
+            </Button>
           </form>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
     </main>
   );
 }
