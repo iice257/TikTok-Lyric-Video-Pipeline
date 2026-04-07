@@ -1,11 +1,21 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
-import { EmptyState, useResource } from "@/components/client-page";
-import { Panel, Shell } from "@/components/shell";
 import { apiFetch } from "@/lib/api";
+import { useResource } from "@/components/client-page";
+import { AdminShell } from "@/components/admin/admin-shell";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+
+export const dynamic = "force-dynamic";
+
+function eventTone(alert) {
+  if (alert.severity === "error") return "destructive";
+  if (alert.status === "acknowledged") return "secondary";
+  return "outline";
+}
 
 export default function OverviewPage() {
   const { data, loading, error, setData } = useResource("/dashboard/summary");
@@ -22,93 +32,88 @@ export default function OverviewPage() {
   }
 
   return (
-    <Shell title="Overview">
-      <Panel
-        title="System Health"
-        subtitle="Live queue and worker summary"
-        action={
-          data ? (
-            <button type="button" className="button secondary" onClick={() => togglePipeline(Boolean(data.pipeline?.paused))} disabled={busy}>
-              {data.pipeline?.paused ? "Resume" : "Pause"}
-            </button>
-          ) : null
-        }
-      >
-        {loading ? <p>Loading dashboard...</p> : null}
-        {error ? <p className="errorText">{error}</p> : null}
-        {data ? (
-          <div className="stack">
-            <div className="metrics">
-              <div className="metric">
-                <span>Health</span>
-                <strong>{data.health}</strong>
-              </div>
-              <div className="metric">
-                <span>Pipeline</span>
-                <strong>{data.pipeline?.paused ? "paused" : "running"}</strong>
-              </div>
-              <div className="metric">
-                <span>Songs</span>
-                <strong>{data.counts.songs}</strong>
-              </div>
-              <div className="metric">
-                <span>Render Backlog</span>
-                <strong>{data.counts.render_backlog}</strong>
-              </div>
-              <div className="metric">
-                <span>Upload Backlog</span>
-                <strong>{data.counts.upload_backlog}</strong>
-              </div>
-              <div className="metric">
-                <span>Next Publish</span>
-                <strong>{data.next_publish_at ? new Date(data.next_publish_at).toLocaleString() : "none"}</strong>
-              </div>
-            </div>
-            <div className="actions">
-              <Link className="button" href="/intake">Manual Intake</Link>
-              <Link className="button secondary" href="/queue">Open Queue</Link>
-              <Link className="button ghost" href="/settings">Settings</Link>
-            </div>
-          </div>
-        ) : null}
-      </Panel>
-      <Panel title="Workers" subtitle="Heartbeat and current loop">
-        {data?.workers?.length ? (
-          <div className="list">
-            {data.workers.map((worker) => (
-              <div className="itemCard" key={worker.id}>
-                <strong>{worker.worker_name}</strong>
-                <p className="muted">
-                  {worker.status} · {worker.current_loop || "idle"}
-                </p>
-                <div className="tagRow">
-                  <span className="tag">{new Date(worker.last_seen_at).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState title="No workers yet" body="Start the worker process to populate heartbeat data." />
-        )}
-      </Panel>
-      <Panel title="Recent Alerts" subtitle="Newest issues surfaced by the monitor" className="full">
+    <AdminShell
+      title="Live Event Stream"
+      subtitle="Monitoring all pipeline activities and required actions"
+      status={{
+        state: data?.pipeline?.paused ? "PAUSED" : "RUNNING",
+        worker: data?.workers?.length ? "ALIVE (2s)" : "IDLE",
+        queue: `${data?.counts?.upload_backlog ?? 0} JOBS`,
+      }}
+      actions={
+        <>
+          <Button variant="destructive" size="sm" className="uppercase tracking-widest">
+            Emergency Stop
+          </Button>
+          <Button
+            size="sm"
+            className="uppercase tracking-widest"
+            disabled={busy}
+            onClick={() => togglePipeline(Boolean(data?.pipeline?.paused))}
+          >
+            {data?.pipeline?.paused ? "Resume Flow" : "Pause Flow"}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {loading ? <p className="text-sm text-muted-foreground">Loading event stream...</p> : null}
+        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
         {data?.recent_alerts?.length ? (
-          <div className="list">
+          <div className="space-y-4">
             {data.recent_alerts.map((alert) => (
-              <div className="itemCard" key={alert.id}>
-                <strong>{alert.kind}</strong>
-                <p>{alert.message}</p>
-                <div className="tagRow">
-                  <span className={`tag ${alert.severity === "error" ? "danger" : "warning"}`}>{alert.severity}</span>
-                  <span className="tag">{alert.status}</span>
-                </div>
-              </div>
+              <Card key={alert.id} className="border-border bg-card">
+                <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={eventTone(alert)} className="uppercase tracking-widest">
+                        {alert.kind}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(alert.created_at).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    <p className="text-base font-semibold">{alert.message}</p>
+                    <p className="text-sm text-muted-foreground">
+                      Severity: {alert.severity} | Status: {alert.status}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="uppercase tracking-widest">
+                      Dismiss
+                    </Button>
+                    <Button size="sm" className="uppercase tracking-widest">
+                      Retry Job
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
-          <EmptyState title="No alerts" body="Current runs are not raising incidents." />
+          <Card className="border-border bg-card">
+            <CardContent className="p-5 text-sm text-muted-foreground">No alerts in the current event stream.</CardContent>
+          </Card>
         )}
-      </Panel>
-    </Shell>
+
+        {data?.workers?.length ? (
+          <Card className="border-border bg-card">
+            <CardContent className="p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Worker Heartbeats</p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {data.workers.map((worker) => (
+                  <div key={worker.id} className="space-y-2 border border-border bg-background/50 p-3">
+                    <p className="text-sm font-semibold">{worker.worker_name}</p>
+                    <p className="text-xs uppercase tracking-wider text-primary">{worker.status}</p>
+                    <p className="text-xs text-muted-foreground">{worker.current_loop || "idle"}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
+    </AdminShell>
   );
 }
