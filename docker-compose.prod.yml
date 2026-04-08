@@ -1,0 +1,42 @@
+services:
+  postgres:
+    restart: unless-stopped
+
+  api:
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      COOKIE_SECURE: "true"
+      COOKIE_SAME_SITE: none
+      TIKTOK_SIMULATE_UPLOADS: "false"
+      APP_BASE_URL: https://${BACKEND_DOMAIN}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+
+  worker:
+    restart: unless-stopped
+    environment:
+      APP_ENV: prod
+      COOKIE_SECURE: "true"
+      COOKIE_SAME_SITE: none
+      TIKTOK_SIMULATE_UPLOADS: "false"
+      APP_BASE_URL: https://${BACKEND_DOMAIN}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      BACKEND_DOMAIN: ${BACKEND_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/linux/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  caddy-data:
+  caddy-config:

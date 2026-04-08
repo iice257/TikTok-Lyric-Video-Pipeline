@@ -1,0 +1,16 @@
+[Unit]
+Description=TikTok Lyric Platform Docker Compose Stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/tiktok-lyric-platform
+ExecStart=/usr/bin/docker compose --env-file /opt/tiktok-lyric-platform/deploy/linux/backend.env -f /opt/tiktok-lyric-platform/docker-compose.yml -f /opt/tiktok-lyric-platform/docker-compose.prod.yml up -d --build
+ExecStop=/usr/bin/docker compose --env-file /opt/tiktok-lyric-platform/deploy/linux/backend.env -f /opt/tiktok-lyric-platform/docker-compose.yml -f /opt/tiktok-lyric-platform/docker-compose.prod.yml down
+RemainAfterExit=yes
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target
