@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import re
 import shutil
 from uuid import uuid4
 
@@ -91,8 +92,18 @@ def _default_tiktok_preferences() -> dict[str, object]:
     }
 
 
+ALLOWED_ENVIRONMENTS = {"prod", "lab"}
+ALLOWED_RIGHTS_STATUSES = {"licensed", "tiktok_cml", "approved_tiktok", "metadata_only", "pending_review"}
+
+
 def _creator_info_cache(db: Session) -> dict[str, object]:
     return get_setting(db, "tiktok_creator_info_cache", {})
+
+
+def _safe_path_component(value: str, *, fallback: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9 _.-]+", "", value).strip().strip(".")
+    cleaned = re.sub(r"\s+", " ", cleaned)
+    return cleaned or fallback
 
 
 def _serialize_tiktok_status(db: Session, settings: PlatformSettings) -> dict[str, object]:
@@ -119,11 +130,7 @@ def _serialize_tiktok_status(db: Session, settings: PlatformSettings) -> dict[st
 def _build_tiktok_client(settings: PlatformSettings) -> TikTokApiClient:
     if not settings.tiktok_client_key or not settings.tiktok_client_secret or not settings.tiktok_redirect_uri:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth settings are incomplete.")
-    return TikTokApiClient(
-        client_key=settings.tiktok_client_key,
-        client_secret=settings.tiktok_client_secret,
-        redirect_uri=settings.tiktok_redirect_uri,
-    )
+    return TikTokApiClient(settings)
 
 
 def _job_payload(job: RenderJob | UploadJob) -> dict[str, object]:
@@ -248,10 +255,10 @@ def tiktok_callback(
         upsert_oauth_token(
             db,
             provider="tiktok",
-            subject=bundle.open_id,
+            subject=bundle.subject,
             access_token=bundle.access_token,
             refresh_token=bundle.refresh_token,
-            scopes=bundle.scope,
+            scopes=bundle.scopes,
             expires_at=bundle.expires_at,
         )
     except TikTokApiError as exc:
@@ -411,9 +418,14 @@ def manual_intake(
     db: Session = Depends(get_db),
     settings: PlatformSettings = Depends(get_platform_settings),
 ) -> dict[str, object]:
+    if environment not in ALLOWED_ENVIRONMENTS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported environment.")
+    if rights_status not in ALLOWED_RIGHTS_STATUSES:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported rights status.")
+
     media_root = ensure_media_root(settings) / "manual-intake" / environment
     song_key = uuid4().hex
-    stem = f"{artist} - {title}"
+    stem = f"{_safe_path_component(artist, fallback='Unknown Artist')} - {_safe_path_component(title, fallback='Untitled')}"
     audio_ext = guess_extension(audio.filename or "audio.mp3", ".mp3")
     audio_path = media_root / song_key / f"{stem}{audio_ext}"
     audio_meta = persist_upload_file(audio, audio_path)
@@ -792,7 +804,8 @@ def pause_pipeline(
     user: object = Depends(require_mutation_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    record = set_setting(db, "pipeline", {"paused": True, "updated_at": utcnow().isoformat()})
+    existing = get_setting(db, "pipeline", {"paused": False})
+    record = set_setting(db, "pipeline", {**existing, "paused": True, "updated_at": utcnow().isoformat()})
     log_operator_action(db, user_id=user.id, action="pause_pipeline", target_type="pipeline", target_id=record.key, request=request, details={"paused": True})
     db.commit()
     return {"settings": record.value_json}
@@ -804,7 +817,8 @@ def resume_pipeline(
     user: object = Depends(require_mutation_auth),
     db: Session = Depends(get_db),
 ) -> dict[str, object]:
-    record = set_setting(db, "pipeline", {"paused": False, "updated_at": utcnow().isoformat()})
+    existing = get_setting(db, "pipeline", {"paused": False})
+    record = set_setting(db, "pipeline", {**existing, "paused": False, "updated_at": utcnow().isoformat()})
     log_operator_action(db, user_id=user.id, action="resume_pipeline", target_type="pipeline", target_id=record.key, request=request, details={"paused": False})
     db.commit()
     return {"settings": record.value_json}

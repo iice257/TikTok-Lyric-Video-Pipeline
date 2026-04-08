@@ -11,8 +11,8 @@ import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("admin@example.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -55,11 +55,11 @@ export default function LoginPage() {
             <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <div className="grid gap-2">
                 <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Email</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-10 border-border bg-background" />
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" className="h-10 border-border bg-background" />
               </div>
               <div className="grid gap-2">
                 <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className="h-10 border-border bg-background" />
+                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 border-border bg-background" />
               </div>
               {error ? <p className="text-xs uppercase tracking-[0.18em] text-destructive">{error}</p> : null}
               <Button type="submit" disabled={submitting} size="lg" className="w-full uppercase tracking-[0.2em]">

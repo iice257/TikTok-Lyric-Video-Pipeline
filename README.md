@@ -87,7 +87,7 @@ npm run dev
 
 Recommended local defaults:
 
-- backend `.env`: keep `APP_ENV=dev`, `COOKIE_SECURE=false`, `COOKIE_SAME_SITE=lax`, `TIKTOK_SIMULATE_UPLOADS=true`
+- backend `.env`: keep `APP_ENV=dev`, `DATABASE_URL=sqlite:///output/platform.db`, `MEDIA_ROOT=storage`, `PIPELINE_CONFIG_PATH=config/pipeline.example.json`, `COOKIE_SECURE=false`, `COOKIE_SAME_SITE=lax`, `TIKTOK_SIMULATE_UPLOADS=true`
 - frontend `apps/web/.env.local`: set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
 
 Production split for Vercel + backend host:
@@ -104,6 +104,8 @@ Production split for Vercel + backend host:
 copy .env.example .env
 docker compose up --build
 ```
+
+`docker-compose.yml` overrides backend runtime env for containers (`DATABASE_URL`, `MEDIA_ROOT`, and `PIPELINE_CONFIG_PATH`) and mounts `storage`, `config`, `data`, and `output` into the API and worker containers so intake/render paths match this repo's documented directories.
 
 The API will be available on `http://localhost:8000` and the web app can point to it with `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
 

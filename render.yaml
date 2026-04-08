@@ -1,0 +1,68 @@
+services:
+  - type: web
+    name: iice257-tiktok-lyric-platform-api
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerContext: .
+    dockerfilePath: ./docker/platform.Dockerfile
+    dockerCommand: python -m tiktok_platform.render_entrypoint
+    healthCheckPath: /health
+    disk:
+      name: iice257-tiktok-lyric-platform-storage
+      mountPath: /app/storage
+      sizeGB: 10
+    envVars:
+      - key: APP_ENV
+        value: prod
+      - key: APP_BASE_URL
+        value: https://iice257-tiktok-lyric-platform-api.onrender.com
+      - key: FRONTEND_BASE_URL
+        value: https://iice257-tiktok-lyric-platform-web.vercel.app
+      - key: DATABASE_URL
+        fromDatabase:
+          name: iice257-tiktok-lyric-platform-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: MEDIA_ROOT
+        value: /app/storage
+      - key: ADMIN_EMAIL
+        value: admin@example.com
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: TIKTOK_CLIENT_KEY
+        sync: false
+      - key: TIKTOK_CLIENT_SECRET
+        sync: false
+      - key: TIKTOK_REDIRECT_URI
+        value: https://iice257-tiktok-lyric-platform-api.onrender.com/integrations/tiktok/callback
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: ALERT_FROM_EMAIL
+        value: alerts@example.com
+      - key: LAB_ENABLED
+        value: "true"
+      - key: UPLOAD_MODE
+        value: hybrid
+      - key: TIKTOK_SIMULATE_UPLOADS
+        value: "false"
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAME_SITE
+        value: none
+      - key: PIPELINE_CONFIG_PATH
+        value: /app/config/pipeline.render.json
+      - key: WORKER_POLL_INTERVAL_SECONDS
+        value: "20"
+
+databases:
+  - name: iice257-tiktok-lyric-platform-db
+    plan: basic-256mb
+    region: frankfurt

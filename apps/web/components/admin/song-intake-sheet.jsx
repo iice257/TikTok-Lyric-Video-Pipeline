@@ -14,12 +14,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function SongIntakeSheet({ open, onOpenChange }) {
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [method, setMethod] = useState("ai_prompt");
   const [formKey, setFormKey] = useState(0);
 
   async function onSubmit(event) {
@@ -36,7 +34,6 @@ export function SongIntakeSheet({ open, onOpenChange }) {
       });
       setMessage(`QUEUED: ${payload.song.artist} - ${payload.song.title}`);
       setFormKey((current) => current + 1);
-      setMethod("ai_prompt");
     } catch (err) {
       setMessage(`ERROR: ${err.message}`);
     } finally {
@@ -59,14 +56,11 @@ export function SongIntakeSheet({ open, onOpenChange }) {
         <form key={formKey} onSubmit={onSubmit} className="flex h-full flex-col">
           <div className="terminal-scroll flex-1 overflow-y-auto px-6 py-6">
             <div className="flex flex-col gap-6">
-              <div className="grid gap-2">
-                <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Source Url (YouTube/Spotify)
-                </Label>
-                <Input
-                  placeholder="Enter valid URI..."
-                  className="h-11 border-border bg-background"
-                />
+              <div className="rounded-md border border-border bg-background px-4 py-4">
+                <p className="text-sm font-medium">Manual upload dispatch</p>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  This intake path is live end-to-end. Upload the source audio and any optional artwork or lyrics files to queue a song immediately.
+                </p>
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
@@ -94,76 +88,44 @@ export function SongIntakeSheet({ open, onOpenChange }) {
                 </div>
               </div>
 
-              <Tabs value={method} onValueChange={setMethod} className="flex flex-col gap-5">
-                <div className="grid gap-3">
+              <div className="flex flex-col gap-4 rounded-md border border-border bg-background px-4 py-4">
+                <div className="grid gap-2">
                   <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Lyric Generation Method
+                    Audio
                   </Label>
-                  <TabsList className="grid h-auto grid-cols-2 rounded-md border border-border bg-background p-1">
-                    <TabsTrigger value="ai_prompt" className="h-9 uppercase tracking-[0.18em]">
-                      Ai Prompt
-                    </TabsTrigger>
-                    <TabsTrigger value="manual_upload" className="h-9 uppercase tracking-[0.18em]">
-                      Manual Upload
-                    </TabsTrigger>
-                  </TabsList>
+                  <Input
+                    name="audio"
+                    type="file"
+                    accept=".mp3,.wav,.m4a,.flac"
+                    required
+                    className="h-11 border-border bg-background file:mr-3 file:border-0 file:bg-transparent file:text-xs file:font-medium file:uppercase"
+                  />
                 </div>
 
-                <TabsContent value="ai_prompt" className="m-0">
-                  <div className="rounded-md border border-border bg-background px-4 py-4">
-                    <p className="text-sm font-medium">Source-led intake preview</p>
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      This visual state matches the design, but pipeline dispatch still uses the current manual-upload intake path.
-                    </p>
-                  </div>
-                </TabsContent>
+                <div className="grid gap-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Cover Art
+                  </Label>
+                  <Input
+                    name="cover"
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.webp"
+                    className="h-11 border-border bg-background file:mr-3 file:border-0 file:bg-transparent file:text-xs file:font-medium file:uppercase"
+                  />
+                </div>
 
-                <TabsContent value="manual_upload" className="m-0">
-                  <div className="flex flex-col gap-4 rounded-md border border-border bg-background px-4 py-4">
-                    <p className="text-sm font-medium">Manual upload dispatch</p>
-                    <p className="text-sm text-muted-foreground">
-                      Upload files here to use the existing intake endpoint.
-                    </p>
-
-                    <div className="grid gap-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                        Audio
-                      </Label>
-                      <Input
-                        name="audio"
-                        type="file"
-                        accept=".mp3,.wav,.m4a,.flac"
-                        required={method === "manual_upload"}
-                        className="h-11 border-border bg-background file:mr-3 file:border-0 file:bg-transparent file:text-xs file:font-medium file:uppercase"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                        Cover Art
-                      </Label>
-                      <Input
-                        name="cover"
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.webp"
-                        className="h-11 border-border bg-background file:mr-3 file:border-0 file:bg-transparent file:text-xs file:font-medium file:uppercase"
-                      />
-                    </div>
-
-                    <div className="grid gap-2">
-                      <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                        Lyrics
-                      </Label>
-                      <Input
-                        name="lyrics"
-                        type="file"
-                        accept=".lrc,.srt,.json,.txt"
-                        className="h-11 border-border bg-background file:mr-3 file:border-0 file:bg-transparent file:text-xs file:font-medium file:uppercase"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
+                <div className="grid gap-2">
+                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Lyrics
+                  </Label>
+                  <Input
+                    name="lyrics"
+                    type="file"
+                    accept=".lrc,.srt,.json,.txt"
+                    className="h-11 border-border bg-background file:mr-3 file:border-0 file:bg-transparent file:text-xs file:font-medium file:uppercase"
+                  />
+                </div>
+              </div>
 
               <input type="hidden" name="rights_status" value="licensed" />
               <input type="hidden" name="environment" value="prod" />
@@ -184,23 +146,17 @@ export function SongIntakeSheet({ open, onOpenChange }) {
                 </p>
               ) : (
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  {method === "manual_upload"
-                    ? "Sequence ready for execution"
-                    : "Manual upload is the active intake path"}
+                  Sequence ready for execution
                 </p>
               )}
 
               <Button
                 type="submit"
-                disabled={submitting || method !== "manual_upload"}
+                disabled={submitting}
                 size="lg"
                 className="h-11 uppercase tracking-[0.2em]"
               >
-                {submitting
-                  ? "Dispatching..."
-                  : method === "manual_upload"
-                    ? "Dispatch To Pipeline"
-                    : "Switch To Manual Upload"}
+                {submitting ? "Dispatching..." : "Dispatch To Pipeline"}
               </Button>
             </div>
           </SheetFooter>

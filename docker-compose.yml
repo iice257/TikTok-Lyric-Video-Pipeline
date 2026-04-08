@@ -16,6 +16,10 @@ services:
       dockerfile: docker/platform.Dockerfile
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://platform:platform@postgres:5432/platform
+      MEDIA_ROOT: /app/storage
+      PIPELINE_CONFIG_PATH: /app/config/pipeline.example.json
     command: ["python", "-m", "tiktok_platform_api.app"]
     ports:
       - "8000:8000"
@@ -24,6 +28,8 @@ services:
     volumes:
       - ./storage:/app/storage
       - ./config:/app/config
+      - ./data:/app/data
+      - ./output:/app/output
 
   worker:
     build:
@@ -31,6 +37,10 @@ services:
       dockerfile: docker/platform.Dockerfile
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://platform:platform@postgres:5432/platform
+      MEDIA_ROOT: /app/storage
+      PIPELINE_CONFIG_PATH: /app/config/pipeline.example.json
     command: ["python", "-m", "tiktok_platform_worker.main", "--poll-interval-seconds", "20"]
     depends_on:
       - postgres
@@ -38,6 +48,8 @@ services:
     volumes:
       - ./storage:/app/storage
       - ./config:/app/config
+      - ./data:/app/data
+      - ./output:/app/output
 
 volumes:
   postgres-data:

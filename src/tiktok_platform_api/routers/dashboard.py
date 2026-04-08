@@ -38,7 +38,12 @@ def dashboard_summary(
     recent_alerts = db.scalars(select(Alert).order_by(Alert.created_at.desc()).limit(5)).all()
     pending_upload_jobs = db.scalars(
         select(UploadJob)
-        .where(UploadJob.approved_at.is_(None))
+        .join(Clip, Clip.id == UploadJob.clip_id)
+        .where(
+            UploadJob.approved_at.is_(None),
+            UploadJob.status.in_(["queued", "waiting_window"]),
+            Clip.review_required.is_(True),
+        )
         .order_by(UploadJob.scheduled_at.asc(), UploadJob.created_at.desc())
         .limit(3)
     ).all()

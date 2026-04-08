@@ -34,7 +34,12 @@ def ensure_admin_user(db: Session, settings: PlatformSettings) -> User:
     user = db.scalar(select(User).where(User.email == settings.admin_email))
     if user:
         return user
-    password_hash = settings.admin_password_hash or hash_password("admin123")
+    if settings.admin_password_hash:
+        password_hash = settings.admin_password_hash
+    elif settings.is_production:
+        raise RuntimeError("ADMIN_PASSWORD_HASH must be configured in production.")
+    else:
+        password_hash = hash_password("admin123")
     user = User(email=settings.admin_email, password_hash=password_hash, role="admin", status="active")
     db.add(user)
     try:

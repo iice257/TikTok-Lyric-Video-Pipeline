@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 from datetime import timedelta
+import json
+from sqlalchemy import select
 
 
 def reload_platform_modules(monkeypatch, tmp_path):
@@ -178,3 +180,276 @@ def test_upload_job_processing_requeues_poll_without_duplicate_publish(tmp_path,
         assert upload_job.completed_at is not None
         assert song.status == "posted"
         assert clip.status == "posted"
+
+
+def test_recompute_song_status_requires_all_clips_posted(tmp_path, monkeypatch) -> None:
+    _, db_module, models_module, worker_engine_module = reload_platform_modules(monkeypatch, tmp_path)
+    db_module.init_db()
+
+    with db_module.SessionLocal() as db:
+        song = models_module.Song(
+            song_key="song-aggregate",
+            title="Song",
+            artist="Artist",
+            source_type="manual",
+            provider_name="manual-intake",
+            environment="prod",
+            rights_status="licensed",
+            status="queued_for_upload",
+            review_status="pending",
+            publish_eligible=True,
+            manual_priority=True,
+            audio_path=str(tmp_path / "audio.mp3"),
+        )
+        db.add(song)
+        db.flush()
+
+        clip_posted = models_module.Clip(
+            song_id=song.id,
+            segment_candidate_id="segment-1",
+            environment="prod",
+            status="posted",
+            review_required=False,
+            caption="posted",
+            lyric_style="karaoke_highlight",
+            layout_template="album_centered",
+            font_family="Sans",
+            text_color="#fff",
+            highlight_color="#ff0",
+        )
+        clip_pending = models_module.Clip(
+            song_id=song.id,
+            segment_candidate_id="segment-2",
+            environment="prod",
+            status="rendered",
+            review_required=False,
+            caption="pending",
+            lyric_style="karaoke_highlight",
+            layout_template="album_centered",
+            font_family="Sans",
+            text_color="#fff",
+            highlight_color="#ff0",
+        )
+        db.add_all([clip_posted, clip_pending])
+        db.flush()
+
+        db.add(
+            models_module.UploadJob(
+                clip_id=clip_pending.id,
+                status="processing",
+                publish_mode="auto",
+                scheduled_at=db_module.utcnow() + timedelta(seconds=10),
+                idempotency_key="upload-processing",
+            )
+        )
+        db.commit()
+
+        worker = worker_engine_module.PlatformWorker(worker_name="test-worker")
+        worker._recompute_song_status(db, song)
+        db.add(song)
+        db.commit()
+        db.refresh(song)
+        assert song.status == "queued_for_upload"
+
+
+def test_process_render_jobs_reuses_existing_upload_job(tmp_path, monkeypatch) -> None:
+    _, db_module, models_module, worker_engine_module = reload_platform_modules(monkeypatch, tmp_path)
+    db_module.init_db()
+
+    output_video = tmp_path / "clip.mp4"
+    output_video.write_bytes(b"video-bytes")
+    subtitle_path = tmp_path / "clip.ass"
+    subtitle_path.write_text("ass", encoding="utf-8")
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps({"ffmpeg_stderr": None}), encoding="utf-8")
+
+    with db_module.SessionLocal() as db:
+        song = models_module.Song(
+            song_key="song-rerender",
+            title="Song",
+            artist="Artist",
+            source_type="manual",
+            provider_name="manual-intake",
+            environment="prod",
+            rights_status="licensed",
+            status="queued_for_render",
+            review_status="pending",
+            publish_eligible=True,
+            manual_priority=True,
+            audio_path=str(tmp_path / "audio.mp3"),
+        )
+        db.add(song)
+        db.flush()
+
+        segment = models_module.SegmentCandidate(
+            song_id=song.id,
+            start_second=0.0,
+            end_second=35.0,
+            score=0.9,
+            reason="chorus",
+            caption_seed="seed",
+            rank=1,
+            selected=True,
+        )
+        db.add(segment)
+        db.flush()
+
+        db.add(
+            models_module.LyricsArtifact(
+                song_id=song.id,
+                source_format="lrc",
+                source_name="manual",
+                source_ref=None,
+                status="ready",
+                was_aligned=False,
+                confidence=0.9,
+                line_count=1,
+                lines_json=[{"text": "line", "start": 0.0, "end": 3.0, "source_format": "lrc", "tokens": []}],
+                raw_payload_json={},
+            )
+        )
+
+        clip = models_module.Clip(
+            song_id=song.id,
+            segment_candidate_id=segment.id,
+            environment="prod",
+            status="queued_for_render",
+            review_required=False,
+            caption="caption",
+            lyric_style="karaoke_highlight",
+            layout_template="album_centered",
+            font_family="Sans",
+            text_color="#fff",
+            highlight_color="#ff0",
+        )
+        db.add(clip)
+        db.flush()
+
+        db.add(
+            models_module.UploadJob(
+                clip_id=clip.id,
+                status="failed",
+                publish_mode="auto",
+                scheduled_at=db_module.utcnow() - timedelta(minutes=1),
+                idempotency_key="upload-existing",
+                completed_at=db_module.utcnow() - timedelta(minutes=1),
+                last_error="old failure",
+            )
+        )
+
+        db.add(
+            models_module.RenderJob(
+                clip_id=clip.id,
+                status="queued",
+                priority=0,
+                idempotency_key="render-rerender",
+            )
+        )
+        db.commit()
+
+    worker = worker_engine_module.PlatformWorker(worker_name="test-worker")
+
+    class _FakePlan:
+        def __init__(self, manifest):
+            self.manifest_path = manifest
+
+    class _FakeRendered:
+        def __init__(self, output, subtitle, manifest):
+            self.status = "rendered"
+            self.output_path = output
+            self.ass_path = subtitle
+            self.manifest_path = manifest
+            self.ffmpeg_command = ["ffmpeg", "-i", "x"]
+
+    class _FakeSchedule:
+        def __init__(self, scheduled_at):
+            self.scheduled_at = scheduled_at
+
+    worker.render_planner.plan_render = lambda *args, **kwargs: _FakePlan(manifest_path)
+    worker.render_planner.write_render_artifacts = lambda plan: _FakeRendered(output_video, subtitle_path, plan.manifest_path)
+    worker.renderer.render = lambda rendered: rendered
+    worker.scheduler.schedule_jobs = lambda *args, **kwargs: [_FakeSchedule(db_module.utcnow() + timedelta(minutes=1))]
+
+    with db_module.SessionLocal() as db:
+        worker.process_render_jobs(db)
+        song = db.scalar(select(models_module.Song).where(models_module.Song.song_key == "song-rerender"))
+        clip = db.scalar(select(models_module.Clip).where(models_module.Clip.song_id == song.id))
+        upload_jobs = db.scalars(select(models_module.UploadJob).where(models_module.UploadJob.clip_id == clip.id)).all()
+        assert len(upload_jobs) == 1
+        assert upload_jobs[0].idempotency_key == "upload-existing"
+        assert upload_jobs[0].status in {"queued", "waiting_window"}
+        assert upload_jobs[0].last_error is None
+        assert song.status == "queued_for_upload"
+
+
+def test_process_segments_uses_configured_max_segment_count(tmp_path, monkeypatch) -> None:
+    _, db_module, models_module, worker_engine_module = reload_platform_modules(monkeypatch, tmp_path)
+    db_module.init_db()
+
+    with db_module.SessionLocal() as db:
+        song = models_module.Song(
+            song_key="song-segments",
+            title="Song",
+            artist="Artist",
+            source_type="manual",
+            provider_name="manual-intake",
+            environment="prod",
+            rights_status="licensed",
+            status="lyrics_ready",
+            review_status="pending",
+            publish_eligible=True,
+            manual_priority=True,
+            audio_path=str(tmp_path / "audio.mp3"),
+        )
+        db.add(song)
+        db.flush()
+        db.add(
+            models_module.LyricsArtifact(
+                song_id=song.id,
+                source_format="lrc",
+                source_name="manual",
+                source_ref=None,
+                status="ready",
+                was_aligned=False,
+                confidence=0.9,
+                line_count=1,
+                lines_json=[{"text": "line", "start": 0.0, "end": 3.0, "source_format": "lrc", "tokens": []}],
+                raw_payload_json={},
+            )
+        )
+        db.commit()
+
+    worker = worker_engine_module.PlatformWorker(worker_name="test-worker")
+
+    class _Selection:
+        def __init__(self, idx):
+            self.start = float(idx * 10)
+            self.end = self.start + 35.0
+            self.score = 0.9
+            self.reason = f"reason-{idx}"
+            self.caption_seed = f"seed-{idx}"
+            self.duration = 35.0
+
+    class _Style:
+        hook_category = "underrated songs"
+        lyric_style = "karaoke_highlight"
+        layout_template = "album_centered"
+        font_family = "Sans"
+        text_color = "#fff"
+        highlight_color = "#ff0"
+
+    worker.segmenter.select_segments = lambda *args, **kwargs: [_Selection(i) for i in range(1, 6)]
+    worker.styling.decide = lambda *args, **kwargs: _Style()
+
+    with db_module.SessionLocal() as db:
+        worker.process_segments(db)
+        song = db.scalar(select(models_module.Song).where(models_module.Song.song_key == "song-segments"))
+        selected_candidates = db.scalars(
+            select(models_module.SegmentCandidate).where(
+                models_module.SegmentCandidate.song_id == song.id,
+                models_module.SegmentCandidate.selected.is_(True),
+            )
+        ).all()
+        clips = db.scalars(select(models_module.Clip).where(models_module.Clip.song_id == song.id)).all()
+        assert len(selected_candidates) == 5
+        assert len(clips) == 5

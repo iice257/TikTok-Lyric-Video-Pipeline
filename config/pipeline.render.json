@@ -1,0 +1,85 @@
+{
+  "root_dir": ".",
+  "paths": {
+    "manual_priority_dir": "storage/data/manual_priority",
+    "automated_queue_dir": "storage/data/automated_queue",
+    "provider_feed_dir": "storage/data/provider_feeds",
+    "lyrics_cache_dir": "storage/data/lyrics_cache",
+    "output_dir": "storage/output/videos",
+    "render_work_dir": "storage/output/render_work",
+    "upload_queue_file": "storage/output/scheduled_uploads.json",
+    "state_file": "storage/output/pipeline_state.json"
+  },
+  "intake": {
+    "target_videos_min": 10,
+    "target_videos_max": 15,
+    "manual_extensions": [".mp3", ".wav", ".m4a", ".flac"],
+    "automated_feed_files": [
+      "spotify_trending.json",
+      "tiktok_trending.json"
+    ]
+  },
+  "lyrics": {
+    "allowed_formats": [".lrc", ".srt", ".json", ".txt"],
+    "public_source_order": [
+      "local-sidecar",
+      "cache",
+      "json-feed",
+      "remote-url"
+    ],
+    "use_alignment_fallback": true
+  },
+  "alignment": {
+    "lead_in_seconds": 0.4,
+    "lead_out_seconds": 0.3,
+    "chars_per_second": 14.0,
+    "min_line_duration": 1.1,
+    "max_line_duration": 6.2
+  },
+  "segments": {
+    "min_duration_seconds": 30.0,
+    "max_duration_seconds": 60.0,
+    "target_duration_seconds": 43.0,
+    "max_segments_per_song": 5,
+    "min_segments_per_song": 3,
+    "min_gap_seconds": 4.0,
+    "chorus_window_lines": 4
+  },
+  "render": {
+    "width": 1080,
+    "height": 1920,
+    "fps": 30,
+    "video_codec": "libx264",
+    "audio_codec": "aac",
+    "bitrate": "8M",
+    "grain_strength": 12,
+    "default_fonts": {
+      "bold_sans": [
+        "Montserrat ExtraBold",
+        "Poppins ExtraBold",
+        "Arial Bold"
+      ],
+      "editorial_serif": [
+        "Cormorant Garamond Bold",
+        "Georgia Bold",
+        "Times New Roman Bold"
+      ],
+      "cursive": [
+        "Pacifico",
+        "Segoe Script",
+        "Brush Script MT"
+      ],
+      "experimental": [
+        "Anton",
+        "Impact",
+        "Bebas Neue"
+      ]
+    }
+  },
+  "schedule": {
+    "upload_window_start_hour": 1,
+    "upload_window_end_hour": 5,
+    "publish_hour_buckets": [8, 10, 12, 14, 16, 18, 20, 22]
+  },
+  "random_seed": 7
+}

@@ -12,6 +12,7 @@ WORKDIR /app
 COPY pyproject.toml README.md /app/
 COPY src /app/src
 COPY config /app/config
+COPY data /app/data
 COPY run_pipeline.py /app/
 
 RUN python -m pip install --upgrade pip \

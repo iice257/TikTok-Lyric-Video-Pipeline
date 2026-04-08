@@ -5,6 +5,15 @@ from functools import lru_cache
 import os
 from pathlib import Path
 
+WEAK_SESSION_SECRETS = {
+    "",
+    "change-me",
+    "change-me-session-secret",
+    "changeme",
+    "secret",
+    "default",
+}
+
 
 def _bool_env(name: str, default: bool) -> bool:
     value = os.getenv(name)
@@ -75,14 +84,19 @@ def get_settings() -> PlatformSettings:
     )
 
 
+def _is_weak_session_secret(secret: str) -> bool:
+    normalized = secret.strip().lower()
+    return normalized in WEAK_SESSION_SECRETS or len(secret.strip()) < 32
+
+
 def validate_runtime_settings(settings: PlatformSettings) -> None:
     if not settings.is_production:
         return
     issues: list[str] = []
     if settings.database_url.startswith("sqlite"):
         issues.append("DATABASE_URL must point to Postgres in production.")
-    if settings.session_secret == "change-me-session-secret":
-        issues.append("SESSION_SECRET must be set in production.")
+    if _is_weak_session_secret(settings.session_secret):
+        issues.append("SESSION_SECRET must be a strong non-placeholder value with at least 32 characters in production.")
     if not settings.admin_password_hash:
         issues.append("ADMIN_PASSWORD_HASH must be set in production.")
     if settings.simulate_uploads:

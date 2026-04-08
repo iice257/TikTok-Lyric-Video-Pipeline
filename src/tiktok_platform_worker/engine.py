@@ -28,7 +28,7 @@ from tiktok_platform.models import (
 from tiktok_platform.services import create_alert, get_oauth_token, get_setting, record_state_event, upsert_oauth_token
 from tiktok_platform.services import create_alert_once
 from tiktok_platform.settings import PlatformSettings, get_settings
-from tiktok_platform.tiktok_api import TikTokApiClient, TikTokApiError, build_chunk_plan
+from tiktok_platform.tiktok_api import TikTokApiClient, TikTokApiError
 
 from .adapters import build_pipeline_config, clip_to_style, lyrics_artifact_to_bundle, new_job_key, segment_candidate_to_selection, song_to_asset
 
@@ -36,11 +36,7 @@ from .adapters import build_pipeline_config, clip_to_style, lyrics_artifact_to_b
 class TikTokUploadAdapter:
     def __init__(self, settings: PlatformSettings) -> None:
         self.settings = settings
-        self.client = TikTokApiClient(
-            client_key=settings.tiktok_client_key,
-            client_secret=settings.tiktok_client_secret,
-            redirect_uri=settings.tiktok_redirect_uri,
-        )
+        self.client = TikTokApiClient(settings)
 
     def publish(self, db: Session, clip: Clip, upload_job: UploadJob) -> tuple[str, dict[str, object]]:
         if self.settings.simulate_uploads:
@@ -57,10 +53,10 @@ class TikTokUploadAdapter:
                 token = upsert_oauth_token(
                     db,
                     provider="tiktok",
-                    subject=refreshed.open_id,
+                    subject=refreshed.subject,
                     access_token=refreshed.access_token,
                     refresh_token=refreshed.refresh_token,
-                    scopes=refreshed.scope,
+                    scopes=refreshed.scopes,
                     expires_at=refreshed.expires_at,
                 )
 
@@ -105,7 +101,7 @@ class TikTokUploadAdapter:
                 privacy_level = self._select_privacy_level(preferences, creator_info)
                 init_payload = self.client.init_direct_post(
                     access_token=access_token,
-                    video_path=video_path,
+                    file_path=video_path,
                     title=clip.caption[:150],
                     privacy_level=privacy_level,
                     disable_comment=not bool(preferences.get("allow_comment")),
@@ -115,14 +111,13 @@ class TikTokUploadAdapter:
             else:
                 init_payload = self.client.init_inbox_upload(
                     access_token=access_token,
-                    video_path=video_path,
-                    title=clip.caption[:150],
+                    file_path=video_path,
                 )
 
             publish_id = str(init_payload["publish_id"])
             upload_url = str(init_payload.get("upload_url") or "")
             if upload_url:
-                self.client.upload_file(upload_url, video_path, chunk_plan=build_chunk_plan(video_path))
+                self.client.upload_file(upload_url, video_path)
             status_payload = self.client.fetch_post_status(access_token, publish_id)
             mapped_status, payload = self._map_status(publish_id, status_payload)
             payload["mode"] = publish_mode
@@ -131,7 +126,7 @@ class TikTokUploadAdapter:
                 payload["creator_info"] = creator_info
             return mapped_status, payload
         except TikTokApiError as exc:
-            return "failed", {"error": str(exc), "code": exc.code, "details": exc.payload}
+            return "failed", {"error": str(exc), "details": exc.payload}
 
     def _resolve_publish_mode(self, scopes: list[str], upload_mode: str, review_required: bool, job_publish_mode: str) -> str:
         if upload_mode == "draft":
@@ -204,6 +199,28 @@ class PlatformWorker:
         heartbeat.last_seen_at = utcnow()
         db.add(heartbeat)
         db.commit()
+
+    def _recompute_song_status(self, db: Session, song: Song) -> None:
+        clips = db.scalars(select(Clip).where(Clip.song_id == song.id)).all()
+        if not clips:
+            return
+        clip_ids = [clip.id for clip in clips]
+        upload_jobs = db.scalars(select(UploadJob).where(UploadJob.clip_id.in_(clip_ids))).all()
+
+        active_render_states = {"queued_for_render"}
+        active_upload_states = {"queued", "waiting_window", "claimed", "uploading", "processing"}
+
+        if any(clip.status in active_render_states for clip in clips):
+            song.status = "queued_for_render"
+            return
+        if any(job.status in active_upload_states for job in upload_jobs):
+            song.status = "queued_for_upload"
+            return
+        if clips and all(clip.status == "posted" for clip in clips):
+            song.status = "posted"
+            return
+        if any(clip.status == "failed" for clip in clips):
+            song.status = "failed"
 
     def run_forever(self, poll_interval_seconds: int = 30) -> None:
         while True:
@@ -437,7 +454,7 @@ class PlatformWorker:
                     caption_seed=selection.caption_seed,
                     repeated_phrase=selection.caption_seed,
                     rank=rank,
-                    selected=rank <= 3,
+                    selected=rank <= self.config.segments.max_segments_per_song,
                 )
                 db.add(candidate)
                 db.flush()
@@ -581,17 +598,32 @@ class PlatformWorker:
                 clip.last_error = job.stderr_text or "Render failed."
                 create_alert(db, kind="render_failed", severity="error", message=clip.last_error, source_type="clip", source_id=clip.id)
             else:
-                upload_job = UploadJob(
-                    clip_id=clip.id,
-                    status="waiting_window" if (clip.scheduled_at or utcnow()) > utcnow() else "queued",
-                    publish_mode="review" if clip.review_required else "auto",
-                    scheduled_at=clip.scheduled_at or utcnow(),
-                    idempotency_key=f"upload-{clip.id}",
+                scheduled_at = clip.scheduled_at or utcnow()
+                next_status = "waiting_window" if scheduled_at > utcnow() else "queued"
+                upload_job = db.scalar(
+                    select(UploadJob)
+                    .where(UploadJob.clip_id == clip.id)
+                    .order_by(UploadJob.created_at.desc())
                 )
+                if upload_job is None:
+                    upload_job = UploadJob(
+                        clip_id=clip.id,
+                        status=next_status,
+                        publish_mode="review" if clip.review_required else "auto",
+                        scheduled_at=scheduled_at,
+                        idempotency_key=f"upload-{clip.id}-{job.id}",
+                    )
+                else:
+                    upload_job.status = next_status
+                    upload_job.publish_mode = "review" if clip.review_required else "auto"
+                    upload_job.scheduled_at = scheduled_at
+                    upload_job.completed_at = None
+                    upload_job.last_error = None
+                    upload_job.claimed_by = None
+                    upload_job.claimed_at = None
+                    upload_job.lease_expires_at = None
                 db.add(upload_job)
-                song.status = "queued_for_upload"
-            if rendered.status != "rendered":
-                song.status = "failed"
+            self._recompute_song_status(db, song)
             db.add_all([job, clip, song])
             record_state_event(
                 db,
@@ -723,14 +755,13 @@ class PlatformWorker:
         if status_text == "failed":
             job.last_error = str(payload.get("error", "Upload failed."))
             create_alert(db, kind="upload_failed", severity="error", message=job.last_error, source_type="upload_job", source_id=job.id)
-            song.status = "failed"
         elif status_text == "posted":
-            song.status = "posted"
             clip.status = "posted"
             clip.last_error = None
             job.last_error = None
         else:
             clip.last_error = None
+        self._recompute_song_status(db, song)
         db.add_all([job, song, clip])
         record_state_event(
             db,
