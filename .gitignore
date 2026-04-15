@@ -8,6 +8,7 @@ pytest-cache-files-*/
 .next/
 node_modules/
 .env
+.npm-cache/
 apps/web/.env.local
 storage/
 output/platform.db

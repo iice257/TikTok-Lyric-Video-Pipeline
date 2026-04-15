@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Kinetic Console - Clip Browser</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: '#EAB308', // Custom yellow from Design System
+            terminal: {
+              black: '#0A0A0A',
+              dark: '#121212',
+              gray: '#1E1E1E',
+              border: '#2A2A2A',
+              text: '#A1A1AA',
+              highlight: '#FFFFFF'
+            },
+            status: {
+              ready: '#22C55E',
+              finalized: '#EAB308',
+              review: '#EF4444',
+              archived: '#F97316',
+              draft: '#71717A'
+            }
+          },
+          fontFamily: {
+            sans: ['"Space Grotesk"', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+<style data-purpose="global-styles">
+    body {
+      background-color: #0A0A0A;
+      color: #A1A1AA;
+      font-family: 'Space Grotesk', sans-serif;
+    }::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0A0A0A; }
+    ::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #EAB308; }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+  </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+<aside class="w-64 border-r border-terminal-border flex flex-col bg-terminal-black flex-shrink-0" data-purpose="main-navigation">
+<div class="p-6 border-b border-terminal-border flex items-center space-x-3">
+<div class="w-10 h-10 bg-brand flex items-center justify-center rounded">
+<svg class="h-6 w-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+</svg>
+</div>
+<div>
+<h1 class="text-sm font-bold text-terminal-highlight tracking-tight leading-none">Pipeline Cockpit</h1>
+<span class="text-[10px] text-terminal-text uppercase opacity-50">Terminal v2.4</span>
+</div>
+</div>
+<nav class="flex-1 py-4">
+<ul class="space-y-1 px-2">
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 text-sm font-medium hover:bg-terminal-gray rounded transition-colors group" href="#">
+<svg class="w-5 h-5 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Event Console</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 text-sm font-medium hover:bg-terminal-gray rounded transition-colors group" href="#">
+<svg class="w-5 h-5 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Song Intake</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 text-sm font-medium bg-terminal-gray text-brand border-r-4 border-brand rounded-sm" href="#">
+<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z"></path></svg>
+<span>Clip Browser</span>
+</a>
+</li>
+<li>
+<a class="flex items-center space-x-3 px-4 py-3 text-sm font-medium hover:bg-terminal-gray rounded transition-colors group" href="#">
+<svg class="w-5 h-5 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>TikTok Sync</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="p-4 border-t border-terminal-border">
+<a class="flex items-center space-x-3 px-4 py-3 text-sm font-medium hover:bg-terminal-gray rounded transition-colors group" href="#">
+<svg class="w-5 h-5 opacity-60 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+<span>Configuration</span>
+</a>
+</div>
+</aside>
+<main class="flex-1 flex flex-col bg-[#050505] overflow-y-auto" data-purpose="dashboard-container">
+<header class="h-10 border-b border-terminal-border bg-terminal-black flex items-center px-4 justify-between flex-shrink-0" data-purpose="terminal-header">
+<div class="flex space-x-6 text-[10px] font-medium uppercase tracking-widest">
+<span class="flex items-center"><span class="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span> SYS LOG CONSOLE SYNCHRONIZED</span>
+<span class="opacity-40">|</span>
+<span class="text-terminal-text">14:03:31 BUFFER CLEARED</span>
+<span class="opacity-40">|</span>
+<span class="text-terminal-text">14:03:33 STREAM HEALTHY</span>
+</div>
+</header>
+<section class="p-8 pb-4" data-purpose="page-controls-header">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="text-3xl font-bold text-terminal-highlight">Clip Browser</h2>
+<p class="text-sm text-terminal-text mt-1">Manage and review all pipeline media assets.</p>
+</div>
+<div class="flex space-x-3">
+<div class="flex bg-terminal-gray p-1 rounded border border-terminal-border">
+<button class="px-4 py-1.5 text-xs font-bold text-brand bg-terminal-black border border-terminal-border rounded-sm">MAIN</button>
+<button class="px-4 py-1.5 text-xs font-bold text-terminal-text hover:text-terminal-highlight">STAGING</button>
+</div>
+<button class="px-6 py-1.5 text-xs font-bold bg-[#450A0A] text-red-400 border border-red-900 rounded hover:bg-red-900 transition-colors">EMERGENCY STOP</button>
+<div class="inline-flex shadow-sm rounded-md" role="group">
+<button class="px-6 py-1.5 text-xs font-bold bg-brand text-black rounded-l border border-brand hover:bg-yellow-500" type="button">PAUSE FLOW</button>
+<button class="px-2 py-1.5 text-xs font-bold bg-brand text-black rounded-r border-l border-black/20 hover:bg-yellow-500" type="button">
+<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path clip-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" fill-rule="evenodd"></path></svg>
+</button>
+</div>
+</div>
+</div>
+<div class="mt-8 flex items-center space-x-3 border border-terminal-border p-1.5 bg-terminal-black rounded shadow-sm" data-purpose="filter-bar">
+<div class="relative flex-1">
+<span class="absolute inset-y-0 left-3 flex items-center text-terminal-text/60">
+<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
+</span>
+<input class="w-full bg-terminal-gray/40 border-none text-[13px] py-1.5 pl-9 focus:ring-1 focus:ring-brand rounded-sm placeholder:text-terminal-text/30" placeholder="Quick search..." type="text"/>
+</div>
+<div class="flex space-x-1.5">
+<button class="px-3 py-1.5 bg-terminal-gray/60 border border-terminal-border text-[10px] font-bold uppercase flex items-center space-x-1.5 hover:bg-terminal-border hover:text-terminal-highlight transition-colors rounded-sm">
+<span>Status</span>
+<svg class="w-2.5 h-2.5 opacity-50" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+</button>
+<button class="px-3 py-1.5 bg-terminal-gray/60 border border-terminal-border text-[10px] font-bold uppercase flex items-center space-x-1.5 hover:bg-terminal-border hover:text-terminal-highlight transition-colors rounded-sm">
+<span>Type</span>
+<svg class="w-2.5 h-2.5 opacity-50" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+</button>
+<div class="flex items-center px-3 py-1.5 bg-terminal-gray/60 border border-terminal-border text-[10px] font-bold rounded-sm">
+<span class="text-terminal-text/70 mr-1.5 uppercase">Sort:</span>
+<span class="text-brand">Date</span>
+<svg class="w-2.5 h-2.5 ml-1.5 opacity-50" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+</div>
+<button class="px-3 py-1.5 text-[10px] font-bold uppercase text-terminal-text/60 hover:text-terminal-highlight transition-colors">Reset</button>
+</div>
+</div>
+</section>
+<section class="px-8 pb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-purpose="clips-grid">
+<article class="bg-terminal-black border border-terminal-border rounded overflow-hidden hover:border-brand/40 transition-all group cursor-pointer">
+<div class="relative aspect-video">
+<img alt="v1_Auto_Generate_Kinetic.mp4" class="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" src="https://lh3.googleusercontent.com/aida/ADBb0uigzsFlzaHQ7dpco0lVgMwF6GTWA2r1QezpKq9Pa-XErM38jdY0LwAQKw7maDva-V1PlNNeR1GopWTV0rOljs9LHtBzL4l94MaXCahKO0FivIftacPo8EVJ8A5n2SgYT5f6oHQgI7ZT2onoMyLzg-udF6MDHxWUfp_elAQK872f0MRAg18xyu4GzagCIvqMpPRNULH5ePFOYKTLoXEHajEzfKvPT3Kffh4IF6gZTKqyXAmFOxGUzH60mA3SVPAwS9f2SPR22HKnrqM"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+<div class="w-12 h-12 rounded-full bg-brand/90 flex items-center justify-center text-black shadow-2xl">
+<span class="material-symbols-outlined text-3xl ml-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-terminal-black to-transparent opacity-60"></div>
+</div>
+<div class="p-4 border-t border-terminal-border/50">
+<div class="flex justify-between items-start gap-3">
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-terminal-highlight text-sm truncate">v1_Auto_Generate_Kinetic.mp4</h3>
+<div class="flex items-center space-x-2 mt-1.5 text-[11px] text-terminal-text/80">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">schedule</span>01:45</span>
+<span class="opacity-30">•</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">history</span>2h ago</span>
+</div>
+</div>
+<span class="flex-shrink-0 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-[#14532D]/40 text-[#4ADE80] border border-[#166534]">READY</span>
+</div>
+</div>
+</article>
+<article class="bg-terminal-black border border-terminal-border rounded overflow-hidden hover:border-brand/40 transition-all group cursor-pointer">
+<div class="relative aspect-video">
+<img alt="Energetic_Promo_v12.mp4" class="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" src="https://lh3.googleusercontent.com/aida/ADBb0uigzsFlzaHQ7dpco0lVgMwF6GTWA2r1QezpKq9Pa-XErM38jdY0LwAQKw7maDva-V1PlNNeR1GopWTV0rOljs9LHtBzL4l94MaXCahKO0FivIftacPo8EVJ8A5n2SgYT5f6oHQgI7ZT2onoMyLzg-udF6MDHxWUfp_elAQK872f0MRAg18xyu4GzagCIvqMpPRNULH5ePFOYKTLoXEHajEzfKvPT3Kffh4IF6gZTKqyXAmFOxGUzH60mA3SVPAwS9f2SPR22HKnrqM"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+<div class="w-12 h-12 rounded-full bg-brand/90 flex items-center justify-center text-black shadow-2xl">
+<span class="material-symbols-outlined text-3xl ml-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-terminal-black to-transparent opacity-60"></div>
+</div>
+<div class="p-4 border-t border-terminal-border/50">
+<div class="flex justify-between items-start gap-3">
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-terminal-highlight text-sm truncate">Energetic_Promo_v12.mp4</h3>
+<div class="flex items-center space-x-2 mt-1.5 text-[11px] text-terminal-text/80">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">schedule</span>00:58</span>
+<span class="opacity-30">•</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">history</span>1d ago</span>
+</div>
+</div>
+<span class="flex-shrink-0 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-brand/10 text-brand border border-brand/40">FINALIZED</span>
+</div>
+</div>
+</article>
+<article class="bg-terminal-black border border-terminal-border rounded overflow-hidden hover:border-brand/40 transition-all group cursor-pointer">
+<div class="relative aspect-video">
+<img alt="Lyrics_Glow_v05.mp4" class="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" src="https://lh3.googleusercontent.com/aida/ADBb0uigzsFlzaHQ7dpco0lVgMwF6GTWA2r1QezpKq9Pa-XErM38jdY0LwAQKw7maDva-V1PlNNeR1GopWTV0rOljs9LHtBzL4l94MaXCahKO0FivIftacPo8EVJ8A5n2SgYT5f6oHQgI7ZT2onoMyLzg-udF6MDHxWUfp_elAQK872f0MRAg18xyu4GzagCIvqMpPRNULH5ePFOYKTLoXEHajEzfKvPT3Kffh4IF6gZTKqyXAmFOxGUzH60mA3SVPAwS9f2SPR22HKnrqM"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+<div class="w-12 h-12 rounded-full bg-brand/90 flex items-center justify-center text-black shadow-2xl">
+<span class="material-symbols-outlined text-3xl ml-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-terminal-black to-transparent opacity-60"></div>
+</div>
+<div class="p-4 border-t border-terminal-border/50">
+<div class="flex justify-between items-start gap-3">
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-terminal-highlight text-sm truncate">Lyrics_Glow_v05.mp4</h3>
+<div class="flex items-center space-x-2 mt-1.5 text-[11px] text-terminal-text/80">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">schedule</span>01:32</span>
+<span class="opacity-30">•</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">history</span>30m ago</span>
+</div>
+</div>
+<span class="flex-shrink-0 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-[#7F1D1D]/40 text-[#F87171] border border-[#991B1B]/60">IN REVIEW</span>
+</div>
+</div>
+</article>
+<article class="bg-terminal-black border border-terminal-border rounded overflow-hidden hover:border-brand/40 transition-all group cursor-pointer">
+<div class="relative aspect-video">
+<img alt="VlogRecap_v21.mp4" class="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" src="https://lh3.googleusercontent.com/aida/ADBb0uigzsFlzaHQ7dpco0lVgMwF6GTWA2r1QezpKq9Pa-XErM38jdY0LwAQKw7maDva-V1PlNNeR1GopWTV0rOljs9LHtBzL4l94MaXCahKO0FivIftacPo8EVJ8A5n2SgYT5f6oHQgI7ZT2onoMyLzg-udF6MDHxWUfp_elAQK872f0MRAg18xyu4GzagCIvqMpPRNULH5ePFOYKTLoXEHajEzfKvPT3Kffh4IF6gZTKqyXAmFOxGUzH60mA3SVPAwS9f2SPR22HKnrqM"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+<div class="w-12 h-12 rounded-full bg-brand/90 flex items-center justify-center text-black shadow-2xl">
+<span class="material-symbols-outlined text-3xl ml-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-terminal-black to-transparent opacity-60"></div>
+</div>
+<div class="p-4 border-t border-terminal-border/50">
+<div class="flex justify-between items-start gap-3">
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-terminal-highlight text-sm truncate">VlogRecap_v21.mp4</h3>
+<div class="flex items-center space-x-2 mt-1.5 text-[11px] text-terminal-text/80">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">schedule</span>02:10</span>
+<span class="opacity-30">•</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">history</span>5d ago</span>
+</div>
+</div>
+<span class="flex-shrink-0 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-[#7C2D12]/40 text-[#FB923C] border border-[#9A3412]/60">ARCHIVED</span>
+</div>
+</div>
+</article>
+<article class="bg-terminal-black border border-terminal-border rounded overflow-hidden hover:border-brand/40 transition-all group cursor-pointer">
+<div class="relative aspect-video">
+<img alt="LoFi_Chill_Beat.mp4" class="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" src="https://lh3.googleusercontent.com/aida/ADBb0uigzsFlzaHQ7dpco0lVgMwF6GTWA2r1QezpKq9Pa-XErM38jdY0LwAQKw7maDva-V1PlNNeR1GopWTV0rOljs9LHtBzL4l94MaXCahKO0FivIftacPo8EVJ8A5n2SgYT5f6oHQgI7ZT2onoMyLzg-udF6MDHxWUfp_elAQK872f0MRAg18xyu4GzagCIvqMpPRNULH5ePFOYKTLoXEHajEzfKvPT3Kffh4IF6gZTKqyXAmFOxGUzH60mA3SVPAwS9f2SPR22HKnrqM"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+<div class="w-12 h-12 rounded-full bg-brand/90 flex items-center justify-center text-black shadow-2xl">
+<span class="material-symbols-outlined text-3xl ml-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-terminal-black to-transparent opacity-60"></div>
+</div>
+<div class="p-4 border-t border-terminal-border/50">
+<div class="flex justify-between items-start gap-3">
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-terminal-highlight text-sm truncate">LoFi_Chill_Beat.mp4</h3>
+<div class="flex items-center space-x-2 mt-1.5 text-[11px] text-terminal-text/80">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">schedule</span>02:30</span>
+<span class="opacity-30">•</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">history</span>4h ago</span>
+</div>
+</div>
+<span class="flex-shrink-0 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-[#14532D]/40 text-[#4ADE80] border border-[#166534]">READY</span>
+</div>
+</div>
+</article>
+<article class="bg-terminal-black border border-terminal-border rounded overflow-hidden hover:border-brand/40 transition-all group cursor-pointer">
+<div class="relative aspect-video">
+<img alt="Glitch_Intro_v3.mp4" class="w-full h-full object-cover grayscale-[0.3] group-hover:grayscale-0 group-hover:scale-105 transition-all duration-500" src="https://lh3.googleusercontent.com/aida/ADBb0uigzsFlzaHQ7dpco0lVgMwF6GTWA2r1QezpKq9Pa-XErM38jdY0LwAQKw7maDva-V1PlNNeR1GopWTV0rOljs9LHtBzL4l94MaXCahKO0FivIftacPo8EVJ8A5n2SgYT5f6oHQgI7ZT2onoMyLzg-udF6MDHxWUfp_elAQK872f0MRAg18xyu4GzagCIvqMpPRNULH5ePFOYKTLoXEHajEzfKvPT3Kffh4IF6gZTKqyXAmFOxGUzH60mA3SVPAwS9f2SPR22HKnrqM"/>
+<div class="absolute inset-0 bg-black/30 group-hover:bg-black/10 transition-colors"></div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+<div class="w-12 h-12 rounded-full bg-brand/90 flex items-center justify-center text-black shadow-2xl">
+<span class="material-symbols-outlined text-3xl ml-1">play_arrow</span>
+</div>
+</div>
+<div class="absolute inset-0 bg-gradient-to-t from-terminal-black to-transparent opacity-60"></div>
+</div>
+<div class="p-4 border-t border-terminal-border/50">
+<div class="flex justify-between items-start gap-3">
+<div class="flex-1 min-w-0">
+<h3 class="font-bold text-terminal-highlight text-sm truncate">Glitch_Intro_v3.mp4</h3>
+<div class="flex items-center space-x-2 mt-1.5 text-[11px] text-terminal-text/80">
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">schedule</span>00:20</span>
+<span class="opacity-30">•</span>
+<span class="flex items-center"><span class="material-symbols-outlined text-[14px] mr-1 opacity-60">history</span>1h ago</span>
+</div>
+</div>
+<span class="flex-shrink-0 px-2 py-0.5 rounded-[2px] text-[10px] font-bold bg-terminal-gray/60 text-terminal-text border border-terminal-border">DRAFT</span>
+</div>
+</div>
+</article>
+</section>
+<div class="flex justify-center py-10 border-t border-terminal-border/20 mx-8">
+<button class="px-8 py-2.5 border border-terminal-border rounded-[2px] text-[11px] font-bold tracking-widest text-terminal-text/80 hover:bg-terminal-gray hover:text-terminal-highlight hover:border-terminal-text/30 transition-all uppercase flex items-center space-x-2">
+<span class="material-symbols-outlined text-lg">expand_more</span>
+<span>Load More Clips</span>
+</button>
+</div>
+</main>
+</body></html>

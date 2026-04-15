@@ -1,0 +1,492 @@
+<html class="dark" lang="en"><head></head><body class="bg-terminal-black text-zinc-100 font-sans selection:bg-primary/30 antialiased overflow-hidden h-screen flex">```html
+
+
+
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Pipeline Cockpit - Configuration</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              fontFamily: {
+                sans: ['Space Grotesk', 'sans-serif'],
+              },
+              colors: {
+                primary: '#EAB308', // Tailwind yellow-500
+                terminal: {
+                  black: '#0A0A0A',
+                  dark: '#121212',
+                  gray: '#1E1E1E',
+                  border: '#2A2A2A',
+                  text: '#A1A1AA',
+                }
+              },
+              borderRadius: {
+                'custom': '4px',
+              }
+            }
+          }
+        }
+    </script>
+<style data-purpose="custom-scrollbars">
+        ::-webkit-scrollbar {
+          width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+          background: #0A0A0A;
+        }
+        ::-webkit-scrollbar-thumb {
+          background: #2A2A2A;
+          border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+          background: #3F3F46;
+        }
+    </style>
+<style data-purpose="terminal-ui-components">.terminal-switch {
+          position: relative;
+          display: inline-block;
+          width: 38px;
+          height: 20px;
+        }
+        .terminal-switch input {
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: #27272A;
+          transition: .2s;
+          border-radius: 20px;
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 14px;
+          width: 14px;
+          left: 3px;
+          bottom: 3px;
+          background-color: #A1A1AA;
+          transition: .2s;
+          border-radius: 50%;
+        }
+        input:checked + .slider {
+          background-color: #EAB308;
+        }
+        input:checked + .slider:before {
+          transform: translateX(18px);
+          background-color: #000;
+        }.stepper-btn {
+          @apply w-8 h-8 flex items-center justify-center bg-terminal-gray border-terminal-border text-terminal-text hover:bg-zinc-800 transition-colors;
+        }
+        .stepper-container {
+          @apply flex items-center bg-terminal-black border border-terminal-border rounded-custom overflow-hidden;
+        }
+        .stepper-value {
+          @apply px-4 text-sm font-mono font-bold border-l border-r border-terminal-border h-full flex items-center;
+        }
+    </style>
+
+
+<aside class="w-64 border-r border-terminal-border flex flex-col bg-terminal-black shrink-0" data-purpose="navigation-sidebar">
+<div class="p-6 flex items-center gap-3">
+<div class="w-8 h-8 bg-primary flex items-center justify-center rounded-sm">
+<img alt="Logo" class="w-6 h-6 object-contain brightness-0" src="https://lh3.googleusercontent.com/aida/ADBb0ugiLATebs3WAqr8OZkJHVxm9C_F3v2_7OF1msTxKipoc2LjzVgxvjX_ZDRSBKNAfJLr3aLQwZ2q7IzXxsWXbKyQTbWM_kXweel5C5iYpUTrXKRUiIWUZnhiCfguRg55nBQ13nO1xpQnvOCcEAEkweYfh3qfSg3dbJYK1i2QEKZKJogKe76-gWI1KroydPQmz9Z_ch-ZW6D0J3ab5Mn0OZ754UgLXs76gNEqZBjRMrKR1Q7WeaDa96Qye7UEb7Tb7ZIsGFzc966RhPU" style="filter: invert(1);"/>
+</div>
+<div>
+<h1 class="font-bold text-sm tracking-tight leading-tight">Pipeline Cockpit</h1>
+<p class="text-[10px] text-primary/70 font-medium uppercase tracking-widest">Terminal v2.4</p>
+</div>
+</div>
+<nav class="mt-4 flex-1">
+<ul class="space-y-1 px-3 text-sm font-medium">
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-terminal-text hover:bg-terminal-gray rounded-custom transition-colors" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                    Event Console
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-terminal-text hover:bg-terminal-gray rounded-custom transition-colors" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                    Song Intake
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-terminal-text hover:bg-terminal-gray rounded-custom transition-colors" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                    Clip Browser
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-3 py-2 text-terminal-text hover:bg-terminal-gray rounded-custom transition-colors" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                    TikTok Sync
+                </a>
+</li>
+<li class="mt-8">
+<a class="flex items-center gap-3 px-3 py-2 text-primary bg-primary/10 border-r-2 border-primary rounded-l-none font-semibold" href="#">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path></svg>
+                    Configuration
+                </a>
+</li>
+</ul>
+</nav>
+<div class="p-4 border-t border-terminal-border">
+<div class="flex items-center gap-2 text-[10px] font-bold text-primary tracking-tighter">
+<span class="w-1.5 h-1.5 bg-primary rounded-full"></span>
+            SYS LOG: CONSOLE SYNCHRONIZED
+        </div>
+</div>
+</aside>
+<main class="flex-1 flex flex-col min-w-0 bg-terminal-dark">
+<header class="h-16 border-b border-terminal-border flex items-center justify-between px-8 bg-terminal-black" data-purpose="system-status-bar">
+<div class="flex items-center gap-10">
+<div class="flex flex-col">
+<span class="text-[10px] text-terminal-text uppercase font-bold tracking-widest">State</span>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(234,179,8,0.5)]"></span>
+<span class="font-bold text-sm">RUNNING</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-terminal-text uppercase font-bold tracking-widest">Worker</span>
+<div class="flex items-center gap-1">
+<span class="font-bold text-sm text-primary">ALIVE</span>
+<span class="text-xs text-terminal-text">(2s)</span>
+</div>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] text-terminal-text uppercase font-bold tracking-widest">Queue</span>
+<div class="flex items-center gap-1">
+<span class="font-bold text-sm">18</span>
+<span class="text-[10px] text-terminal-text uppercase">Jobs</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex bg-terminal-gray p-1 rounded-custom">
+<button class="px-4 py-1 text-[11px] font-bold bg-primary text-black rounded-custom">MAIN</button>
+<button class="px-4 py-1 text-[11px] font-bold text-terminal-text hover:text-white transition-colors">STAGING</button>
+</div>
+<button class="border border-red-500/50 text-red-500 hover:bg-red-500/10 transition-colors px-6 py-2 rounded-custom text-xs font-bold uppercase tracking-widest">
+                Emergency Stop
+            </button>
+<button class="bg-primary hover:bg-primary/90 text-black px-6 py-2 rounded-custom text-xs font-bold uppercase tracking-widest transition-colors">
+                Pause Flow
+            </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto p-8" data-purpose="config-content">
+<div class="max-w-6xl mx-auto">
+<header class="mb-10">
+<h2 class="text-3xl font-bold tracking-tight">Configuration</h2>
+<p class="text-terminal-text mt-1">Manage system settings, integrations, and operational parameters.</p>
+</header>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<section class="bg-terminal-gray/40 border border-terminal-border p-6 rounded-custom" data-purpose="pipeline-settings">
+<h3 class="text-[11px] font-bold text-terminal-text uppercase tracking-widest mb-6">Pipeline Settings</h3>
+<div class="space-y-5">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Auto-Scaling</h4>
+<p class="text-[11px] text-terminal-text">Automatically adjust nodes based on load</p>
+</div>
+<label class="terminal-switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Max Nodes</h4>
+<p class="text-[11px] text-terminal-text">Maximum number of processing nodes</p>
+</div>
+<div class="stepper-container">
+<button class="stepper-btn">−</button>
+<span class="stepper-value">10</span>
+<button class="stepper-btn">+</button>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Queue Threshold</h4>
+<p class="text-[11px] text-terminal-text">Jobs in queue before scaling up</p>
+</div>
+<div class="stepper-container">
+<button class="stepper-btn">−</button>
+<span class="stepper-value">20</span>
+<button class="stepper-btn">+</button>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Health Check Interval</h4>
+<p class="text-[11px] text-terminal-text">Seconds between system health checks</p>
+</div>
+<div class="stepper-container">
+<button class="stepper-btn">−</button>
+<span class="stepper-value">30</span>
+<button class="stepper-btn">+</button>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-terminal-gray/40 border border-terminal-border p-6 rounded-custom" data-purpose="integrations">
+<h3 class="text-[11px] font-bold text-terminal-text uppercase tracking-widest mb-6">Integrations</h3>
+<ul class="space-y-3">
+<li class="flex items-center justify-between group">
+<div>
+<h4 class="text-sm font-medium">TikTok API</h4>
+<p class="text-[11px] text-terminal-text">Upload lyrics and clips to TikTok</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-3 py-1 bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] font-bold rounded-custom">CONNECTED</span>
+<button class="p-2 text-terminal-text hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</li>
+<li class="flex items-center justify-between group border-t border-terminal-border pt-3">
+<div>
+<h4 class="text-sm font-medium">FFmpeg Service</h4>
+<p class="text-[11px] text-terminal-text">Media processing and rendering</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-3 py-1 bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] font-bold rounded-custom">CONNECTED</span>
+<button class="p-2 text-terminal-text hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</li>
+<li class="flex items-center justify-between group border-t border-terminal-border pt-3">
+<div>
+<h4 class="text-sm font-medium">Object Storage</h4>
+<p class="text-[11px] text-terminal-text">S3-compatible storage assets</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-3 py-1 bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] font-bold rounded-custom">CONNECTED</span>
+<button class="p-2 text-terminal-text hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</li>
+<li class="flex items-center justify-between group border-t border-terminal-border pt-3">
+<div>
+<h4 class="text-sm font-medium">Notification Service</h4>
+<p class="text-[11px] text-terminal-text">Alerts and system notifications</p>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-3 py-1 bg-zinc-800 text-zinc-500 border border-terminal-border text-[10px] font-bold rounded-custom">DISCONNECTED</span>
+<button class="p-2 text-terminal-text hover:text-white transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg></button>
+</div>
+</li>
+</ul>
+</section>
+<section class="bg-terminal-gray/40 border border-terminal-border p-6 rounded-custom" data-purpose="authentication">
+<h3 class="text-[11px] font-bold text-terminal-text uppercase tracking-widest mb-6">Authentication</h3>
+<div class="space-y-6">
+<div>
+<div class="flex items-center justify-between mb-2">
+<div>
+<h4 class="text-sm font-medium">API Token</h4>
+<p class="text-[11px] text-terminal-text">Used for API requests and services</p>
+</div>
+</div>
+<div class="flex">
+<div class="relative flex-1">
+<input class="w-full bg-terminal-black border-terminal-border text-terminal-text text-sm rounded-l-custom focus:ring-primary focus:border-primary pr-10" readonly="" type="password" value="••••••••••••••••••••"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-terminal-text hover:text-white">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<button class="bg-terminal-gray border-y border-r border-terminal-border hover:bg-zinc-800 text-[10px] font-bold px-4 py-2 rounded-r-custom transition-colors uppercase tracking-widest whitespace-nowrap">Regenerate</button>
+</div>
+</div>
+<div>
+<div class="flex items-center justify-between mb-2">
+<div>
+<h4 class="text-sm font-medium">TikTok Refresh Token</h4>
+<p class="text-[11px] text-terminal-text">Required for scheduled uploads</p>
+</div>
+</div>
+<div class="flex">
+<div class="relative flex-1">
+<input class="w-full bg-terminal-black border-terminal-border text-terminal-text text-sm rounded-l-custom focus:ring-primary focus:border-primary pr-10" readonly="" type="password" value="••••••••••••••••••••"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-terminal-text hover:text-white">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path><path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+</button>
+</div>
+<button class="bg-terminal-gray border-y border-r border-terminal-border hover:bg-zinc-800 text-[10px] font-bold px-4 py-2 rounded-r-custom transition-colors uppercase tracking-widest whitespace-nowrap">Refresh</button>
+</div>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Active Account</h4>
+<p class="text-[11px] text-terminal-text">Current TikTok account</p>
+</div>
+<select class="bg-terminal-black border border-terminal-border text-terminal-text text-sm rounded-custom px-4 py-2 w-48 focus:ring-primary focus:border-primary">
+<option>main_dev</option>
+<option>prod_stage</option>
+</select>
+</div>
+</div>
+</section>
+<section class="bg-terminal-gray/40 border border-terminal-border p-6 rounded-custom" data-purpose="notifications">
+<h3 class="text-[11px] font-bold text-terminal-text uppercase tracking-widest mb-6">Notifications</h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Critical Alerts</h4>
+<p class="text-[11px] text-terminal-text">System failures and critical issues</p>
+</div>
+<label class="terminal-switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Job Approvals</h4>
+<p class="text-[11px] text-terminal-text">Require approval for pending jobs</p>
+</div>
+<label class="terminal-switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Weekly Reports</h4>
+<p class="text-[11px] text-terminal-text">Summary of pipeline activity</p>
+</div>
+<label class="terminal-switch">
+<input type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="pt-2">
+<h4 class="text-sm font-medium mb-2">Alert Webhook</h4>
+<div class="flex">
+<input class="flex-1 bg-terminal-black border-terminal-border text-terminal-text text-sm rounded-l-custom focus:ring-primary focus:border-primary" type="text" value="https://hooks.example.com/pipeline"/>
+<button class="bg-terminal-gray border-y border-r border-terminal-border hover:bg-zinc-800 text-[10px] font-bold px-6 py-2 rounded-r-custom uppercase tracking-widest transition-colors whitespace-nowrap">Save</button>
+</div>
+<p class="text-[10px] text-terminal-text mt-2 italic">Send alerts to external endpoint</p>
+</div>
+</div>
+</section>
+<section class="bg-terminal-gray/40 border border-terminal-border p-6 rounded-custom" data-purpose="automation">
+<h3 class="text-[11px] font-bold text-terminal-text uppercase tracking-widest mb-6">Automation</h3>
+<div class="space-y-4">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Auto-Approve Safe Jobs</h4>
+<p class="text-[11px] text-terminal-text">Automatically approve low-risk jobs</p>
+</div>
+<label class="terminal-switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Auto-Archive Old Clips</h4>
+<p class="text-[11px] text-terminal-text">Move clips to archive after 30 days</p>
+</div>
+<label class="terminal-switch">
+<input checked="" type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Pause on Failures</h4>
+<p class="text-[11px] text-terminal-text">Pause pipeline on critical failure</p>
+</div>
+<label class="terminal-switch">
+<input type="checkbox"/>
+<span class="slider"></span>
+</label>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Retry Attempts</h4>
+<p class="text-[11px] text-terminal-text">Number of retries for failed jobs</p>
+</div>
+<div class="stepper-container">
+<button class="stepper-btn">−</button>
+<span class="stepper-value">3</span>
+<button class="stepper-btn">+</button>
+</div>
+</div>
+</div>
+</section>
+<section class="bg-terminal-gray/40 border border-terminal-border p-6 rounded-custom" data-purpose="system">
+<h3 class="text-[11px] font-bold text-terminal-text uppercase tracking-widest mb-6">System</h3>
+<div class="space-y-6">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Version</h4>
+<p class="text-[11px] text-terminal-text">Terminal V2.4.0</p>
+</div>
+<button class="bg-terminal-gray border border-terminal-border hover:bg-zinc-800 text-[10px] font-bold px-4 py-2 rounded-custom uppercase tracking-widest">Check for updates</button>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Environment</h4>
+<p class="text-[11px] text-terminal-text">Production</p>
+</div>
+<button class="bg-terminal-gray border border-terminal-border hover:bg-zinc-800 text-[10px] font-bold px-4 py-2 rounded-custom uppercase tracking-widest">Switch Environment</button>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium">Data Retention</h4>
+<p class="text-[11px] text-terminal-text">Logs kept for 30 days</p>
+</div>
+<button class="bg-terminal-gray border border-terminal-border hover:bg-zinc-800 text-[10px] font-bold px-4 py-2 rounded-custom uppercase tracking-widest">Manage</button>
+</div>
+<div class="pt-4 border-t border-terminal-border">
+<div class="flex items-center justify-between">
+<div>
+<h4 class="text-sm font-medium text-red-500">Danger Zone</h4>
+<p class="text-[11px] text-terminal-text">Irreversible system actions</p>
+</div>
+<button class="bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500 hover:text-white text-[10px] font-bold px-4 py-2 rounded-custom uppercase tracking-widest transition-all">Reset System</button>
+</div>
+</div>
+</div>
+</section>
+</div>
+<div class="mt-12 mb-20 flex gap-4">
+<button class="bg-primary hover:bg-primary/90 text-black px-8 py-3 rounded-custom text-xs font-bold uppercase tracking-widest transition-colors shadow-lg shadow-primary/10">
+                    Save Changes
+                </button>
+<button class="bg-terminal-gray border border-terminal-border hover:bg-zinc-800 text-terminal-text hover:text-white px-8 py-3 rounded-custom text-xs font-bold uppercase tracking-widest transition-all">
+                    Discard
+                </button>
+</div>
+</div>
+</div>
+</main>
+<script data-purpose="interaction-logic">
+    // Simple UI interactivity logic
+    document.querySelectorAll('.stepper-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const span = e.currentTarget.parentElement.querySelector('.stepper-value');
+        let val = parseInt(span.textContent);
+        if(e.currentTarget.textContent === '+') {
+          span.textContent = val + 1;
+        } else if(val > 0) {
+          span.textContent = val - 1;
+        }
+      });
+    });
+</script>
+
+```</body></html>

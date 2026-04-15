@@ -1,0 +1,273 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>The Kinetic Terminal - Song Intake</title>
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Theme Config -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "surface-container-highest": "#262528",
+                        "on-secondary-fixed": "#3f3f42",
+                        "surface-container-low": "#131315",
+                        "outline": "#767577",
+                        "tertiary": "#fffea2",
+                        "secondary-fixed": "#e4e1e5",
+                        "tertiary-dim": "#e9e958",
+                        "primary-container": "#e7b102",
+                        "inverse-surface": "#fcf8fb",
+                        "inverse-on-surface": "#565457",
+                        "on-primary-container": "#473400",
+                        "error-container": "#b92902",
+                        "on-error-container": "#ffd2c8",
+                        "surface-dim": "#0e0e10",
+                        "on-tertiary": "#626200",
+                        "inverse-primary": "#785a00",
+                        "on-error": "#450900",
+                        "error-dim": "#d53d18",
+                        "surface-variant": "#262528",
+                        "on-secondary": "#525155",
+                        "surface": "#0e0e10",
+                        "surface-bright": "#2c2c2f",
+                        "on-primary-fixed": "#3f2e00",
+                        "outline-variant": "#48474a",
+                        "primary-fixed-dim": "#edb60f",
+                        "error": "#ff7351",
+                        "surface-container-lowest": "#000000",
+                        "secondary": "#e4e1e5",
+                        "on-tertiary-container": "#5a5a00",
+                        "tertiary-container": "#f1f260",
+                        "surface-container": "#19191c",
+                        "on-secondary-fixed-variant": "#5c5b5e",
+                        "primary-dim": "#edb60f",
+                        "on-secondary-container": "#d2cfd3",
+                        "on-surface-variant": "#adaaad",
+                        "on-surface": "#f9f5f8",
+                        "on-tertiary-fixed-variant": "#686800",
+                        "tertiary-fixed": "#f7f865",
+                        "secondary-dim": "#d6d3d7",
+                        "surface-tint": "#fdc425",
+                        "primary": "#fdc425",
+                        "on-tertiary-fixed": "#4a4b00",
+                        "tertiary-fixed-dim": "#e9e958",
+                        "surface-container-high": "#1f1f22",
+                        "background": "#0e0e10",
+                        "on-primary-fixed-variant": "#624900",
+                        "secondary-container": "#47464a",
+                        "secondary-fixed-dim": "#d6d3d7",
+                        "primary-fixed": "#fdc425",
+                        "on-background": "#f9f5f8",
+                        "on-primary": "#574000"
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem",
+                        "sm": "0.125rem"
+                    },
+                    fontFamily: {
+                        "headline": ["Space Grotesk", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                        "label": ["Inter", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer utilities {
+            .material-symbols-outlined {
+                font-family: 'Material Symbols Outlined';
+                font-weight: normal;
+                font-style: normal;
+                font-size: 24px;
+                line-height: 1;
+                letter-spacing: normal;
+                text-transform: none;
+                display: inline-block;
+                white-space: nowrap;
+                word-wrap: normal;
+                direction: ltr;
+                -webkit-font-feature-settings: 'liga';
+                -webkit-font-smoothing: antialiased;
+            }
+            .kinetic-input {
+                @apply bg-surface-container-highest text-on-surface font-body text-sm px-3 pt-4 pb-2 w-full outline-none border-b-2 border-outline-variant focus:border-primary focus:shadow-[0_0_8px_rgba(253,196,37,0.2)] transition-all rounded-t-sm rounded-b-none placeholder:text-on-surface-variant/40;
+            }
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body h-screen w-screen overflow-hidden flex flex-col selection:bg-primary/30 selection:text-primary">
+<!-- Status Ticker (Top) -->
+<div class="h-6 bg-surface-container-lowest border-b border-outline-variant/20 flex items-center px-4 font-headline text-[11px] text-tertiary tracking-widest overflow-hidden shrink-0 z-0 relative">
+<div class="flex gap-8 whitespace-nowrap opacity-80">
+<span class="" style="">SYS.STATUS: OPTIMAL</span>
+<span class="" style="">NODE_CONN: 14ms</span>
+<span class="" style="">MEM_ALLOC: 42%</span>
+<span class="" style="">ACTIVE_PIPELINES: 3</span>
+<span class="text-primary" style="">AWAITING_INPUT</span>
+</div>
+</div>
+<!-- Main Background Environment (Dimmed for context) -->
+<div class="flex-1 flex overflow-hidden relative">
+<!-- Sidebar Navigation (Context) -->
+<aside class="w-16 md:w-56 bg-surface-container border-r border-outline-variant/10 flex flex-col py-4 shrink-0 z-0">
+<div class="px-4 mb-8 hidden md:block">
+<div class="font-headline font-bold text-lg tracking-tighter text-on-surface" style="">KINETIC<span class="text-primary" style="">.</span>TERM</div>
+</div>
+<nav class="flex flex-col gap-2 px-2">
+<div class="flex items-center gap-3 px-3 py-2 rounded-sm text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface cursor-pointer">
+<span class="material-symbols-outlined text-[20px]" data-icon="dashboard" style="">dashboard</span>
+<span class="font-label text-xs uppercase tracking-wider hidden md:block" style="">Telemetry</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-sm bg-surface-container-highest text-primary shadow-[inset_2px_0_0_theme(colors.primary)] cursor-pointer">
+<span class="material-symbols-outlined text-[20px]" data-icon="audio_wave" style="">waves</span>
+<span class="font-label text-xs uppercase tracking-wider hidden md:block" style="">Pipelines</span>
+</div>
+<div class="flex items-center gap-3 px-3 py-2 rounded-sm text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface cursor-pointer">
+<span class="material-symbols-outlined text-[20px]" data-icon="database" style="">database</span>
+<span class="font-label text-xs uppercase tracking-wider hidden md:block" style="">Datastores</span>
+</div>
+</nav>
+</aside>
+<!-- Main Workspace (Context) -->
+<main class="flex-1 bg-surface p-6 flex flex-col gap-6 overflow-hidden z-0">
+<div class="flex justify-between items-end mb-4">
+<div>
+<h2 class="font-headline text-2xl font-bold text-on-surface" style="">PIPELINE METRICS</h2>
+<p class="font-label text-xs text-on-surface-variant mt-1" style="">Real-time processing throughput</p>
+</div>
+<button class="bg-surface-container-highest text-on-surface hover:text-primary font-label text-xs uppercase tracking-wider px-4 py-2 rounded-sm transition-colors border border-outline-variant/20" style="">
+                    Export Logs
+                </button>
+</div>
+<!-- Fake Data Grid -->
+<div class="grid grid-cols-3 gap-4">
+<div class="bg-surface-container-low p-4 h-32 flex flex-col justify-between">
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-widest" style="">Processed Nodes</span>
+<span class="font-headline text-4xl text-on-surface" style="">1,402</span>
+</div>
+<div class="bg-surface-container-low p-4 h-32 flex flex-col justify-between">
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-widest" style="">Error Rate</span>
+<span class="font-headline text-4xl text-tertiary" style="">0.04%</span>
+</div>
+<div class="bg-surface-container-low p-4 h-32 flex flex-col justify-between relative overflow-hidden">
+<span class="font-label text-[10px] text-on-surface-variant uppercase tracking-widest z-10" style="">Queue Status</span>
+<span class="font-headline text-4xl text-primary z-10" style="">IDLE</span>
+<div class="absolute bottom-0 left-0 right-0 h-1 bg-surface-container-highest">
+<div class="h-full bg-primary w-0"></div>
+</div>
+</div>
+</div>
+<div class="flex-1 bg-surface-container-low p-4 mt-2 border border-outline-variant/10">
+<div class="font-label text-xs text-on-surface-variant mb-4 flex justify-between">
+<span class="" style="">TERMINAL OUTPUT</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="terminal" style="">terminal</span>
+</div>
+<div class="font-headline text-[13px] text-on-surface-variant/60 space-y-2">
+<p class="" style="">&gt; initializing core subsystems...</p>
+<p class="" style="">&gt; connection established to external API gateways.</p>
+<p class="" style="">&gt; awaiting task dispatch...</p>
+</div>
+</div>
+</main>
+</div>
+<!-- ========================================== -->
+<!-- OVERLAY & SIDE SHEET (SONG INTAKE)         -->
+<!-- ========================================== -->
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/70 backdrop-blur-[4px] z-40 transition-opacity"></div>
+<!-- Side Sheet Container -->
+<div class="fixed right-0 top-0 bottom-0 w-full max-w-[440px] bg-surface-container-low shadow-[-24px_0_48px_rgba(253,196,37,0.06)] z-50 flex flex-col border-l border-outline-variant/20 transform transition-transform duration-300">
+<!-- Header / Close -->
+<div class="h-14 flex items-center justify-end px-4 shrink-0 bg-surface-container-low relative z-10">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center w-8 h-8 rounded-sm bg-surface-container-highest" style="">
+<span class="material-symbols-outlined text-[20px]" data-icon="close" style="">close</span>
+</button>
+</div>
+<!-- Scrollable Content Area containing Adapted Shared Component -->
+<div class="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col relative z-0">
+<!-- Adapted Shared Component Structure (Strict adherence to structure, modified for Design System) -->
+<div class="relative flex h-auto w-full flex-col group/design-root overflow-x-hidden">
+<div class="layout-container flex h-full grow flex-col">
+<div class="flex flex-1 justify-center py-2">
+<div class="layout-content-container flex flex-col w-full flex-1">
+<!-- Title -->
+<h1 class="text-primary text-2xl font-headline font-bold leading-tight tracking-[-0.02em] px-8 text-left pb-6 pt-2" style="">
+                                [ SONG INTAKE ]
+                            </h1>
+<!-- Source URL -->
+<div class="flex w-full flex-wrap items-end gap-4 px-8 py-3 bg-surface-container-lowest/50 mb-4">
+<label class="flex flex-col min-w-40 flex-1 relative group" style="">
+<p class="text-on-surface-variant font-label text-[10px] uppercase tracking-widest font-bold leading-normal pb-1" style="">Source URL - YouTube/Spotify/tiktok (sound)</p>
+<input class="kinetic-input h-12" placeholder="Enter valid URI..." value="">
+<span class="absolute bottom-0 left-0 w-0 h-[2px] bg-primary transition-all duration-300 group-focus-within:w-full"></span>
+</label>
+</div>
+<!-- Metadata Grid -->
+<div class="flex w-full flex-wrap gap-4 px-8 py-3">
+<label class="flex flex-col min-w-[140px] flex-1 relative group" style="">
+<p class="text-on-surface-variant font-label text-[10px] uppercase tracking-widest font-bold leading-normal pb-1" style="">Artist</p>
+<input class="kinetic-input h-12" placeholder="(auto)" value="">
+<span class="absolute bottom-0 left-0 w-0 h-[2px] bg-primary transition-all duration-300 group-focus-within:w-full"></span>
+</label>
+<label class="flex flex-col min-w-[140px] flex-1 relative group" style="">
+<p class="text-on-surface-variant font-label text-[10px] uppercase tracking-widest font-bold leading-normal pb-1" style="">Title</p>
+<input class="kinetic-input h-12" placeholder="(auto)" value="">
+<span class="absolute bottom-0 left-0 w-0 h-[2px] bg-primary transition-all duration-300 group-focus-within:w-full"></span>
+</label>
+</div>
+<!-- Segmented Control Section -->
+<div class="mt-6 px-8 bg-surface-container-low pb-6 pt-2">
+<h3 class="text-on-surface font-headline text-sm font-bold leading-tight tracking-wider uppercase pb-3" style="">Lyric Generation Method</h3>
+<div class="flex py-1">
+<!-- Kinetic Segmented Control Implementation -->
+<div class="flex h-11 flex-1 items-center justify-center rounded-sm bg-surface-container-highest p-1 border border-outline-variant/20 shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]">
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-sm px-2 has-[:checked]:bg-surface-container-low has-[:checked]:shadow-[0_1px_4px_rgba(0,0,0,0.4)] has-[:checked]:text-primary text-on-surface-variant text-xs font-label font-bold uppercase tracking-wider leading-normal transition-all duration-200" style="">
+<span class="truncate flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-[16px] hidden has-[:checked]:block" data-icon="auto_awesome" style="">auto_awesome</span>
+                                                AI&nbsp;</span>
+<input checked="" class="invisible w-0 absolute" name="lyric-method" type="radio" value="AI Prompt">
+</label>
+<label class="flex cursor-pointer h-full grow items-center justify-center overflow-hidden rounded-sm px-2 has-[:checked]:bg-surface-container-low has-[:checked]:shadow-[0_1px_4px_rgba(0,0,0,0.4)] has-[:checked]:text-primary text-on-surface-variant text-xs font-label font-bold uppercase tracking-wider leading-normal transition-all duration-200" style="">
+<span class="truncate flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-[16px] hidden has-[:checked]:block" data-icon="upload_file" style="">upload_file</span>
+                                                Manual Upload
+                                            </span>
+<input class="invisible w-0 absolute" name="lyric-method" type="radio" value="Manual Upload">
+</label>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer to push footer down if needed -->
+<div class="flex-1"></div>
+</div>
+<!-- Footer / Action Area -->
+<div class="p-8 bg-surface-container-lowest shrink-0 border-t border-outline-variant/10">
+<button class="w-full h-14 rounded-sm bg-gradient-to-r from-primary to-primary-container text-on-primary font-headline text-sm font-bold uppercase tracking-widest flex items-center justify-center gap-3 shadow-[0_0_16px_rgba(253,196,37,0.15)] hover:shadow-[0_0_24px_rgba(253,196,37,0.3)] transition-all duration-300 relative overflow-hidden group" style="">
+<!-- Inner glow effect on hover -->
+<div class="absolute inset-0 bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<span class="material-symbols-outlined" data-icon="send" style="font-variation-settings: &quot;FILL&quot; 1;">send</span>
+<span class="" style="">Dispatch to Pipeline</span>
+</button>
+<div class="text-center mt-3">
+<span class="font-label text-[9px] text-on-surface-variant/50 uppercase tracking-widest" style="">Sequence ready for execution</span>
+</div>
+</div>
+</div>
+</body></html>
