@@ -1,0 +1,334 @@
+<!DOCTYPE html><html class="dark" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Pipeline Cockpit - The Kinetic Terminal</title>
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error-container": "#b92902",
+                    "secondary-container": "#47464a",
+                    "inverse-primary": "#785a00",
+                    "outline": "#767577",
+                    "on-tertiary-container": "#5a5a00",
+                    "inverse-on-surface": "#565457",
+                    "tertiary-dim": "#e9e958",
+                    "on-secondary-container": "#d2cfd3",
+                    "surface-dim": "#0e0e10",
+                    "tertiary": "#fffea2",
+                    "surface-variant": "#262528",
+                    "secondary-fixed": "#e4e1e5",
+                    "primary": "#fdc425",
+                    "surface-container-highest": "#262528",
+                    "primary-container": "#e7b102",
+                    "primary-fixed-dim": "#edb60f",
+                    "surface-container-low": "#131315",
+                    "on-secondary-fixed-variant": "#5c5b5e",
+                    "on-surface": "#f9f5f8",
+                    "tertiary-fixed-dim": "#e9e958",
+                    "secondary": "#e4e1e5",
+                    "on-primary-fixed": "#3f2e00",
+                    "on-secondary-fixed": "#3f3f42",
+                    "tertiary-fixed": "#f7f865",
+                    "on-error-container": "#ffd2c8",
+                    "on-secondary": "#525155",
+                    "outline-variant": "#48474a",
+                    "on-primary-fixed-variant": "#624900",
+                    "on-error": "#450900",
+                    "on-primary-container": "#473400",
+                    "background": "#0e0e10",
+                    "surface-container-lowest": "#000000",
+                    "surface": "#0e0e10",
+                    "on-tertiary-fixed-variant": "#686800",
+                    "on-primary": "#574000",
+                    "error-dim": "#d53d18",
+                    "on-tertiary": "#626200",
+                    "surface-bright": "#2c2c2f",
+                    "primary-fixed": "#fdc425",
+                    "secondary-fixed-dim": "#d6d3d7",
+                    "tertiary-container": "#f1f260",
+                    "error": "#ff7351",
+                    "on-surface-variant": "#adaaad",
+                    "surface-container": "#19191c",
+                    "primary-dim": "#edb60f",
+                    "inverse-surface": "#fcf8fb",
+                    "on-background": "#f9f5f8",
+                    "secondary-dim": "#d6d3d7",
+                    "surface-container-high": "#1f1f22",
+                    "surface-tint": "#fdc425",
+                    "on-tertiary-fixed": "#4a4b00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": [
+                            "Space Grotesk", "sans-serif"
+                    ],
+                    "body": [
+                            "Inter", "sans-serif"
+                    ],
+                    "label": [
+                            "Inter", "sans-serif"
+                    ]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: theme('colors.surface-container-low');
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.surface-variant');
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline-variant');
+        }
+        .event-node::before {
+            content: '';
+            position: absolute;
+            left: 21px;
+            top: 40px;
+            bottom: -24px;
+            width: 1px;
+            background: theme('colors.outline-variant/30');
+        }
+        .event-node:last-child::before {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body h-screen w-screen overflow-hidden flex flex-col antialiased selection:bg-primary selection:text-on-primary">
+<div class="h-6 bg-surface-container-highest flex items-center px-4 overflow-hidden gap-8 shrink-0 border-b border-outline-variant/10">
+<div class="flex items-center gap-2 whitespace-nowrap">
+<span class="w-1.5 h-1.5 rounded-none bg-tertiary animate-pulse"></span>
+<span class="font-label text-[10px] font-bold text-tertiary tracking-wider uppercase" style="">Sys Log: Console synchronized</span>
+</div>
+<div class="flex items-center gap-2 whitespace-nowrap opacity-40">
+<span class="font-label text-[10px] font-medium text-on-surface-variant tracking-wider uppercase" style="">[14:45:01] Buffer cleared</span>
+</div>
+<div class="flex items-center gap-2 whitespace-nowrap opacity-40">
+<span class="font-label text-[10px] font-medium text-on-surface-variant tracking-wider uppercase" style="">[14:44:32] Stream healthy</span>
+</div>
+</div>
+<div class="flex flex-1 overflow-hidden">
+<aside class="w-64 bg-surface-container-low flex flex-col shrink-0 border-r border-outline-variant/10">
+<div class="p-6 flex gap-3 items-center">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-DEFAULT size-10 ring-1 ring-outline-variant/20 shadow-lg" style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAwo7-NyOMG6epjAdxSZYrn-E9d1STehS6lTbBnMAYiY_SyYZEh8m2Z5BL__wqw1Hdk6L3c78Dkl6_CB3sqklZxh9VC4xms0cxdR2F4C_VOJ7hv9RkRnK8WSDboB5WeetdJ7esRKdGVUmKoE7-I4-qgXzUS-57F5JTLCF6STFHZFUnb48KwU1mWhypFKvaKWYerZsVy7MmJq3lkcPGVEyALr1oIUX6-dYoBWcOArCg8cufL9nneuU8G_yH3bhqE5dRphM4ytx2VNpeY&quot;);"></div>
+<div class="flex flex-col">
+<h1 class="font-headline text-on-surface text-base font-semibold leading-tight tracking-tight" style="">Pipeline Cockpit</h1>
+<p class="font-label text-tertiary text-[10px] font-bold uppercase tracking-widest mt-0.5" style="">Terminal v2.4</p>
+</div>
+</div>
+<nav class="flex flex-col gap-1 px-3 pb-6">
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT bg-primary/10 text-primary" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">terminal</span>
+<span class="font-label text-sm font-semibold tracking-wide" style="">Event Console</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">piano</span>
+<span class="font-label text-sm font-medium tracking-wide" style="">Song Intake</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">video_library</span>
+<span class="font-label text-sm font-medium tracking-wide" style="">Clip Browser</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">sync</span>
+<span class="font-label text-sm font-medium tracking-wide" style="">TikTok Sync</span>
+</a>
+<div class="my-4 mx-3 h-px bg-outline-variant/10"></div>
+<a class="flex items-center gap-3 px-3 py-2 rounded-DEFAULT text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-all" href="#" style="">
+<span class="material-symbols-outlined text-[20px]" style="">settings</span>
+<span class="font-label text-sm font-medium tracking-wide" style="">Configuration</span>
+</a>
+</nav>
+</aside>
+<main class="flex-1 bg-surface flex flex-col min-w-0 overflow-hidden">
+<header class="bg-surface-container-low px-6 py-4 flex items-center justify-between border-b border-outline-variant/10 z-20">
+<div class="flex items-center gap-6">
+<div class="flex flex-col">
+<p class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1" style="">State</p>
+<div class="flex items-center gap-2">
+<span class="size-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-headline text-lg font-bold" style="">RUNNING</span>
+</div>
+</div>
+<div class="h-8 w-px bg-outline-variant/20"></div>
+<div class="flex flex-col">
+<p class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1" style="">Worker</p>
+<p class="font-headline text-lg font-bold text-tertiary" style="">ALIVE <span class="text-xs font-medium text-on-surface-variant" style="">(2s)</span></p>
+</div>
+<div class="h-8 w-px bg-outline-variant/20"></div>
+<div class="flex flex-col">
+<p class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1" style="">Queue</p>
+<p class="font-headline text-lg font-bold" style="">18 <span class="text-xs font-medium text-on-surface-variant" style="">JOBS</span></p>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<div class="flex p-0.5 bg-surface-container-highest rounded-DEFAULT mr-2">
+<button class="px-3 py-1 font-label text-[10px] font-bold uppercase text-surface-container-highest bg-primary rounded-sm" style="">Main</button>
+<button class="px-3 py-1 font-label text-[10px] font-bold uppercase text-on-surface-variant" style="">Staging</button>
+</div>
+<button class="h-9 px-4 bg-error/10 text-error border border-error/20 font-label text-xs font-bold uppercase tracking-wider rounded-DEFAULT hover:bg-error/20 transition-all" style="">next post: 0d, 14h 12m 30s</button>
+<button class="h-9 px-5 bg-primary text-on-primary font-label text-xs font-bold uppercase tracking-wider rounded-DEFAULT shadow-lg shadow-primary/10 hover:brightness-110" style="">
+                        Pause Flow
+                    </button>
+</div>
+</header>
+<div class="flex-1 overflow-y-auto bg-surface relative">
+<div class="max-w-[1200px] mx-auto px-6 py-8">
+<div class="flex items-center justify-between mb-8">
+<div>
+<h2 class="font-headline text-2xl font-bold text-on-surface" style="">Live Event Stream</h2>
+<p class="text-on-surface-variant text-sm font-medium" style="">Monitoring all pipeline activities and required actions</p>
+</div>
+<div class="flex gap-2">
+<button class="flex items-center gap-2 h-8 px-3 bg-surface-container-highest text-on-surface-variant font-label text-[10px] font-bold uppercase border border-outline-variant/10 rounded-sm hover:text-on-surface" style="">
+<span class="material-symbols-outlined text-sm" style="">filter_list</span> Filter
+                            </button>
+<button class="flex items-center gap-2 h-8 px-3 bg-surface-container-highest text-on-surface-variant font-label text-[10px] font-bold uppercase border border-outline-variant/10 rounded-sm hover:text-on-surface" style="">
+<span class="material-symbols-outlined text-sm" style="">delete_sweep</span> Clear
+                            </button>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="event-node relative flex gap-4 items-start">
+<div class="size-11 shrink-0 rounded-full bg-error-container/20 border border-error/30 flex items-center justify-center text-error z-10">
+<span class="material-symbols-outlined text-[20px]" style="">priority_high</span>
+</div>
+<div class="flex-1 bg-surface-container-low border border-error/10 p-4 rounded-lg flex items-center justify-between gap-4 group">
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex items-center gap-3">
+<span class="font-label text-[10px] font-bold text-error uppercase tracking-widest bg-error/10 px-2 py-0.5 rounded-sm" style="">Critical Alert</span>
+<span class="font-label text-[10px] font-medium text-on-surface-variant" style="">14:42:05 • #8902</span>
+</div>
+<h3 class="font-headline text-base font-bold text-on-surface truncate" style="">Render Lyrics failed: FFMPEG Timeout</h3>
+<p class="text-sm text-on-surface-variant" style="">Memory spike detected on node 04 during heavy particle pass.</p>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="h-8 px-4 bg-surface-container-highest text-on-surface font-label text-[10px] font-bold uppercase rounded-sm hover:bg-surface-variant transition-all" style="">Dismiss</button>
+<button class="h-8 px-4 bg-error text-on-error font-label text-[10px] font-bold uppercase rounded-sm hover:brightness-110 shadow-lg shadow-error/10 transition-all" style="">Retry Job</button>
+</div>
+</div>
+</div>
+<div class="event-node relative flex gap-4 items-start">
+<div class="size-11 shrink-0 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">visibility</span>
+</div>
+<div class="flex-1 bg-surface-container-low border border-outline-variant/10 p-4 rounded-lg flex items-center justify-between gap-4 group">
+<div class="flex items-center gap-4 min-w-0">
+<div class="size-16 shrink-0 bg-surface-container-highest rounded-sm overflow-hidden relative border border-outline-variant/10">
+<div class="absolute inset-0 bg-cover bg-center" style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuBw2oG8ZPBK25chj9KxAIBbn3luiBCWjlwys3-y-E5U4it5U4ZnQdPLktig_ntm1ytaeyeA2hkd2qu4cutpGtafwlCnhCRnvsA0HtaSEGnnaX1aswLA3-qB6eA6Y4xsfAHgvPP3PjY74BJmMi3Xxwz4KxBbNmhfiUrokksEFG-0XhKEMB_x7Y_Q_YyRNiQDNUtWa1x8Tt_54aOuqViQ50NBC8U3yTh4J6WheNt6_9FEMPXBz3BdgtCAFWhinGpTHJRMCTOoouac7xpF&quot;);"></div>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white" style="">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-3">
+<span class="font-label text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-sm" style="">Pending Approval</span>
+<span class="font-label text-[10px] font-medium text-on-surface-variant" style="">14:38:12 • Midnight Synth</span>
+</div>
+<h3 class="font-headline text-base font-bold text-on-surface" style="">v1_Auto_Generate_Kinetic.mp4</h3>
+<p class="text-sm text-on-surface-variant" style="">Lyrics render complete. Ready for final review and TikTok push.</p>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="h-8 px-4 bg-surface-container-highest text-on-surface font-label text-[10px] font-bold uppercase rounded-sm hover:bg-surface-variant transition-all" style="">Reject</button>
+<button class="h-8 px-4 bg-primary text-on-primary font-label text-[10px] font-bold uppercase rounded-sm hover:brightness-110 shadow-lg shadow-primary/10 transition-all" style="">Approve &amp; Post</button>
+</div>
+</div>
+</div>
+<div class="event-node relative flex gap-4 items-start">
+<div class="size-11 shrink-0 rounded-full bg-tertiary-container/20 border border-tertiary/30 flex items-center justify-center text-tertiary z-10">
+<span class="material-symbols-outlined text-[20px]" style="">vpn_key</span>
+</div>
+<div class="flex-1 bg-surface-container-low border border-outline-variant/10 p-4 rounded-lg flex items-center justify-between gap-4">
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex items-center gap-3">
+<span class="font-label text-[10px] font-bold text-tertiary uppercase tracking-widest bg-tertiary/10 px-2 py-0.5 rounded-sm" style="">Auth Required</span>
+<span class="font-label text-[10px] font-medium text-on-surface-variant" style="">14:31:45 • Account: main_dev</span>
+</div>
+<h3 class="font-headline text-base font-bold text-on-surface" style="">TikTok API Session Expired</h3>
+<p class="text-sm text-on-surface-variant" style="">Scheduled uploads will pause in 45 minutes unless token is refreshed.</p>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="h-8 px-4 bg-tertiary text-on-tertiary font-label text-[10px] font-bold uppercase rounded-sm hover:brightness-110 transition-all" style="">Re-authenticate</button>
+</div>
+</div>
+</div>
+<div class="event-node relative flex gap-4 items-start opacity-70 hover:opacity-100 transition-opacity">
+<div class="size-11 shrink-0 rounded-full bg-surface-container-highest border border-outline-variant/30 flex items-center justify-center text-on-surface-variant z-10">
+<span class="material-symbols-outlined text-[20px]" style="">check_circle</span>
+</div>
+<div class="flex-1 bg-surface-container-low/50 border border-outline-variant/5 p-4 rounded-lg flex items-center justify-between gap-4">
+<div class="flex flex-col gap-1 min-w-0">
+<div class="flex items-center gap-3">
+<span class="font-label text-[10px] font-bold text-on-surface-variant uppercase tracking-widest bg-surface-container-highest px-2 py-0.5 rounded-sm" style="">System</span>
+<span class="font-label text-[10px] font-medium text-on-surface-variant" style="">14:25:00 • Pipeline</span>
+</div>
+<h3 class="font-headline text-base font-medium text-on-surface truncate" style="">Auto-scaling triggered: Provisioned node-05</h3>
+<p class="text-xs text-on-surface-variant" style="">Load balancing optimized for weekend traffic spike.</p>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="h-8 px-3 text-on-surface-variant hover:text-on-surface transition-all" style="">
+<span class="material-symbols-outlined text-[18px]" style="">more_horiz</span>
+</button>
+</div>
+</div>
+</div>
+<div class="event-node relative flex gap-4 items-start">
+<div class="size-11 shrink-0 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary z-10">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: &quot;FILL&quot; 1;">visibility</span>
+</div>
+<div class="flex-1 bg-surface-container-low border border-outline-variant/10 p-4 rounded-lg flex items-center justify-between gap-4 group">
+<div class="flex items-center gap-4 min-w-0">
+<div class="size-16 shrink-0 bg-surface-container-highest rounded-sm overflow-hidden relative border border-outline-variant/10">
+<div class="absolute inset-0 bg-cover bg-center" style="background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuCWyEkv7G8kkSg0aqWEfBbXRRe5SSeVcMKN7GNDUUiKuogAd7UXdbsnhmdqAvkxhT8lyWMld0yTI8o7X6AwE1XfDQuL-Mqj4GehtE9_aLc1Q0cMbUYkShqmLEUPLW0RCHHZ572CZTB53eEROp63OLLyKRuvgStt4hPI_C-G6Ih_ES-j--Q_ACwWXJY-E3SluhrAqbUCI1TXs8t_aWtI7g8maNRDKaJU4LULJkJ1Msjttx4tlNAOW0lpRp_cLadWCsVkcagm5DQ1VuIH&quot;);"></div>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white" style="">play_arrow</span>
+</div>
+</div>
+<div class="flex flex-col gap-0.5">
+<div class="flex items-center gap-3">
+<span class="font-label text-[10px] font-bold text-primary uppercase tracking-widest bg-primary/10 px-2 py-0.5 rounded-sm" style="">Pending Approval</span>
+<span class="font-label text-[10px] font-medium text-on-surface-variant" style="">14:12:30 • Kinetic Flow</span>
+</div>
+<h3 class="font-headline text-base font-bold text-on-surface" style="">v2_Lyric_Focus_Final.mp4</h3>
+<p class="text-sm text-on-surface-variant" style="">High-frequency audio spectrum visualized. Manual QC suggested.</p>
+</div>
+</div>
+<div class="flex items-center gap-2 shrink-0">
+<button class="h-8 px-4 bg-surface-container-highest text-on-surface font-label text-[10px] font-bold uppercase rounded-sm hover:bg-surface-variant transition-all" style="">Reject</button>
+<button class="h-8 px-4 bg-primary text-on-primary font-label text-[10px] font-bold uppercase rounded-sm hover:brightness-110 shadow-lg shadow-primary/10 transition-all" style="">Approve</button>
+</div>
+</div>
+</div>
+</div>
+<div class="mt-12 text-center pb-20">
+<button class="px-6 py-2 border border-outline-variant/20 rounded-full font-label text-xs font-bold text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface transition-all" style="">
+                            Load Older Events
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+
+</body></html>
