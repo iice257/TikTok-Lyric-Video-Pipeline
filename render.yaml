@@ -25,6 +25,8 @@ services:
           property: connectionString
       - key: SESSION_SECRET
         generateValue: true
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
       - key: MEDIA_ROOT
         value: /app/storage
       - key: ADMIN_EMAIL

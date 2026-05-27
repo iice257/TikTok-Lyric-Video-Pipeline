@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 import re
 import shutil
 from uuid import uuid4
@@ -30,7 +31,7 @@ from tiktok_platform.services import (
     ensure_media_root,
     get_setting,
     get_oauth_token,
-    guess_extension,
+    get_oauth_token_secrets,
     log_operator_action,
     persist_upload_file,
     record_state_event,
@@ -46,6 +47,7 @@ from tiktok_platform.services import (
     set_setting,
     upsert_oauth_token,
 )
+from tiktok_platform.search import search_catalog
 from tiktok_platform.settings import PlatformSettings
 from tiktok_platform.tiktok_api import DEFAULT_SCOPES, TikTokApiClient, TikTokApiError
 
@@ -94,6 +96,9 @@ def _default_tiktok_preferences() -> dict[str, object]:
 
 ALLOWED_ENVIRONMENTS = {"prod", "lab"}
 ALLOWED_RIGHTS_STATUSES = {"licensed", "tiktok_cml", "approved_tiktok", "metadata_only", "pending_review"}
+ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac"}
+ALLOWED_COVER_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+ALLOWED_LYRICS_EXTENSIONS = {".lrc", ".srt", ".json", ".txt"}
 
 
 def _creator_info_cache(db: Session) -> dict[str, object]:
@@ -104,6 +109,23 @@ def _safe_path_component(value: str, *, fallback: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9 _.-]+", "", value).strip().strip(".")
     cleaned = re.sub(r"\s+", " ", cleaned)
     return cleaned or fallback
+
+
+def _validated_upload_extension(
+    upload: UploadFile,
+    *,
+    allowed_extensions: set[str],
+    fallback: str,
+    label: str,
+) -> str:
+    suffix = Path(upload.filename or "").suffix.lower()
+    if suffix and suffix not in allowed_extensions:
+        allowed = ", ".join(sorted(allowed_extensions))
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unsupported {label} file extension. Allowed: {allowed}.",
+        )
+    return suffix or fallback
 
 
 def _serialize_tiktok_status(db: Session, settings: PlatformSettings) -> dict[str, object]:
@@ -198,6 +220,17 @@ def get_tiktok_status(
     settings: PlatformSettings = Depends(get_platform_settings),
 ) -> dict[str, object]:
     return {"integration": _serialize_tiktok_status(db, settings)}
+
+
+@router.get("/search")
+def search(
+    q: str = Query(..., min_length=2, max_length=120),
+    limit: int = Query(20, ge=1, le=50),
+    _: object = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> dict[str, object]:
+    return search_catalog(db, settings, q, limit=limit)
 
 
 @router.post("/integrations/tiktok/connect")
@@ -298,7 +331,9 @@ def disconnect_tiktok(
     token = get_oauth_token(db, "tiktok")
     if token is not None:
         try:
-            _build_tiktok_client(settings).revoke(token.access_token)
+            token_secrets = get_oauth_token_secrets(db, settings, "tiktok")
+            if token_secrets is not None:
+                _build_tiktok_client(settings).revoke(token_secrets.access_token)
         except (HTTPException, TikTokApiError):
             pass
         db.delete(token)
@@ -426,17 +461,32 @@ def manual_intake(
     media_root = ensure_media_root(settings) / "manual-intake" / environment
     song_key = uuid4().hex
     stem = f"{_safe_path_component(artist, fallback='Unknown Artist')} - {_safe_path_component(title, fallback='Untitled')}"
-    audio_ext = guess_extension(audio.filename or "audio.mp3", ".mp3")
+    audio_ext = _validated_upload_extension(
+        audio,
+        allowed_extensions=ALLOWED_AUDIO_EXTENSIONS,
+        fallback=".mp3",
+        label="audio",
+    )
     audio_path = media_root / song_key / f"{stem}{audio_ext}"
     audio_meta = persist_upload_file(audio, audio_path)
     cover_path = None
     lyrics_path = None
     if cover is not None:
-        cover_ext = guess_extension(cover.filename or "cover.jpg", ".jpg")
+        cover_ext = _validated_upload_extension(
+            cover,
+            allowed_extensions=ALLOWED_COVER_EXTENSIONS,
+            fallback=".jpg",
+            label="cover",
+        )
         cover_path = media_root / song_key / f"{stem}{cover_ext}"
         persist_upload_file(cover, cover_path)
     if lyrics is not None:
-        lyrics_ext = guess_extension(lyrics.filename or "lyrics.lrc", ".lrc")
+        lyrics_ext = _validated_upload_extension(
+            lyrics,
+            allowed_extensions=ALLOWED_LYRICS_EXTENSIONS,
+            fallback=".lrc",
+            label="lyrics",
+        )
         lyrics_path = media_root / song_key / f"{stem}{lyrics_ext}"
         persist_upload_file(lyrics, lyrics_path)
 

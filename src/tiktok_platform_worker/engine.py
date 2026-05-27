@@ -25,7 +25,7 @@ from tiktok_platform.models import (
     UploadJob,
     WorkerHeartbeat,
 )
-from tiktok_platform.services import create_alert, get_oauth_token, get_setting, record_state_event, upsert_oauth_token
+from tiktok_platform.services import create_alert, get_oauth_token_secrets, get_setting, record_state_event, upsert_oauth_token
 from tiktok_platform.services import create_alert_once
 from tiktok_platform.settings import PlatformSettings, get_settings
 from tiktok_platform.tiktok_api import TikTokApiClient, TikTokApiError
@@ -44,7 +44,7 @@ class TikTokUploadAdapter:
         if not self.settings.tiktok_client_key or not self.settings.tiktok_client_secret or not self.settings.tiktok_redirect_uri:
             return "failed", {"error": "TikTok credentials are not configured."}
 
-        token = get_oauth_token(db, "tiktok")
+        token = get_oauth_token_secrets(db, self.settings, "tiktok")
         if token is None:
             return "failed", {"error": "No TikTok account is connected."}
         try:

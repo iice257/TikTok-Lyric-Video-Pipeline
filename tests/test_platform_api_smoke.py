@@ -6,11 +6,13 @@ from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
 from tiktok_platform.tiktok_api import TikTokTokenBundle
+from tiktok_platform.token_crypto import generate_token_encryption_key
 
 
 def build_test_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'platform.db').as_posix()}")
     monkeypatch.setenv("SESSION_SECRET", "test-secret")
+    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", generate_token_encryption_key())
     monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
     monkeypatch.setenv("ADMIN_PASSWORD_HASH", "")
     monkeypatch.setenv("TIKTOK_CLIENT_KEY", "client-key")
@@ -110,6 +112,43 @@ def test_manual_intake_rejects_invalid_environment(tmp_path, monkeypatch) -> Non
     assert response.json()["detail"] == "Unsupported environment."
 
 
+def test_manual_intake_rejects_unsupported_audio_extension(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    response = client.post(
+        "/manual-intake",
+        data={"title": "Song", "artist": "Artist", "environment": "prod", "rights_status": "licensed"},
+        files={"audio": ("track.exe", io.BytesIO(b"not-audio"), "application/octet-stream")},
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert response.status_code == 400
+    assert "Unsupported audio file extension" in response.json()["detail"]
+
+
+def test_search_returns_song_matches(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    created = client.post(
+        "/manual-intake",
+        data={"title": "Midnight Signal", "artist": "Aster Grey", "environment": "prod", "rights_status": "licensed"},
+        files={"audio": ("midnight-signal.mp3", io.BytesIO(b"audio"), "audio/mpeg")},
+        headers={"x-csrf-token": csrf},
+    )
+    assert created.status_code == 200
+
+    response = client.get("/search", params={"q": "Midnight", "limit": 5})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["strategy"] == "substring"
+    assert [song["title"] for song in body["songs"]] == ["Midnight Signal"]
+
+
 def test_tiktok_connect_returns_auth_url(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
     login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
@@ -158,6 +197,44 @@ def test_tiktok_callback_persists_subject_and_scopes(tmp_path, monkeypatch) -> N
     assert integration["connected"] is True
     assert integration["subject"] == "open-id-123"
     assert integration["scopes"] == ["video.publish", "video.upload"]
+
+    import tiktok_platform.db as db_module
+    import tiktok_platform.models as models_module
+
+    with db_module.SessionLocal() as db:
+        token = db.query(models_module.OAuthToken).filter_by(provider="tiktok").one()
+        assert token.access_token.startswith("fernet:")
+        assert token.refresh_token.startswith("fernet:")
+
+
+def test_startup_encrypts_existing_plaintext_oauth_tokens(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+
+    import tiktok_platform.db as db_module
+    import tiktok_platform.models as models_module
+    import tiktok_platform.services as services_module
+    import tiktok_platform.settings as settings_module
+
+    with db_module.SessionLocal() as db:
+        token = models_module.OAuthToken(
+            provider="tiktok",
+            subject="open-id-plain",
+            access_token="plain-access",
+            refresh_token="plain-refresh",
+            scopes_json=["video.upload"],
+        )
+        db.add(token)
+        db.commit()
+
+    with db_module.SessionLocal() as db:
+        updated = services_module.encrypt_stored_oauth_tokens(db, settings_module.get_settings())
+        token = db.query(models_module.OAuthToken).filter_by(subject="open-id-plain").one()
+        assert updated == 1
+        assert token.access_token.startswith("fernet:")
+        assert token.refresh_token.startswith("fernet:")
+
+    response = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    assert response.status_code == 200
 
 
 def test_pause_resume_preserves_pipeline_settings(tmp_path, monkeypatch) -> None:

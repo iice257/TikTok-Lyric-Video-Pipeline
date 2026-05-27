@@ -29,6 +29,7 @@ class PlatformSettings:
     frontend_base_url: str
     database_url: str
     session_secret: str
+    token_encryption_key: str
     media_root: Path
     admin_email: str
     admin_password_hash: str
@@ -62,6 +63,7 @@ def get_settings() -> PlatformSettings:
         frontend_base_url=os.getenv("FRONTEND_BASE_URL", "http://localhost:3000"),
         database_url=os.getenv("DATABASE_URL", f"sqlite:///{default_db_path.as_posix()}"),
         session_secret=os.getenv("SESSION_SECRET", "change-me-session-secret"),
+        token_encryption_key=os.getenv("TOKEN_ENCRYPTION_KEY", ""),
         media_root=Path(os.getenv("MEDIA_ROOT", str(repo_root / "storage"))).resolve(),
         admin_email=os.getenv("ADMIN_EMAIL", "admin@example.com"),
         admin_password_hash=os.getenv("ADMIN_PASSWORD_HASH", ""),
@@ -90,6 +92,8 @@ def _is_weak_session_secret(secret: str) -> bool:
 
 
 def validate_runtime_settings(settings: PlatformSettings) -> None:
+    from .token_crypto import validate_token_encryption_key
+
     if not settings.is_production:
         return
     issues: list[str] = []
@@ -97,6 +101,8 @@ def validate_runtime_settings(settings: PlatformSettings) -> None:
         issues.append("DATABASE_URL must point to Postgres in production.")
     if _is_weak_session_secret(settings.session_secret):
         issues.append("SESSION_SECRET must be a strong non-placeholder value with at least 32 characters in production.")
+    if not validate_token_encryption_key(settings.token_encryption_key):
+        issues.append("TOKEN_ENCRYPTION_KEY must be set to a valid Fernet key in production.")
     if not settings.admin_password_hash:
         issues.append("ADMIN_PASSWORD_HASH must be set in production.")
     if settings.simulate_uploads:

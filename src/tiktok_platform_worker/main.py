@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
-from tiktok_platform.db import init_db
-from tiktok_platform.services import ensure_media_root
+from tiktok_platform.db import SessionLocal, init_db
+from tiktok_platform.services import encrypt_stored_oauth_tokens, ensure_media_root
 from tiktok_platform.settings import get_settings, validate_runtime_settings
 
 from .engine import PlatformWorker
@@ -24,6 +24,8 @@ def main() -> None:
     validate_runtime_settings(settings)
     init_db()
     ensure_media_root(settings)
+    with SessionLocal() as db:
+        encrypt_stored_oauth_tokens(db, settings)
     worker = PlatformWorker(worker_name=args.worker_name)
     if args.once:
         worker.run_once()

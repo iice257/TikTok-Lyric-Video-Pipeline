@@ -1,287 +1,235 @@
-# TikTok Lyric Video Pipeline
+# SSS - TikTok Lyric Video Platform
 
-An automated Python pipeline for generating 10 to 15 TikTok-ready lyric videos per day from licensed audio, timed lyrics, and trend metadata. The project is built around modular stages so intake, lyrics, segment scoring, rendering, scheduling, and upload can evolve independently.
+SSS is a backend-heavy media automation project for turning licensed songs, timed lyrics, and trend metadata into short-form lyric videos. It started as a local Python pipeline, then grew into a small control plane with a REST API, database-backed jobs, a worker loop, TikTok upload integration, and a Next.js admin UI.
 
-## Platform Architecture
+The core backend is FastAPI + SQLAlchemy, with a small Nest.js companion API now added for read/search resources. It does not currently run Elasticsearch. For backend roles, I treat this repo as proof that I can model a product workflow, design API boundaries, process media asynchronously, and make practical tradeoffs around security, jobs, deployment, and operator tooling.
 
-The repository now contains two layers:
+## Current Stack
 
-- `src/tiktok_lyric_pipeline`: the original media engine for lyrics, segments, rendering, and scheduling
-- `src/tiktok_platform_api` + `src/tiktok_platform_worker` + `apps/web`: the control plane, always-on worker, and mobile-first admin panel
-
-Target deployment split:
-
-- `apps/web` on Vercel
-- FastAPI API + worker + ffmpeg on one always-on Linux host
-- Postgres as the system of record
-- persistent media storage mounted on the backend host
-
-Production rules:
-
-- production audio must be licensed/local or otherwise explicitly approved
-- Spotify is metadata/trend input only in production
-- lab-mode items can render/analyze but must not publish
+- Backend API: Python, FastAPI, Pydantic request models, SQLAlchemy ORM
+- Companion API: TypeScript/Nest.js read/search service scaffold in `apps/api-nest`
+- Database: SQLite for local development, Postgres-ready via `DATABASE_URL` and Docker Compose
+- Migrations: Alembic baseline migration for the platform schema
+- Worker: long-running Python process with leases, retries, heartbeats, and job reconciliation
+- Media pipeline: lyrics parsing, lightweight alignment fallback, segment scoring, ASS subtitle generation, ffmpeg rendering
+- Frontend: Next.js 15, React 19, Tailwind, shadcn-style components
+- Deployment: Docker, Render blueprint, Linux/systemd deployment notes, Vercel-ready frontend
+- Tests: pytest coverage for API smoke paths, security helpers, worker retry/status behavior
 
 ## What It Does
 
-- Prioritizes `data/manual_priority/` over automated trend feeds every run.
-- Pulls metadata from normalized Spotify and TikTok feed exports.
-- Resolves timed lyrics from LRC, SRT, or JSON, then falls back to lightweight alignment for plain text.
-- Uses the Song Segment System (SSS) to choose 3 to 5 non-overlapping clips per song.
-- Randomizes lyric style, video layout, fonts, highlight color, and optional hook text using the requested weighting rules.
-- Plans or renders 1080x1920 MP4 outputs and writes upload jobs for next-day posting.
+- Ingests songs from manual uploads or normalized provider feed exports.
+- Tracks rights status and environment so lab/test material cannot publish by accident.
+- Resolves lyrics from LRC, SRT, JSON, cached files, sidecars, remote URLs, or plain text fallback alignment.
+- Scores repeated lyric moments and audio-section metadata to pick non-overlapping 30 to 60 second clips.
+- Generates subtitle/render manifests and optionally renders vertical MP4s through ffmpeg.
+- Schedules upload jobs, handles TikTok OAuth, supports direct/draft upload modes, and polls publish status.
+- Gives an operator a web UI for intake, queue review, clip edits, alerts, logs, settings, and pipeline pause/resume.
 
-## Repository Layout
+## Architecture
 
 ```text
-.
-|-- apps/
-|   `-- web/
-|-- config/
-|   `-- pipeline.example.json
-|-- data/
-|   |-- automated_queue/
-|   |-- lyrics_cache/
-|   |-- manual_priority/
-|   `-- provider_feeds/
-|-- docker/
-|   `-- platform.Dockerfile
-|-- output/
-|   |-- render_work/
-|   `-- videos/
-|-- src/
-|   |-- tiktok_lyric_pipeline/
-|   |-- tiktok_platform/
-|   |-- tiktok_platform_api/
-|   `-- tiktok_platform_worker/
-|-- tests/
-|-- docker-compose.yml
-|-- pyproject.toml
-`-- run_pipeline.py
+Manual upload / feed files
+          |
+          v
+FastAPI control plane ---- Next.js admin UI
+          |
+          v
+SQLAlchemy models: songs, lyrics artifacts, segment candidates, clips, render jobs, upload jobs, alerts, state events
+          |
+          v
+Platform worker
+          |
+          +--> lyrics resolution and fallback alignment
+          +--> segment scoring and clip creation
+          +--> render planning and ffmpeg execution
+          +--> upload scheduling and TikTok API polling
+          +--> alerts, heartbeats, retries, audit trail
 ```
 
-## Quick Start
+More detail lives in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-### Full Stack Local Start
+## Backend Surfaces
 
-1. Copy `.env.example` to `.env`
-2. Copy `apps/web/.env.example` to `apps/web/.env.local`
-3. Install Python dependencies
-4. Install frontend dependencies
-5. Start the API
-6. Start the worker
-7. Start the web app
+The REST API is intentionally simple and operator-focused:
 
-Commands:
+- `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
+- `GET /dashboard/summary`, `GET /dashboard/health`
+- `GET /search?q=...`
+- `POST /manual-intake`
+- `GET /songs`, `GET /songs/{song_id}`
+- `GET /clips`, `GET /clips/{clip_id}`, `PATCH /clips/{clip_id}`
+- `POST /clips/{clip_id}/rerender`
+- `GET /jobs`, `POST /jobs/{job_id}/retry`, `/cancel`, `/quarantine`
+- `GET /upload-jobs`, `POST /upload-jobs/{job_id}/approve`, `/reschedule`, `/force-publish`
+- `GET /integrations/tiktok/status`, `POST /integrations/tiktok/connect`, `/disconnect`
+- `GET /alerts`, `POST /alerts/{alert_id}/ack`
+- `GET /workers`
+- `GET /media?path=...` for authenticated access to managed media files
+
+Example manual intake:
+
+```bash
+curl -X POST http://localhost:8000/manual-intake \
+  -H "x-csrf-token: $CSRF_TOKEN" \
+  -b "platform_session=$SESSION_COOKIE" \
+  -F "title=Song Title" \
+  -F "artist=Artist Name" \
+  -F "environment=prod" \
+  -F "rights_status=licensed" \
+  -F "audio=@./data/manual_priority/Artist Name - Song Title.mp3" \
+  -F "lyrics=@./data/manual_priority/Artist Name - Song Title.lrc"
+```
+
+## Data Model
+
+The control plane stores enough metadata to explain what happened to a clip:
+
+- `songs`: identity, provider/manual source, rights status, environment, audio/cover/lyrics paths, publish eligibility
+- `song_inputs`: original intake payloads and source files
+- `lyrics_artifacts`: parsed lyric lines, token timing, confidence, source format
+- `segment_candidates`: selected and rejected clip windows with scores and reasons
+- `clips`: render style, caption, review state, generated artifact paths, scheduled publish time
+- `render_jobs` and `upload_jobs`: queue state, idempotency keys, attempts, leases, platform response payloads
+- `state_events`: append-only state transitions for traceability
+- `alerts`, `worker_heartbeats`, `operator_actions`: operational visibility and audit trail
+- `users`, `sessions`, `oauth_tokens`, `app_settings`: auth, integration state, and runtime settings
+
+## Security And Maintainability Notes
+
+- Sessions are HTTP-only cookies; mutation endpoints require CSRF tokens.
+- Passwords are hashed with PBKDF2 and constant-time verification.
+- OAuth tokens are encrypted at rest when `TOKEN_ENCRYPTION_KEY` is configured. Production requires a valid Fernet key.
+- Production startup refuses weak session secrets, missing token encryption keys, SQLite database URLs, missing admin password hashes, insecure cookies, and simulated uploads.
+- Media downloads resolve only inside managed storage/data/output roots.
+- Manual intake hashes uploaded audio for deduplication and validates supported audio, cover, and lyric file extensions.
+- Worker jobs use idempotency keys, leases, retry states, and explicit state events instead of fire-and-forget side effects.
+
+## Local Setup
+
+Requirements:
+
+- Python 3.11+
+- Node.js for the web app
+- ffmpeg if you want actual MP4 rendering
+- Docker if you want the Postgres-backed local stack
+
+Backend:
 
 ```powershell
+copy .env.example .env
+python -m venv .venv
+.venv\Scripts\activate
 python -m pip install -e .
-cd apps/web
-npm install
-cd ../..
 python -m tiktok_platform_api.app
+```
+
+Set `API_PORT=18080` if the default `8000` is blocked by Windows policy.
+
+Generate a production token encryption key with:
+
+```powershell
+python -c "from tiktok_platform.token_crypto import generate_token_encryption_key; print(generate_token_encryption_key())"
+```
+
+Worker:
+
+```powershell
 python -m tiktok_platform_worker.main --poll-interval-seconds 20
+```
+
+Frontend:
+
+```powershell
 cd apps/web
+copy .env.example .env.local
+npm install
 npm run dev
 ```
 
-Recommended local defaults:
+No-Docker all-process start:
 
-- backend `.env`: keep `APP_ENV=dev`, `DATABASE_URL=sqlite:///output/platform.db`, `MEDIA_ROOT=storage`, `PIPELINE_CONFIG_PATH=config/pipeline.example.json`, `COOKIE_SECURE=false`, `COOKIE_SAME_SITE=lax`, `TIKTOK_SIMULATE_UPLOADS=true`
-- frontend `apps/web/.env.local`: set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+```powershell
+.\scripts\dev-no-docker.ps1
+```
 
-Production split for Vercel + backend host:
+If `node` is not on `PATH`, pass a known Node executable:
 
-- backend `.env`: set `APP_ENV=prod`, `DATABASE_URL` to Postgres, `COOKIE_SECURE=true`, `COOKIE_SAME_SITE=none`, and real admin/TikTok secrets
-- Vercel env: set `NEXT_PUBLIC_API_BASE_URL` to the public HTTPS backend API URL
-- ensure the backend `FRONTEND_BASE_URL` exactly matches the Vercel app origin
-- the web UI is the main operator surface once deployed: manual intake, queue actions, clip edits, alerts, and pipeline pause/resume all run through the browser
-- media previews and artifact downloads are exposed through authenticated backend `/media` access, so remote devices do not need shell access to the host filesystem
+```powershell
+.\scripts\dev-no-docker.ps1 -NodeExe "C:\path\to\node.exe"
+```
 
-### Docker Local Start
+If local Node cannot spawn child processes, use the no-build smoke UI for browser verification:
+
+```powershell
+python -m http.server 3000 --directory apps/smoke-ui
+```
+
+If port `3000` or `8000` is blocked, run the backend/frontend on higher ports and open the smoke UI with `?api=http://localhost:<api-port>`.
+
+Default local credentials are created only in development when `ADMIN_PASSWORD_HASH` is empty:
+
+- email: `admin@example.com`
+- password: `admin123`
+
+## Docker Local Stack
 
 ```powershell
 copy .env.example .env
 docker compose up --build
 ```
 
-`docker-compose.yml` overrides backend runtime env for containers (`DATABASE_URL`, `MEDIA_ROOT`, and `PIPELINE_CONFIG_PATH`) and mounts `storage`, `config`, `data`, and `output` into the API and worker containers so intake/render paths match this repo's documented directories.
+This starts Postgres, the FastAPI API, and the worker. The web app can point to `http://localhost:8000` through `NEXT_PUBLIC_API_BASE_URL`.
 
-The API will be available on `http://localhost:8000` and the web app can point to it with `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`.
+Docker is useful for matching the Postgres-backed deployment shape, but it is not required to run the API, worker, and web app locally.
 
-### Option A: Run Without Installing The Package
+## Pipeline-Only Mode
 
-This is the simplest path on Windows and works directly from the repo root:
+The original pipeline can still run without the platform API:
 
 ```powershell
 python run_pipeline.py --config config/pipeline.example.json --dry-run
-```
-
-For continuous operation:
-
-```powershell
 python run_pipeline.py --config config/pipeline.example.json --watch --poll-interval-seconds 60
 ```
 
-### Option B: Install In A Virtual Environment
+To produce a first real MP4, place a licensed audio file in `data/manual_priority/`, add a same-name `.lrc`, `.srt`, `.json`, or `.txt` lyric file, then run without `--dry-run`.
 
-```powershell
-python -m venv .venv
-.venv\Scripts\activate
-python -m pip install -e .
-python -m tiktok_lyric_pipeline --config config/pipeline.example.json --dry-run
-```
+## Configuration
 
-If you want actual MP4 rendering, install `ffmpeg` and make sure it is on `PATH`.
+Important files:
 
-## Common Windows Gotcha
+- `.env.example`: backend/API/worker environment variables
+- `apps/web/.env.example`: frontend API base URL
+- `apps/api-nest/.env.example`: Nest.js companion API settings
+- `config/pipeline.example.json`: local pipeline paths, clip targets, lyric settings, segment scoring, render settings, schedule windows
+- `alembic.ini` and `migrations/`: database migration setup
+- `docker-compose.yml`: local Postgres + API + worker
+- `render.yaml`: Render blueprint using Postgres and a persistent disk
+- `deploy/linux/`: Caddy, systemd, and production env examples for a small Linux host
 
-If you see a `>>>` prompt, you are inside the Python REPL. Shell commands such as `python -m ...` will fail there with `SyntaxError`.
+## Deployment Shape
 
-Exit the REPL first:
+The intended split is:
 
-```text
-exit()
-```
+- Next.js admin UI on Vercel or another frontend host
+- FastAPI API and worker in Docker on an always-on backend host
+- Postgres as the system of record
+- Persistent disk or object storage for generated media artifacts
 
-Then run the command from PowerShell or Command Prompt.
+The Render blueprint combines API and worker in one Docker service through `src/tiktok_platform/render_entrypoint.py`. That is convenient for a small deployment, but separating API and worker services would be cleaner once traffic or render volume grows.
 
-## Why A Dry Run May Return Zero Clips
+## Tradeoffs And Remaining Gaps
 
-The repository ships with placeholder feed examples and empty runtime folders. A successful dry run with zero clips usually means the app started correctly, but there were no real input songs to process yet.
+- Alembic is wired with an initial baseline migration. The next step is to use migration revisions for every schema change and remove any reliance on startup table creation in production.
+- Search now exists as `/search`: SQLite/dev uses substring matching, while Postgres uses full-text ranking and migration-managed indexes for songs and clip captions. Lyrics-line indexing and Elasticsearch/OpenSearch are still future work if the product needs deeper discovery.
+- A Nest.js companion API exists in `apps/api-nest` for read/search resources over the Postgres schema. The FastAPI service still owns the media-heavy mutation paths; replacing or fully porting those endpoints would be a later phase.
+- The worker is a single-process poller. For higher volume, render and upload jobs should move to an explicit queue with separate worker pools, backoff policies, and stronger concurrency controls.
+- TikTok direct posting depends on account capability, app approval, and platform policy. The app has simulation and draft modes so development does not require publishing.
+- OAuth tokens are encrypted at rest with a configured Fernet key. A managed KMS/secrets store would be stronger for multi-environment production.
+- Media files are local/persistent-disk based. Object storage plus signed URLs would be better for multi-host deployments.
 
-To get actual planned clips:
+## Why This Matters
 
-1. Put licensed audio files in `data/manual_priority/` for immediate processing.
-2. Or create real `spotify_trending.json` and `tiktok_trending.json` files in `data/provider_feeds/`.
-3. Add matching lyric sources through sidecar files, cached lyric files, or lyric URLs in the feed payload.
+This repo is close to music-product backend work: ingesting media metadata, modeling content state, making asynchronous jobs observable, protecting publish paths, and giving operators enough context to make decisions. The stack is different from a Nest.js/Postgres/search backend, but the engineering problems are adjacent and concrete.
 
-## First Video Tutorial
-
-This is the fastest path to the first actual MP4:
-
-1. Put a licensed audio file in `data/manual_priority/`.
-2. Name it `Artist Name - Song Title.mp3` so artist and title are inferred correctly.
-3. Put a matching sidecar lyrics file beside it with the same base name:
-   `Artist Name - Song Title.lrc`
-4. Optionally add cover art beside it with the same base name:
-   `Artist Name - Song Title.jpg`
-5. Run a dry-run first to confirm the clip is discovered:
-
-```powershell
-python run_pipeline.py --config config/pipeline.example.json --dry-run --max-clips 1
-```
-
-6. If the dry-run shows `produced_clip_count: 1`, run the real render:
-
-```powershell
-python run_pipeline.py --config config/pipeline.example.json --max-clips 1
-```
-
-7. Check these outputs:
-   `output/videos/` for the rendered MP4
-   `output/render_work/` for `.ass` subtitles and render manifests
-   `output/scheduled_uploads.json` for the upload queue record
-
-Minimal LRC example:
-
-```text
-[00:00.00]first line here
-[00:08.00]second line here
-[00:16.00]repeatable chorus line
-[00:24.00]repeatable chorus line
-```
-
-If you only have plain untimed lyrics, use `.txt` instead of `.lrc`. The pipeline will use lightweight alignment as a fallback.
-
-## Input Expectations
-
-### Manual Priority
-
-- Drop audio files into `data/manual_priority/`.
-- Supported extensions default to `.mp3`, `.wav`, `.m4a`, and `.flac`.
-- Manual songs always run before automated songs.
-
-### Automated Feeds
-
-- The default config expects `data/provider_feeds/spotify_trending.json`.
-- The default config expects `data/provider_feeds/tiktok_trending.json`.
-- Example payload shapes live in `data/provider_feeds/*.example.json`.
-
-Each song record can include:
-
-- `song_id`, `title`, `artist`
-- `audio_path`, `album_cover_path`
-- `lyrics_url` or `lyrics_urls`
-- `duration_seconds`
-- trend scores, audio features, and section metadata
-
-## Pipeline Stages
-
-1. Song intake merges manual and automated sources, with manual priority first.
-2. Lyrics resolution loads LRC, SRT, JSON, or text sources.
-3. Alignment fallback estimates timings when only untimed lyrics exist.
-4. SSS segment detection scores chorus-like and high-energy moments while avoiding overlap.
-5. Style selection applies lyric, layout, typography, color, and hook distributions.
-6. Render planning writes subtitle and manifest artifacts before optional ffmpeg rendering.
-7. Scheduling spreads uploads across the next day using randomized minute offsets.
-8. Queue export writes upload-ready JSON and NDJSON records.
-
-## Hook Categories
-
-Starter categories included in the design:
-
-- late night songs
-- songs that hurt
-- underrated songs
-- soft life songs
-- villain mode songs
-- healing songs
-- main character songs
-- throwback feelings
-- sad girl songs
-- window seat songs
-
-## Key Config Areas
-
-`config/pipeline.example.json` maps directly to the dataclasses in `src/tiktok_lyric_pipeline/config.py`.
-
-The most useful sections to tweak first are:
-
-- `intake` for daily clip targets and automated feed filenames
-- `lyrics` for source order and alignment fallback
-- `segments` for clip length, gap rules, and per-song segment count
-- `render` for codec, canvas size, grain, and default font families
-- `schedule` for upload windows and posting buckets
-
-## Output Files
-
-- Planned or rendered videos go to `output/videos/`
-- Render manifests and subtitle assets go to `output/render_work/`
-- Upload queue files go to `output/scheduled_uploads.json` and `output/scheduled_uploads.ndjson`
-- Run summaries go to `output/run_summary.json`
-
-## Continuous Operation
-
-`--watch` keeps the generation loop running until interrupted with `Ctrl+C`.
-
-Behavior in watch mode:
-
-- polls the manual and automated inputs every cycle
-- processes manual files first
-- skips already processed inputs unless the file identity changes
-- appends new scheduled jobs into the queue instead of overwriting previous ones
-
-Example:
-
-```powershell
-python run_pipeline.py --config config/pipeline.example.json --watch --poll-interval-seconds 120
-```
-
-## Notes
-
-- Spotify metadata can inform ranking, but the renderer should use only licensed or locally owned audio.
-- TikTok upload automation should go through the official API and comply with platform policy.
-- Instagram Reels support can be added later by reusing the same render and scheduling outputs.
-- This repository now includes the always-on control plane, mobile-first admin web app, DB-backed worker loops, TikTok OAuth connection routes, and a real Content Posting API uploader with polling/retry handling.
-- Direct posting still depends on TikTok app approval and account capability. When `UPLOAD_MODE=hybrid`, the worker falls back to inbox/draft upload if direct-post scopes are unavailable.
+For stats.fm-specific application notes, see [docs/STATSFM_APPLICATION_PACKAGE.md](docs/STATSFM_APPLICATION_PACKAGE.md).

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 import hashlib
 from pathlib import Path
 import ipaddress
@@ -27,7 +28,19 @@ from .models import (
     WorkerHeartbeat,
 )
 from .security import default_session_ttl, hash_password, issue_session_token, session_token_hash, verify_password
-from .settings import PlatformSettings
+from .settings import PlatformSettings, get_settings
+from .token_crypto import decrypt_secret, encrypt_secret, is_encrypted_secret
+
+
+@dataclass(slots=True)
+class OAuthTokenSecrets:
+    id: str
+    provider: str
+    subject: str
+    access_token: str
+    refresh_token: str | None
+    scopes_json: list[str]
+    expires_at: object
 
 
 def ensure_admin_user(db: Session, settings: PlatformSettings) -> User:
@@ -154,6 +167,21 @@ def get_oauth_token(db: Session, provider: str, subject: str | None = None) -> O
     return db.scalar(query.limit(1))
 
 
+def get_oauth_token_secrets(db: Session, settings: PlatformSettings, provider: str, subject: str | None = None) -> OAuthTokenSecrets | None:
+    record = get_oauth_token(db, provider, subject)
+    if record is None:
+        return None
+    return OAuthTokenSecrets(
+        id=record.id,
+        provider=record.provider,
+        subject=record.subject,
+        access_token=decrypt_secret(record.access_token, settings) or "",
+        refresh_token=decrypt_secret(record.refresh_token, settings),
+        scopes_json=list(record.scopes_json),
+        expires_at=record.expires_at,
+    )
+
+
 def upsert_oauth_token(
     db: Session,
     *,
@@ -164,6 +192,9 @@ def upsert_oauth_token(
     scopes: list[str],
     expires_at,
 ) -> OAuthToken:
+    settings = get_settings()
+    encrypted_access_token = encrypt_secret(access_token, settings) or ""
+    encrypted_refresh_token = encrypt_secret(refresh_token, settings)
     record = db.scalar(
         select(OAuthToken).where(
             OAuthToken.provider == provider,
@@ -174,20 +205,41 @@ def upsert_oauth_token(
         record = OAuthToken(
             provider=provider,
             subject=subject,
-            access_token=access_token,
-            refresh_token=refresh_token,
+            access_token=encrypted_access_token,
+            refresh_token=encrypted_refresh_token,
             scopes_json=scopes,
             expires_at=expires_at,
         )
     else:
-        record.access_token = access_token
-        record.refresh_token = refresh_token
+        record.access_token = encrypted_access_token
+        record.refresh_token = encrypted_refresh_token
         record.scopes_json = scopes
         record.expires_at = expires_at
     db.add(record)
     db.commit()
     db.refresh(record)
     return record
+
+
+def encrypt_stored_oauth_tokens(db: Session, settings: PlatformSettings) -> int:
+    if not settings.token_encryption_key:
+        return 0
+    updated_count = 0
+    tokens = db.scalars(select(OAuthToken)).all()
+    for token in tokens:
+        changed = False
+        if token.access_token and not is_encrypted_secret(token.access_token):
+            token.access_token = encrypt_secret(token.access_token, settings) or token.access_token
+            changed = True
+        if token.refresh_token and not is_encrypted_secret(token.refresh_token):
+            token.refresh_token = encrypt_secret(token.refresh_token, settings)
+            changed = True
+        if changed:
+            db.add(token)
+            updated_count += 1
+    if updated_count:
+        db.commit()
+    return updated_count
 
 
 def record_state_event(
