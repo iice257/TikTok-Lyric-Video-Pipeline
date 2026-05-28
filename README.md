@@ -205,7 +205,10 @@ Important files:
 - `alembic.ini` and `migrations/`: database migration setup
 - `docker-compose.yml`: local Postgres + API + worker
 - `render.yaml`: Render blueprint using Postgres and a persistent disk
+- `vercel.json`: experimental Vercel Services config for a preview deployment of the Next.js UI plus FastAPI API
 - `deploy/linux/`: Caddy, systemd, and production env examples for a small Linux host
+
+Production-facing API containers should set `API_HOST=0.0.0.0`; local development keeps the safer loopback default. Manual intake upload limits are configurable with `MAX_AUDIO_UPLOAD_MB`, `MAX_COVER_UPLOAD_MB`, and `MAX_LYRICS_UPLOAD_MB`.
 
 ## Deployment Shape
 
@@ -217,6 +220,8 @@ The intended split is:
 - Persistent disk or object storage for generated media artifacts
 
 The Render blueprint combines API and worker in one Docker service through `src/tiktok_platform/render_entrypoint.py`. That is convenient for a small deployment, but separating API and worker services would be cleaner once traffic or render volume grows.
+
+The Vercel config is for a UI/API preview, not the whole media system: Vercel can build the Next.js UI and route `/api/*` to FastAPI through Services, but the long-running worker and generated media storage still belong on an always-on backend host or object storage-backed design.
 
 ## Tradeoffs And Remaining Gaps
 

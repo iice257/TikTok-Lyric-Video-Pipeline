@@ -7,6 +7,7 @@ from pathlib import Path
 
 from sqlalchemy import JSON, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from .settings import get_settings
 
@@ -34,11 +35,15 @@ def ensure_utc(value: datetime | None) -> datetime | None:
 def create_engine_from_settings():
     settings = get_settings()
     connect_args: dict[str, object] = {}
+    engine_kwargs: dict[str, object] = {"future": True}
     if settings.database_url.startswith("sqlite"):
-        db_path = settings.database_url.replace("sqlite:///", "", 1)
-        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         connect_args["check_same_thread"] = False
-    return create_engine(settings.database_url, future=True, connect_args=connect_args)
+        if settings.database_url in {"sqlite://", "sqlite:///:memory:"}:
+            engine_kwargs["poolclass"] = StaticPool
+        else:
+            db_path = settings.database_url.replace("sqlite:///", "", 1)
+            Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    return create_engine(settings.database_url, connect_args=connect_args, **engine_kwargs)
 
 
 engine = create_engine_from_settings()

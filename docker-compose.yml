@@ -20,6 +20,7 @@ services:
       DATABASE_URL: postgresql+psycopg://platform:platform@postgres:5432/platform
       MEDIA_ROOT: /app/storage
       PIPELINE_CONFIG_PATH: /app/config/pipeline.example.json
+      API_HOST: 0.0.0.0
     command: ["python", "-m", "tiktok_platform_api.app"]
     ports:
       - "8000:8000"

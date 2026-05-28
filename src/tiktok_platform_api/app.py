@@ -3,7 +3,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -29,6 +29,16 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="TikTok Lyric Automation Platform", version="0.1.0", lifespan=lifespan)
+
+    @app.middleware("http")
+    async def add_security_headers(request: Request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        return response
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[settings.frontend_base_url],
@@ -47,8 +57,9 @@ app = create_app()
 
 
 def main() -> None:
+    host = os.getenv("API_HOST", "127.0.0.1")
     port = int(os.getenv("API_PORT", os.getenv("PORT", "8000")))
-    uvicorn.run("tiktok_platform_api.app:app", host="127.0.0.1", port=port, reload=False)
+    uvicorn.run("tiktok_platform_api.app:app", host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":

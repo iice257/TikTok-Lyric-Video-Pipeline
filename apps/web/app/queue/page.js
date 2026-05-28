@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { apiFetch, toDatetimeLocal } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ export default function QueuePage() {
   const { data, loading, error, setData } = useResource("/upload-jobs");
   const [busyId, setBusyId] = useState("");
   const [scheduleEdits, setScheduleEdits] = useState({});
+  const [message, setMessage] = useState("");
 
   const stats = useMemo(() => {
     const jobs = data?.upload_jobs || [];
@@ -33,19 +35,35 @@ export default function QueuePage() {
 
   async function runAction(jobId, path, body) {
     setBusyId(jobId);
+    setMessage("");
     try {
       const payload = await apiFetch(path, {
         method: "POST",
         body: body ? JSON.stringify(body) : undefined,
       });
       const updatedJob = payload.upload_job || payload.job;
-      setData((current) => ({
-        ...current,
-        upload_jobs: current.upload_jobs.map((job) => (job.id === jobId ? updatedJob : job)),
-      }));
+      if (updatedJob) {
+        setData((current) => ({
+          ...current,
+          upload_jobs: (current?.upload_jobs || []).map((job) => (job.id === jobId ? updatedJob : job)),
+        }));
+      }
+      setMessage("QUEUE UPDATED");
     } finally {
       setBusyId("");
     }
+  }
+
+  function reschedule(job) {
+    const rawValue = scheduleEdits[job.id] || toDatetimeLocal(job.scheduled_at);
+    const nextDate = new Date(rawValue);
+    if (!rawValue || Number.isNaN(nextDate.getTime())) {
+      setMessage("ERROR: Choose a valid schedule time.");
+      return;
+    }
+    runAction(job.id, `/upload-jobs/${job.id}/reschedule`, {
+      scheduled_at: nextDate.toISOString(),
+    });
   }
 
   return (
@@ -78,6 +96,14 @@ export default function QueuePage() {
       <div className="space-y-4">
         {loading ? <p className="text-sm text-muted-foreground">Loading queue...</p> : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {message ? (
+          <p
+            aria-live="polite"
+            className={message.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}
+          >
+            {message}
+          </p>
+        ) : null}
 
         {(data?.upload_jobs || []).map((job) => (
           <Card key={job.id} className="border-border bg-card/80">
@@ -97,7 +123,7 @@ export default function QueuePage() {
                   </div>
                   <p className="text-lg font-semibold tracking-tight">Clip: {job.clip_id}</p>
                   <p className="text-sm text-muted-foreground">
-                    Scheduled: {job.scheduled_at ? new Date(job.scheduled_at).toLocaleString() : "unscheduled"}
+                    Scheduled: {formatDateTime(job.scheduled_at, "unscheduled")}
                   </p>
                 </div>
 
@@ -129,11 +155,7 @@ export default function QueuePage() {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={() =>
-                    runAction(job.id, `/upload-jobs/${job.id}/reschedule`, {
-                      scheduled_at: new Date(scheduleEdits[job.id] || job.scheduled_at).toISOString(),
-                    })
-                  }
+                  onClick={() => reschedule(job)}
                   disabled={busyId === job.id}
                   size="sm"
                   className="uppercase tracking-[0.18em]"

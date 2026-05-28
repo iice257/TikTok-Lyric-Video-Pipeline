@@ -1,12 +1,14 @@
 "use client";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  process.env.NEXT_PUBLIC_API_URL ||
+  "http://localhost:8000";
 
 export const getApiBaseUrl = () => API_BASE_URL.replace(/\/$/, "");
 
 export const buildMediaUrl = (path) =>
-  `${getApiBaseUrl()}/media?path=${encodeURIComponent(path)}`;
+  path ? `${getApiBaseUrl()}/media?path=${encodeURIComponent(path)}` : "";
 
 export function getCsrfToken() {
   if (typeof window === "undefined") {
@@ -20,6 +22,27 @@ export function setCsrfToken(token) {
     return;
   }
   window.localStorage.setItem("platform_csrf_token", token);
+}
+
+export function clearCsrfToken() {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.removeItem("platform_csrf_token");
+}
+
+function describeApiError(payload, fallback) {
+  const detail = payload?.detail;
+  if (typeof detail === "string") {
+    return detail;
+  }
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => item?.msg || item?.message)
+      .filter(Boolean)
+      .join("; ") || fallback;
+  }
+  return payload?.message || fallback;
 }
 
 export async function apiFetch(path, options = {}) {
@@ -37,12 +60,23 @@ export async function apiFetch(path, options = {}) {
     credentials: "include",
   });
   if (response.status === 401 && typeof window !== "undefined") {
-    window.location.href = "/login";
+    clearCsrfToken();
+    const next = `${window.location.pathname}${window.location.search}`;
+    if (!window.location.pathname.startsWith("/login")) {
+      window.location.href = `/login?next=${encodeURIComponent(next)}`;
+    }
   }
   const isJson = response.headers.get("content-type")?.includes("application/json");
-  const payload = isJson ? await response.json() : null;
+  let payload = null;
+  if (isJson) {
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+  }
   if (!response.ok) {
-    const message = payload?.detail || "Request failed";
+    const message = describeApiError(payload, `Request failed (${response.status})`);
     throw new Error(message);
   }
   return payload;

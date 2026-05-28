@@ -26,7 +26,8 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
       setCsrfToken(payload.csrf_token);
-      router.push("/");
+      const next = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : "";
+      router.push(next?.startsWith("/") ? next : "/");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,14 +55,32 @@ export default function LoginPage() {
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <div className="grid gap-2">
-                <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Email</Label>
-                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@example.com" className="h-10 border-border bg-background" />
+                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@example.com"
+                  autoComplete="email"
+                  required
+                  className="h-10 border-border bg-background"
+                />
               </div>
               <div className="grid gap-2">
-                <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
-                <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter password" className="h-10 border-border bg-background" />
+                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  autoComplete="current-password"
+                  required
+                  className="h-10 border-border bg-background"
+                />
               </div>
-              {error ? <p className="text-xs uppercase tracking-[0.18em] text-destructive">{error}</p> : null}
+              {error ? <p aria-live="polite" className="text-xs uppercase tracking-[0.18em] text-destructive">{error}</p> : null}
               <Button type="submit" disabled={submitting} size="lg" className="w-full uppercase tracking-[0.2em]">
                 {submitting ? "Signing In..." : "Sign In"}
               </Button>

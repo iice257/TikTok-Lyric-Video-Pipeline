@@ -61,6 +61,8 @@ services:
         value: none
       - key: PIPELINE_CONFIG_PATH
         value: /app/config/pipeline.render.json
+      - key: API_HOST
+        value: 0.0.0.0
       - key: WORKER_POLL_INTERVAL_SECONDS
         value: "20"
 

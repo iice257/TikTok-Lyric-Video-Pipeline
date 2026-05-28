@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -87,7 +88,7 @@ export default function AlertsPage() {
                   </div>
                   <p className="text-lg font-semibold tracking-tight">{alert.message}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(alert.created_at).toLocaleString()} | {alert.source_type || "system"}
+                    {formatDateTime(alert.created_at)} | {alert.source_type || "system"}
                   </p>
                   {alert.source_id ? (
                     <p className="text-xs uppercase tracking-[0.18em] text-muted-foreground">

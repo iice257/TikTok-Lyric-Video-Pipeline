@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { apiFetch, buildMediaUrl, toDatetimeLocal } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +96,7 @@ export default function ClipDetailPage({ params }) {
                   </div>
 
                   {message ? (
-                    <p className={message.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}>
+                    <p aria-live="polite" className={message.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}>
                       {message}
                     </p>
                   ) : null}
@@ -153,6 +154,25 @@ export default function ClipDetailPage({ params }) {
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="border-border bg-card/80">
             <CardHeader>
+              <CardTitle className="text-lg font-semibold tracking-tight">Segment Context</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {data?.segment ? (
+                <div className="rounded-md border border-border bg-background px-4 py-3">
+                  <p className="text-sm font-medium">{data.segment.caption_seed || "Selected segment"}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {data.segment.start_second}s - {data.segment.end_second}s | score {data.segment.score}
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">{data.segment.reason}</p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No segment context available.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border bg-card/80">
+            <CardHeader>
               <CardTitle className="text-lg font-semibold tracking-tight">Render Jobs</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -189,6 +209,30 @@ export default function ClipDetailPage({ params }) {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="border-border bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold tracking-tight">State Timeline</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(data?.state_events || []).map((event) => (
+              <div key={event.id} className="rounded-md border border-border bg-background px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-sm font-medium">{event.event_type.replaceAll("_", " ")}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    {formatDateTime(event.created_at)}
+                  </p>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {event.subject_type} | {event.from_state || "new"} to {event.to_state || "current"}
+                </p>
+              </div>
+            ))}
+            {!loading && !(data?.state_events || []).length ? (
+              <p className="text-sm text-muted-foreground">No state events recorded yet.</p>
+            ) : null}
+          </CardContent>
+        </Card>
       </div>
     </AdminShell>
   );

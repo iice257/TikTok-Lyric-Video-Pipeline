@@ -22,6 +22,16 @@ def _bool_env(name: str, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _int_env(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except ValueError:
+        return default
+
+
 @dataclass(slots=True)
 class PlatformSettings:
     app_env: str
@@ -47,6 +57,9 @@ class PlatformSettings:
     pipeline_config_path: Path
     cookie_secure: bool
     cookie_samesite: str
+    max_audio_upload_bytes: int
+    max_cover_upload_bytes: int
+    max_lyrics_upload_bytes: int
 
     @property
     def is_production(self) -> bool:
@@ -83,6 +96,9 @@ def get_settings() -> PlatformSettings:
         ).resolve(),
         cookie_secure=_bool_env("COOKIE_SECURE", False),
         cookie_samesite=os.getenv("COOKIE_SAME_SITE", "lax").strip().lower(),
+        max_audio_upload_bytes=_int_env("MAX_AUDIO_UPLOAD_MB", 250) * 1024 * 1024,
+        max_cover_upload_bytes=_int_env("MAX_COVER_UPLOAD_MB", 15) * 1024 * 1024,
+        max_lyrics_upload_bytes=_int_env("MAX_LYRICS_UPLOAD_MB", 5) * 1024 * 1024,
     )
 
 
@@ -94,6 +110,10 @@ def _is_weak_session_secret(secret: str) -> bool:
 def validate_runtime_settings(settings: PlatformSettings) -> None:
     from .token_crypto import validate_token_encryption_key
 
+    if settings.upload_mode not in {"hybrid", "draft", "direct"}:
+        raise RuntimeError("Invalid settings: UPLOAD_MODE must be one of hybrid, draft, direct.")
+    if settings.cookie_samesite not in {"lax", "strict", "none"}:
+        raise RuntimeError("Invalid settings: COOKIE_SAME_SITE must be one of lax, strict, none.")
     if not settings.is_production:
         return
     issues: list[str] = []
@@ -109,7 +129,5 @@ def validate_runtime_settings(settings: PlatformSettings) -> None:
         issues.append("TIKTOK_SIMULATE_UPLOADS must be false in production.")
     if not settings.cookie_secure:
         issues.append("COOKIE_SECURE must be true in production.")
-    if settings.cookie_samesite not in {"lax", "strict", "none"}:
-        issues.append("COOKIE_SAME_SITE must be one of lax, strict, none.")
     if issues:
         raise RuntimeError("Invalid production settings: " + " ".join(issues))

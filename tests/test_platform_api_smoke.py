@@ -10,7 +10,7 @@ from tiktok_platform.token_crypto import generate_token_encryption_key
 
 
 def build_test_client(tmp_path, monkeypatch) -> TestClient:
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'platform.db').as_posix()}")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
     monkeypatch.setenv("SESSION_SECRET", "test-secret")
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", generate_token_encryption_key())
     monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
@@ -19,6 +19,7 @@ def build_test_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("TIKTOK_CLIENT_SECRET", "client-secret")
     monkeypatch.setenv("TIKTOK_REDIRECT_URI", "http://localhost:8000/integrations/tiktok/callback")
     monkeypatch.setenv("TIKTOK_SIMULATE_UPLOADS", "true")
+    monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "storage"))
 
     import tiktok_platform.settings as settings_module
     import tiktok_platform.db as db_module
@@ -30,6 +31,7 @@ def build_test_client(tmp_path, monkeypatch) -> TestClient:
     import tiktok_platform_api.routers.platform as platform_router_module
     import tiktok_platform_api.app as app_module
 
+    db_module.engine.dispose()
     settings_module.get_settings.cache_clear()
     for module in (
         settings_module,
@@ -58,6 +60,7 @@ def test_health_and_login(tmp_path, monkeypatch) -> None:
     health = client.get("/health")
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
+    assert health.headers["x-content-type-options"] == "nosniff"
 
     login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
     assert login.status_code == 200
@@ -126,6 +129,23 @@ def test_manual_intake_rejects_unsupported_audio_extension(tmp_path, monkeypatch
 
     assert response.status_code == 400
     assert "Unsupported audio file extension" in response.json()["detail"]
+
+
+def test_manual_intake_rejects_oversized_audio(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("MAX_AUDIO_UPLOAD_MB", "0")
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    response = client.post(
+        "/manual-intake",
+        data={"title": "Song", "artist": "Artist", "environment": "prod", "rights_status": "licensed"},
+        files={"audio": ("track-a.mp3", io.BytesIO(b"audio"), "audio/mpeg")},
+        headers={"x-csrf-token": csrf},
+    )
+
+    assert response.status_code == 413
+    assert "Audio upload exceeds" in response.json()["detail"]
 
 
 def test_search_returns_song_matches(tmp_path, monkeypatch) -> None:
@@ -260,3 +280,23 @@ def test_pause_resume_preserves_pipeline_settings(tmp_path, monkeypatch) -> None
     assert resumed.status_code == 200
     assert resumed.json()["settings"]["paused"] is False
     assert resumed.json()["settings"]["upload_mode"] == "draft"
+
+
+def test_pipeline_settings_reject_invalid_ranges(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    bad_mode = client.patch(
+        "/pipeline/settings",
+        json={"upload_mode": "surprise"},
+        headers={"x-csrf-token": csrf},
+    )
+    assert bad_mode.status_code == 422
+
+    bad_range = client.patch(
+        "/pipeline/settings",
+        json={"target_videos_min": 20, "target_videos_max": 5},
+        headers={"x-csrf-token": csrf},
+    )
+    assert bad_range.status_code == 422

@@ -65,23 +65,27 @@ export function SongIntakeSheet({ open, onOpenChange }) {
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  <Label htmlFor="intake-artist" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     Artist
                   </Label>
                   <Input
+                    id="intake-artist"
                     name="artist"
                     required
+                    maxLength={255}
                     placeholder="Unknown Entity"
                     className="h-11 border-border bg-background"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  <Label htmlFor="intake-title" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                     Title
                   </Label>
                   <Input
+                    id="intake-title"
                     name="title"
                     required
+                    maxLength={255}
                     placeholder="Signal Name"
                     className="h-11 border-border bg-background"
                   />
@@ -90,10 +94,11 @@ export function SongIntakeSheet({ open, onOpenChange }) {
 
               <div className="flex flex-col gap-4 rounded-md border border-border bg-background px-4 py-4">
                 <div className="grid gap-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Audio
+                  <Label htmlFor="intake-audio" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Audio / max 250mb
                   </Label>
                   <Input
+                    id="intake-audio"
                     name="audio"
                     type="file"
                     accept=".mp3,.wav,.m4a,.flac"
@@ -103,10 +108,11 @@ export function SongIntakeSheet({ open, onOpenChange }) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Cover Art
+                  <Label htmlFor="intake-cover" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Cover Art / max 15mb
                   </Label>
                   <Input
+                    id="intake-cover"
                     name="cover"
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp"
@@ -115,10 +121,11 @@ export function SongIntakeSheet({ open, onOpenChange }) {
                 </div>
 
                 <div className="grid gap-2">
-                  <Label className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                    Lyrics
+                  <Label htmlFor="intake-lyrics" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Lyrics / max 5mb
                   </Label>
                   <Input
+                    id="intake-lyrics"
                     name="lyrics"
                     type="file"
                     accept=".lrc,.srt,.json,.txt"
@@ -136,6 +143,7 @@ export function SongIntakeSheet({ open, onOpenChange }) {
             <div className="flex w-full flex-col gap-3">
               {message ? (
                 <p
+                  aria-live="polite"
                   className={
                     message.startsWith("QUEUED")
                       ? "text-[10px] font-bold uppercase tracking-[0.2em] text-primary"

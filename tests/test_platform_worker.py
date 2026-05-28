@@ -8,7 +8,7 @@ from tiktok_platform.token_crypto import generate_token_encryption_key
 
 
 def reload_platform_modules(monkeypatch, tmp_path):
-    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'platform.db').as_posix()}")
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
     monkeypatch.setenv("SESSION_SECRET", "test-secret")
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", generate_token_encryption_key())
     monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
@@ -22,6 +22,7 @@ def reload_platform_modules(monkeypatch, tmp_path):
     import tiktok_platform.services as services_module
     import tiktok_platform_worker.engine as worker_engine_module
 
+    db_module.engine.dispose()
     settings_module.get_settings.cache_clear()
     for module in (
         settings_module,

@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -76,6 +76,30 @@ class SettingsPatchRequest(BaseModel):
     upload_mode: str | None = None
     target_videos_min: int | None = None
     target_videos_max: int | None = None
+
+    @field_validator("upload_mode")
+    @classmethod
+    def validate_upload_mode(cls, value: str | None) -> str | None:
+        if value is not None and value not in {"hybrid", "draft", "direct"}:
+            raise ValueError("upload_mode must be one of hybrid, draft, direct")
+        return value
+
+    @field_validator("target_videos_min", "target_videos_max")
+    @classmethod
+    def validate_target_count(cls, value: int | None) -> int | None:
+        if value is not None and not 1 <= value <= 100:
+            raise ValueError("target video counts must be between 1 and 100")
+        return value
+
+    @model_validator(mode="after")
+    def validate_target_range(self) -> "SettingsPatchRequest":
+        if (
+            self.target_videos_min is not None
+            and self.target_videos_max is not None
+            and self.target_videos_min > self.target_videos_max
+        ):
+            raise ValueError("target_videos_min cannot exceed target_videos_max")
+        return self
 
 
 class TikTokPreferencesPatchRequest(BaseModel):
@@ -453,6 +477,12 @@ def manual_intake(
     db: Session = Depends(get_db),
     settings: PlatformSettings = Depends(get_platform_settings),
 ) -> dict[str, object]:
+    title = title.strip()
+    artist = artist.strip()
+    if not title or not artist:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Artist and title are required.")
+    if len(title) > 255 or len(artist) > 255:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Artist and title must be 255 characters or fewer.")
     if environment not in ALLOWED_ENVIRONMENTS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported environment.")
     if rights_status not in ALLOWED_RIGHTS_STATUSES:
@@ -468,7 +498,12 @@ def manual_intake(
         label="audio",
     )
     audio_path = media_root / song_key / f"{stem}{audio_ext}"
-    audio_meta = persist_upload_file(audio, audio_path)
+    audio_meta = persist_upload_file(
+        audio,
+        audio_path,
+        max_bytes=settings.max_audio_upload_bytes,
+        label="audio",
+    )
     cover_path = None
     lyrics_path = None
     if cover is not None:
@@ -479,7 +514,12 @@ def manual_intake(
             label="cover",
         )
         cover_path = media_root / song_key / f"{stem}{cover_ext}"
-        persist_upload_file(cover, cover_path)
+        persist_upload_file(
+            cover,
+            cover_path,
+            max_bytes=settings.max_cover_upload_bytes,
+            label="cover",
+        )
     if lyrics is not None:
         lyrics_ext = _validated_upload_extension(
             lyrics,
@@ -488,7 +528,12 @@ def manual_intake(
             label="lyrics",
         )
         lyrics_path = media_root / song_key / f"{stem}{lyrics_ext}"
-        persist_upload_file(lyrics, lyrics_path)
+        persist_upload_file(
+            lyrics,
+            lyrics_path,
+            max_bytes=settings.max_lyrics_upload_bytes,
+            label="lyrics",
+        )
 
     ingest_fingerprint = f"sha256:{audio_meta['sha256']}:{environment}"
     duplicate = db.scalar(select(Song).where(Song.ingest_fingerprint == ingest_fingerprint))

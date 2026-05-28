@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { formatDateTime } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -47,7 +48,7 @@ export default function LogsPage() {
                 <p className="text-sm text-muted-foreground">
                   {action.target_type} | {action.target_id || "n/a"}
                 </p>
-                <p className="text-sm text-muted-foreground">{new Date(action.created_at).toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">{formatDateTime(action.created_at)}</p>
               </div>
               <Badge variant="outline" className="uppercase tracking-[0.18em]">
                 {action.user_id || "system"}

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { useResource } from "@/components/client-page";
 import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,8 +21,10 @@ function Stepper({ value, onChange, min = 1 }) {
     <div className="flex items-center rounded-md border border-border bg-background">
       <button
         type="button"
+        aria-label="Decrease value"
+        disabled={value <= min}
         onClick={() => onChange(Math.max(min, value - 1))}
-        className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
+        className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
       >
         -
       </button>
@@ -30,6 +33,7 @@ function Stepper({ value, onChange, min = 1 }) {
       </span>
       <button
         type="button"
+        aria-label="Increase value"
         onClick={() => onChange(value + 1)}
         className="flex size-8 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
       >
@@ -95,6 +99,10 @@ export default function SettingsPage() {
   }, [tiktokResource.data?.integration?.preferences]);
 
   async function patchSettings() {
+    if (minVideos > maxVideos) {
+      setPipelineMessage("ERROR: MIN VIDEOS CANNOT EXCEED MAX VIDEOS");
+      return;
+    }
     setBusy(true);
     try {
       await apiFetch("/pipeline/settings", {
@@ -172,6 +180,18 @@ export default function SettingsPage() {
     }
   }
 
+  async function emergencyStop() {
+    setBusy(true);
+    try {
+      await apiFetch("/pipeline/pause", { method: "POST" });
+      await pipelineResource.reload();
+      await dashboardResource.reload(false);
+      setPipelinePaused(true);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const pipelineData = pipelineResource.data;
   const tiktokData = tiktokResource.data?.integration;
   const creatorInfo = tiktokData?.creator_info;
@@ -192,7 +212,13 @@ export default function SettingsPage() {
       }}
       actions={
         <>
-          <Button variant="destructive" size="sm" disabled className="uppercase tracking-[0.18em]">
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={busy || pipelinePaused}
+            onClick={emergencyStop}
+            className="uppercase tracking-[0.18em]"
+          >
             Emergency Stop
           </Button>
           <Button size="sm" disabled={busy} onClick={togglePipeline} className="uppercase tracking-[0.18em]">
@@ -432,7 +458,7 @@ export default function SettingsPage() {
               description="Current access token expiration"
               control={
                 <span className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {tiktokData?.expires_at ? new Date(tiktokData.expires_at).toLocaleString() : "Unavailable"}
+                  {formatDateTime(tiktokData?.expires_at)}
                 </span>
               }
             />

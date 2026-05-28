@@ -5,12 +5,14 @@ import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { apiFetch, buildMediaUrl } from "@/lib/api";
+import { formatDateTime, formatDuration } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,10 @@ function describeSong(song) {
   return `${song.artist || ""} ${song.title || ""} ${song.rights_status || ""}`.toLowerCase();
 }
 
+function optionLabel(value) {
+  return value.replaceAll("_", " ");
+}
+
 export default function SongsPage() {
   const clipResource = useResource("/clips");
   const songResource = useResource("/songs");
@@ -40,6 +46,8 @@ export default function SongsPage() {
   const [queryString, setQueryString] = useState("");
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query.trim().toLowerCase());
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -52,6 +60,11 @@ export default function SongsPage() {
 
   const params = new URLSearchParams(queryString.startsWith("?") ? queryString.slice(1) : queryString);
   const view = params.get("view") === "songs" ? "songs" : "clips";
+
+  useEffect(() => {
+    setStatusFilter("all");
+    setTypeFilter("all");
+  }, [view]);
 
   function setView(nextView) {
     const nextParams = new URLSearchParams(params.toString());
@@ -72,21 +85,48 @@ export default function SongsPage() {
     }
   }
 
+  async function emergencyStop() {
+    setBusy(true);
+    try {
+      await apiFetch("/pipeline/pause", { method: "POST" });
+      await pipelineResource.reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const filteredClips = useMemo(() => {
     const clips = clipResource.data?.clips || [];
-    if (!deferredQuery) {
-      return clips;
-    }
-    return clips.filter((clip) => describeClip(clip).includes(deferredQuery));
-  }, [clipResource.data?.clips, deferredQuery]);
+    return clips.filter((clip) => {
+      const matchesQuery = !deferredQuery || describeClip(clip).includes(deferredQuery);
+      const matchesStatus = statusFilter === "all" || clip.status === statusFilter;
+      const clipType = clip.review_required ? "review" : "auto";
+      const matchesType = typeFilter === "all" || clipType === typeFilter;
+      return matchesQuery && matchesStatus && matchesType;
+    });
+  }, [clipResource.data?.clips, deferredQuery, statusFilter, typeFilter]);
 
   const filteredSongs = useMemo(() => {
     const songs = songResource.data?.songs || [];
-    if (!deferredQuery) {
-      return songs;
+    return songs.filter((song) => {
+      const matchesQuery = !deferredQuery || describeSong(song).includes(deferredQuery);
+      const matchesStatus = statusFilter === "all" || song.status === statusFilter;
+      const matchesType = typeFilter === "all" || song.source_type === typeFilter;
+      return matchesQuery && matchesStatus && matchesType;
+    });
+  }, [songResource.data?.songs, deferredQuery, statusFilter, typeFilter]);
+
+  const statusOptions = useMemo(() => {
+    const items = view === "songs" ? songResource.data?.songs || [] : clipResource.data?.clips || [];
+    return [...new Set(items.map((item) => item.status).filter(Boolean))].sort();
+  }, [clipResource.data?.clips, songResource.data?.songs, view]);
+
+  const typeOptions = useMemo(() => {
+    if (view === "songs") {
+      return [...new Set((songResource.data?.songs || []).map((song) => song.source_type).filter(Boolean))].sort();
     }
-    return songs.filter((song) => describeSong(song).includes(deferredQuery));
-  }, [songResource.data?.songs, deferredQuery]);
+    return ["auto", "review"];
+  }, [clipResource.data?.clips, songResource.data?.songs, view]);
 
   return (
     <AdminShell
@@ -97,7 +137,13 @@ export default function SongsPage() {
       }}
       actions={
         <>
-          <Button variant="destructive" size="sm" disabled className="uppercase tracking-[0.18em]">
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={busy || pipelineResource.data?.pipeline?.paused}
+            onClick={emergencyStop}
+            className="uppercase tracking-[0.18em]"
+          >
             Emergency Stop
           </Button>
           <Button
@@ -124,13 +170,46 @@ export default function SongsPage() {
             </TabsList>
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em]">
-                Status
-              </Button>
-              <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em]">
-                Type
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => setQuery("")} className="uppercase tracking-[0.18em]">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-8 min-w-36 border-border bg-background uppercase tracking-[0.18em]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">all status</SelectItem>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {optionLabel(status)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="h-8 min-w-32 border-border bg-background uppercase tracking-[0.18em]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">all types</SelectItem>
+                    {typeOptions.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {optionLabel(type)}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setQuery("");
+                  setStatusFilter("all");
+                  setTypeFilter("all");
+                }}
+                className="uppercase tracking-[0.18em]"
+              >
                 Reset
               </Button>
             </div>
@@ -168,7 +247,7 @@ export default function SongsPage() {
                       <div className="min-w-0">
                         <p className="truncate text-lg font-semibold tracking-tight">{clip.caption || clip.id}</p>
                         <p className="mt-2 text-sm text-muted-foreground">
-                          {clip.duration_seconds ? `0${Math.floor(clip.duration_seconds / 60)}:${String(clip.duration_seconds % 60).padStart(2, "0")}` : "00:00"} | {new Date(clip.updated_at).toLocaleString()}
+                          {formatDuration(clip.duration_seconds)} | {formatDateTime(clip.updated_at)}
                         </p>
                       </div>
                       <Badge variant={clipBadge(clip.status)} className="uppercase tracking-[0.18em]">

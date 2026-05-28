@@ -32,5 +32,4 @@ package-dir = {"" = "src"}
 where = ["src"]
 
 [tool.pytest.ini_options]
-addopts = "--basetemp=./.tmp/pytest"
 cache_dir = "./.tmp/pytest-cache"

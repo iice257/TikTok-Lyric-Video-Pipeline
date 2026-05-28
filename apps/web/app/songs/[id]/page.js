@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { buildMediaUrl } from "@/lib/api";
+import { formatDuration } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -85,7 +86,7 @@ export default function SongDetailPage({ params }) {
                 <div key={segment.id} className="rounded-md border border-border bg-background px-4 py-3">
                   <p className="text-sm font-medium">{segment.caption_seed}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {segment.start_second}s - {segment.end_second}s | score {segment.score}
+                    {formatDuration(segment.start_second)} - {formatDuration(segment.end_second)} | score {segment.score}
                   </p>
                 </div>
               ))}

@@ -384,19 +384,37 @@ def resolve_managed_path(settings: PlatformSettings, raw_path: str | None) -> Pa
     return candidate
 
 
-def persist_upload_file(file: UploadFile, target: Path) -> dict[str, object]:
+def persist_upload_file(
+    file: UploadFile,
+    target: Path,
+    *,
+    max_bytes: int | None = None,
+    label: str = "file",
+) -> dict[str, object]:
     target.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
     total_bytes = 0
     file.file.seek(0)
-    with target.open("wb") as handle:
-        while True:
-            chunk = file.file.read(1024 * 1024)
-            if not chunk:
-                break
-            digest.update(chunk)
-            total_bytes += len(chunk)
-            handle.write(chunk)
+    try:
+        with target.open("wb") as handle:
+            while True:
+                chunk = file.file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_bytes += len(chunk)
+                if max_bytes is not None and total_bytes > max_bytes:
+                    raise HTTPException(
+                        status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+                        detail=f"{label.capitalize()} upload exceeds the configured size limit.",
+                    )
+                digest.update(chunk)
+                handle.write(chunk)
+    except HTTPException:
+        try:
+            target.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
     file.file.seek(0)
     return {"sha256": digest.hexdigest(), "size_bytes": total_bytes}
 
@@ -522,6 +540,8 @@ def serialize_alert(alert: Alert) -> dict[str, object]:
 
 
 def serialize_worker(worker: WorkerHeartbeat) -> dict[str, object]:
+    last_seen_at = ensure_utc(worker.last_seen_at)
+    seconds_since_seen = int((utcnow() - last_seen_at).total_seconds()) if last_seen_at else None
     return {
         "id": worker.id,
         "worker_name": worker.worker_name,
@@ -530,6 +550,8 @@ def serialize_worker(worker: WorkerHeartbeat) -> dict[str, object]:
         "current_job_id": worker.current_job_id,
         "metadata": worker.metadata_json,
         "last_seen_at": worker.last_seen_at.isoformat(),
+        "seconds_since_seen": seconds_since_seen,
+        "is_stale": seconds_since_seen is not None and seconds_since_seen > 180,
     }
 
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { apiFetch, buildMediaUrl } from "@/lib/api";
+import { formatDateTime, formatRelativeAge } from "@/lib/format";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
@@ -39,11 +40,25 @@ function describeCountdown(nextPublishAt) {
   return `Next post: ${days}d ${hours}h ${minutes}m`;
 }
 
+function describeWorkers(workers = []) {
+  if (!workers.length) {
+    return "IDLE";
+  }
+  const freshest = workers.reduce((current, worker) => {
+    if (!current) return worker;
+    return new Date(worker.last_seen_at) > new Date(current.last_seen_at) ? worker : current;
+  }, null);
+  const liveCount = workers.filter((worker) => !worker.is_stale).length;
+  const age = freshest ? formatRelativeAge(freshest.last_seen_at) : "unknown";
+  return liveCount ? `ALIVE (${age})` : `STALE (${age})`;
+}
+
 export default function OverviewPage() {
   const { data, loading, error, reload } = useResource("/dashboard/summary");
   const [busy, setBusy] = useState(false);
   const [busyAlertId, setBusyAlertId] = useState("");
   const [busyUploadId, setBusyUploadId] = useState("");
+  const [openOnly, setOpenOnly] = useState(false);
 
   const nextPublishLabel = useMemo(
     () => describeCountdown(data?.next_publish_at),
@@ -54,6 +69,16 @@ export default function OverviewPage() {
     setBusy(true);
     try {
       await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
+      await reload(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function emergencyStop() {
+    setBusy(true);
+    try {
+      await apiFetch("/pipeline/pause", { method: "POST" });
       await reload(false);
     } finally {
       setBusy(false);
@@ -83,13 +108,18 @@ export default function OverviewPage() {
     }
   }
 
+  const visibleAlerts = useMemo(() => {
+    const alerts = data?.recent_alerts || [];
+    return openOnly ? alerts.filter((alert) => alert.status !== "acknowledged") : alerts;
+  }, [data?.recent_alerts, openOnly]);
+
   return (
     <AdminShell
       title="Live Event Stream"
       subtitle="Monitoring all pipeline activities and required actions"
       status={{
         state: data?.pipeline?.paused ? "PAUSED" : "RUNNING",
-        worker: data?.workers?.length ? "ALIVE (2s)" : "IDLE",
+        worker: describeWorkers(data?.workers),
         queue: `${data?.counts?.upload_backlog ?? 0} Jobs`,
       }}
       actions={
@@ -97,7 +127,13 @@ export default function OverviewPage() {
           <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em] text-destructive">
             {nextPublishLabel}
           </Button>
-          <Button variant="destructive" size="sm" disabled className="uppercase tracking-[0.18em]">
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={busy || data?.pipeline?.paused}
+            onClick={emergencyStop}
+            className="uppercase tracking-[0.18em]"
+          >
             Emergency Stop
           </Button>
           <Button
@@ -112,10 +148,21 @@ export default function OverviewPage() {
       }
     >
       <div className="flex items-center justify-end gap-2">
-        <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em] text-muted-foreground">
-          Filter
+        <Button
+          variant={openOnly ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setOpenOnly((current) => !current)}
+          className="uppercase tracking-[0.18em]"
+        >
+          Open Only
         </Button>
-        <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em] text-muted-foreground">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!openOnly}
+          onClick={() => setOpenOnly(false)}
+          className="uppercase tracking-[0.18em] text-muted-foreground"
+        >
           Clear
         </Button>
       </div>
@@ -150,7 +197,7 @@ export default function OverviewPage() {
                     {job.clip_caption || job.id}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Scheduled {job.scheduled_at ? new Date(job.scheduled_at).toLocaleString() : "unscheduled"} | {job.status}
+                    Scheduled {formatDateTime(job.scheduled_at, "unscheduled")} | {job.status}
                   </p>
                 </div>
               </div>
@@ -184,7 +231,7 @@ export default function OverviewPage() {
 
         {data?.recent_alerts?.length ? (
           <div className="space-y-4">
-            {data.recent_alerts.map((alert) => (
+            {visibleAlerts.map((alert) => (
               <Card key={alert.id} className="border-border bg-card/80">
                 <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
                   <div className="min-w-0 flex-1 space-y-2">
@@ -193,7 +240,7 @@ export default function OverviewPage() {
                         {alert.kind.replaceAll("_", " ")}
                       </Badge>
                       <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                        {new Date(alert.created_at).toLocaleTimeString()} | {alert.source_type || "system"}
+                        {formatDateTime(alert.created_at)} | {alert.source_type || "system"}
                       </span>
                     </div>
                     <p className="text-lg font-semibold tracking-tight">{alert.message}</p>
@@ -223,6 +270,13 @@ export default function OverviewPage() {
                 </CardContent>
               </Card>
             ))}
+            {!visibleAlerts.length ? (
+              <Card className="border-border bg-card">
+                <CardContent className="p-5 text-sm text-muted-foreground">
+                  No open alerts in the recent event stream.
+                </CardContent>
+              </Card>
+            ) : null}
           </div>
         ) : (
           <Card className="border-border bg-card">
