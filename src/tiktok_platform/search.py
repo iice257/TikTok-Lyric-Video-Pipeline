@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import Text, cast, func, or_, select
 from sqlalchemy.orm import Session
 
-from .models import Clip, Song
-from .services import serialize_clip, serialize_song
+from .models import Clip, LyricsArtifact, Song
+from .services import serialize_clip, serialize_lyrics_artifact, serialize_song
 from .settings import PlatformSettings
 
 
@@ -48,11 +48,28 @@ def _search_fallback(db: Session, query: str, limit: int) -> dict[str, object]:
         .order_by(Clip.updated_at.desc())
         .limit(limit)
     ).all()
+    lyrics_artifacts = db.scalars(
+        select(LyricsArtifact)
+        .join(Song, Song.id == LyricsArtifact.song_id)
+        .where(
+            or_(
+                LyricsArtifact.source_name.ilike(pattern),
+                LyricsArtifact.source_format.ilike(pattern),
+                LyricsArtifact.status.ilike(pattern),
+                cast(LyricsArtifact.lines_json, Text).ilike(pattern),
+                Song.title.ilike(pattern),
+                Song.artist.ilike(pattern),
+            )
+        )
+        .order_by(LyricsArtifact.updated_at.desc())
+        .limit(limit)
+    ).all()
     return {
         "query": query,
         "strategy": "substring",
         "songs": [serialize_song(song) for song in songs],
         "clips": [serialize_clip(clip) for clip in clips],
+        "lyrics_artifacts": [serialize_lyrics_artifact(artifact) for artifact in lyrics_artifacts],
     }
 
 
@@ -80,8 +97,21 @@ def _search_postgres(db: Session, query: str, limit: int) -> dict[str, object]:
             Song.artist,
         ),
     )
+    lyrics_document = func.to_tsvector(
+        "simple",
+        func.concat_ws(
+            " ",
+            LyricsArtifact.source_name,
+            LyricsArtifact.source_format,
+            LyricsArtifact.status,
+            cast(LyricsArtifact.lines_json, Text),
+            Song.title,
+            Song.artist,
+        ),
+    )
     song_rank = func.ts_rank(song_document, ts_query).label("rank")
     clip_rank = func.ts_rank(clip_document, ts_query).label("rank")
+    lyrics_rank = func.ts_rank(lyrics_document, ts_query).label("rank")
     song_rows = db.execute(
         select(Song, song_rank)
         .where(song_document.op("@@")(ts_query))
@@ -95,6 +125,13 @@ def _search_postgres(db: Session, query: str, limit: int) -> dict[str, object]:
         .order_by(clip_rank.desc(), Clip.updated_at.desc())
         .limit(limit)
     ).all()
+    lyrics_rows = db.execute(
+        select(LyricsArtifact, lyrics_rank)
+        .join(Song, Song.id == LyricsArtifact.song_id)
+        .where(lyrics_document.op("@@")(ts_query))
+        .order_by(lyrics_rank.desc(), LyricsArtifact.updated_at.desc())
+        .limit(limit)
+    ).all()
     return {
         "query": query,
         "strategy": "postgres_full_text",
@@ -105,5 +142,9 @@ def _search_postgres(db: Session, query: str, limit: int) -> dict[str, object]:
         "clips": [
             {**serialize_clip(clip), "search_rank": float(rank or 0.0)}
             for clip, rank in clip_rows
+        ],
+        "lyrics_artifacts": [
+            {**serialize_lyrics_artifact(artifact), "search_rank": float(rank or 0.0)}
+            for artifact, rank in lyrics_rows
         ],
     }

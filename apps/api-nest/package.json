@@ -2,6 +2,7 @@
   "name": "sss-nest-api",
   "private": true,
   "version": "0.1.0",
+  "author": "Kingsley Afolabi Aremu",
   "description": "Nest.js companion API over the SSS platform Postgres schema",
   "scripts": {
     "dev": "nest start --watch",

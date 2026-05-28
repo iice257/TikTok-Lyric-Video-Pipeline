@@ -17,6 +17,7 @@ from .models import (
     Alert,
     AppSetting,
     Clip,
+    LyricsArtifact,
     OAuthToken,
     OperatorAction,
     RenderJob,
@@ -476,6 +477,23 @@ def serialize_clip(clip: Clip) -> dict[str, object]:
         "last_error": clip.last_error,
         "created_at": clip.created_at.isoformat(),
         "updated_at": clip.updated_at.isoformat(),
+    }
+
+
+def serialize_lyrics_artifact(artifact: LyricsArtifact) -> dict[str, object]:
+    return {
+        "id": artifact.id,
+        "song_id": artifact.song_id,
+        "source_format": artifact.source_format,
+        "source_name": artifact.source_name,
+        "source_ref": artifact.source_ref,
+        "status": artifact.status,
+        "was_aligned": artifact.was_aligned,
+        "confidence": artifact.confidence,
+        "line_count": artifact.line_count,
+        "lines": artifact.lines_json,
+        "created_at": artifact.created_at.isoformat(),
+        "updated_at": artifact.updated_at.isoformat(),
     }
 
 

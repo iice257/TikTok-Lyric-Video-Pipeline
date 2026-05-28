@@ -32,6 +32,17 @@ def _int_env(name: str, default: int) -> int:
         return default
 
 
+def _is_vercel_runtime() -> bool:
+    return bool(os.getenv("VERCEL") or os.getenv("VERCEL_URL"))
+
+
+def _default_public_url(fallback: str) -> str:
+    vercel_url = os.getenv("VERCEL_URL")
+    if vercel_url:
+        return f"https://{vercel_url}"
+    return fallback
+
+
 @dataclass(slots=True)
 class PlatformSettings:
     app_env: str
@@ -69,15 +80,19 @@ class PlatformSettings:
 @lru_cache(maxsize=1)
 def get_settings() -> PlatformSettings:
     repo_root = Path(__file__).resolve().parents[2]
-    default_db_path = repo_root / "output" / "platform.db"
+    is_vercel = _is_vercel_runtime()
+    default_db_path = Path(os.getenv("TMPDIR", "/tmp")) / "sss-platform.db" if is_vercel else repo_root / "output" / "platform.db"
+    default_media_root = Path(os.getenv("TMPDIR", "/tmp")) / "sss-storage" if is_vercel else repo_root / "storage"
+    default_app_base_url = _default_public_url("http://localhost:8000")
+    default_frontend_base_url = _default_public_url("http://localhost:3000")
     return PlatformSettings(
-        app_env=os.getenv("APP_ENV", "dev"),
-        app_base_url=os.getenv("APP_BASE_URL", "http://localhost:8000"),
-        frontend_base_url=os.getenv("FRONTEND_BASE_URL", "http://localhost:3000"),
+        app_env=os.getenv("APP_ENV", "preview" if is_vercel else "dev"),
+        app_base_url=os.getenv("APP_BASE_URL", default_app_base_url),
+        frontend_base_url=os.getenv("FRONTEND_BASE_URL", default_frontend_base_url),
         database_url=os.getenv("DATABASE_URL", f"sqlite:///{default_db_path.as_posix()}"),
         session_secret=os.getenv("SESSION_SECRET", "change-me-session-secret"),
         token_encryption_key=os.getenv("TOKEN_ENCRYPTION_KEY", ""),
-        media_root=Path(os.getenv("MEDIA_ROOT", str(repo_root / "storage"))).resolve(),
+        media_root=Path(os.getenv("MEDIA_ROOT", str(default_media_root))).resolve(),
         admin_email=os.getenv("ADMIN_EMAIL", "admin@example.com"),
         admin_password_hash=os.getenv("ADMIN_PASSWORD_HASH", ""),
         tiktok_client_key=os.getenv("TIKTOK_CLIENT_KEY", ""),
@@ -94,7 +109,7 @@ def get_settings() -> PlatformSettings:
         pipeline_config_path=Path(
             os.getenv("PIPELINE_CONFIG_PATH", str(repo_root / "config" / "pipeline.example.json"))
         ).resolve(),
-        cookie_secure=_bool_env("COOKIE_SECURE", False),
+        cookie_secure=_bool_env("COOKIE_SECURE", is_vercel),
         cookie_samesite=os.getenv("COOKIE_SAME_SITE", "lax").strip().lower(),
         max_audio_upload_bytes=_int_env("MAX_AUDIO_UPLOAD_MB", 250) * 1024 * 1024,
         max_cover_upload_bytes=_int_env("MAX_COVER_UPLOAD_MB", 15) * 1024 * 1024,

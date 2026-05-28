@@ -11,7 +11,7 @@ export class SearchController {
     const cleaned = q.trim();
     const boundedLimit = Math.min(Math.max(Number(limit) || 20, 1), 50);
     if (cleaned.length < 2) {
-      return { query: q, strategy: "postgres_full_text", songs: [], clips: [] };
+      return { query: q, strategy: "postgres_full_text", songs: [], clips: [], lyrics_artifacts: [] };
     }
 
     const songs = await this.db.query(
@@ -46,6 +46,23 @@ export class SearchController {
       [cleaned, boundedLimit],
     );
 
-    return { query: cleaned, strategy: "postgres_full_text", songs, clips };
+    const lyricsArtifacts = await this.db.query(
+      `select lyrics_artifacts.id, lyrics_artifacts.song_id, lyrics_artifacts.source_format,
+              lyrics_artifacts.source_name, lyrics_artifacts.status, lyrics_artifacts.confidence,
+              lyrics_artifacts.line_count, songs.title as song_title, songs.artist as song_artist,
+              ts_rank(
+                to_tsvector('simple', concat_ws(' ', lyrics_artifacts.source_name, lyrics_artifacts.source_format, lyrics_artifacts.status, songs.title, songs.artist)),
+                plainto_tsquery('simple', $1)
+              ) as search_rank
+         from lyrics_artifacts
+         join songs on songs.id = lyrics_artifacts.song_id
+        where to_tsvector('simple', concat_ws(' ', lyrics_artifacts.source_name, lyrics_artifacts.source_format, lyrics_artifacts.status, songs.title, songs.artist))
+              @@ plainto_tsquery('simple', $1)
+        order by search_rank desc, lyrics_artifacts.updated_at desc
+        limit $2`,
+      [cleaned, boundedLimit],
+    );
+
+    return { query: cleaned, strategy: "postgres_full_text", songs, clips, lyrics_artifacts: lyricsArtifacts };
   }
 }

@@ -39,16 +39,21 @@ def create_app() -> FastAPI:
         response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
         return response
 
+    allowed_origins = [settings.frontend_base_url]
+    if settings.app_base_url not in allowed_origins:
+        allowed_origins.append(settings.app_base_url)
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[settings.frontend_base_url],
+        allow_origins=allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(auth.router)
-    app.include_router(dashboard.router)
-    app.include_router(platform.router)
+    for prefix in ("", "/api"):
+        app.include_router(auth.router, prefix=prefix)
+        app.include_router(dashboard.router, prefix=prefix)
+        app.include_router(platform.router, prefix=prefix)
 
     return app
 

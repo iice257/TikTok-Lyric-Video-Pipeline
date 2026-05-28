@@ -9,7 +9,17 @@ Current endpoints:
 - `GET /songs/:id`
 - `GET /clips?limit=50`
 - `GET /clips/:id`
+- `GET /jobs?limit=50`
+- `GET /jobs/:id`
+- `GET /alerts?limit=50`
+- `GET /alerts/:id`
+- `GET /workers`
+- `GET /workers/:id`
+- `GET /lyrics-artifacts?limit=50`
+- `GET /lyrics-artifacts/:id`
 - `GET /search?q=midnight&limit=20`
+
+Search is intentionally Postgres full-text here. It covers songs, clips, and lyrics artifact metadata; deeper lyric-line search still belongs in the main platform search layer once line-level indexing is added to the schema.
 
 Security:
 
@@ -24,6 +34,8 @@ copy .env.example .env
 npm install
 npm run dev
 ```
+
+The repo CI installs this package and runs `npm run build`. A lockfile should be generated with `npm install --package-lock-only` once npm is available locally.
 
 This package expects a Postgres database with the SSS schema. Run the Python Alembic migrations first:
 

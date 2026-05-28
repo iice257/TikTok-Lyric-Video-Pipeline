@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Automated TikTok lyric video generation pipeline"
 readme = "README.md"
 requires-python = ">=3.11"
+authors = [{name = "Kingsley Afolabi Aremu"}]
 dependencies = [
   "alembic>=1.13,<2.0",
   "cryptography>=42,<46",

@@ -61,12 +61,45 @@ def test_health_and_login(tmp_path, monkeypatch) -> None:
     assert health.status_code == 200
     assert health.json()["status"] == "ok"
     assert health.headers["x-content-type-options"] == "nosniff"
+    prefixed_health = client.get("/api/health")
+    assert prefixed_health.status_code == 200
 
     login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
     assert login.status_code == 200
     body = login.json()
     assert body["user"]["email"] == "admin@example.com"
     assert "csrf_token" in body
+
+    prefixed_login = client.post("/api/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    assert prefixed_login.status_code == 200
+    prefixed_summary = client.get("/api/dashboard/summary")
+    assert prefixed_summary.status_code == 200
+    assert "counts" in prefixed_summary.json()
+
+
+def test_vercel_preview_defaults_use_tmp_storage(monkeypatch) -> None:
+    import tiktok_platform.settings as settings_module
+
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.delenv("APP_BASE_URL", raising=False)
+    monkeypatch.delenv("FRONTEND_BASE_URL", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("MEDIA_ROOT", raising=False)
+    monkeypatch.delenv("COOKIE_SECURE", raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("VERCEL_URL", "sss-preview.vercel.app")
+    settings_module.get_settings.cache_clear()
+
+    settings = settings_module.get_settings()
+
+    assert settings.app_env == "preview"
+    assert settings.app_base_url == "https://sss-preview.vercel.app"
+    assert settings.frontend_base_url == "https://sss-preview.vercel.app"
+    assert settings.database_url.startswith("sqlite:////tmp/sss-platform.db")
+    assert str(settings.media_root).endswith("sss-storage")
+    assert settings.cookie_secure is True
+
+    settings_module.get_settings.cache_clear()
 
 
 def test_manual_intake_dedupes_by_audio_hash(tmp_path, monkeypatch) -> None:
@@ -167,6 +200,44 @@ def test_search_returns_song_matches(tmp_path, monkeypatch) -> None:
     body = response.json()
     assert body["strategy"] == "substring"
     assert [song["title"] for song in body["songs"]] == ["Midnight Signal"]
+
+
+def test_search_returns_lyrics_artifact_matches(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    created = client.post(
+        "/manual-intake",
+        data={"title": "Late Static", "artist": "Mira Vale", "environment": "prod", "rights_status": "licensed"},
+        files={"audio": ("late-static.mp3", io.BytesIO(b"audio"), "audio/mpeg")},
+        headers={"x-csrf-token": csrf},
+    )
+    song_id = created.json()["song"]["id"]
+
+    import tiktok_platform.db as db_module
+    import tiktok_platform.models as models_module
+
+    with db_module.SessionLocal() as db:
+        db.add(
+            models_module.LyricsArtifact(
+                song_id=song_id,
+                source_format="lrc",
+                source_name="manual-sidecar",
+                status="ready",
+                was_aligned=True,
+                confidence=0.91,
+                line_count=1,
+                lines_json=[{"start": 12.0, "text": "silver echo in the hallway"}],
+            )
+        )
+        db.commit()
+
+    response = client.get("/search", params={"q": "silver", "limit": 5})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["lyrics_artifacts"][0]["song_id"] == song_id
 
 
 def test_tiktok_connect_returns_auth_url(tmp_path, monkeypatch) -> None:

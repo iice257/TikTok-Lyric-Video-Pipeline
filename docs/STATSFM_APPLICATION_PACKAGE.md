@@ -62,16 +62,16 @@ My strongest proof-of-work is SSS, a project I built around turning licensed son
 
 The project includes a REST control plane for songs, clips, render jobs, upload jobs, alerts, workers, search, and TikTok integration; a media worker with leases, retries, heartbeats, and ffmpeg rendering; and a data model that tracks lyrics artifacts, segment scoring, publish eligibility, audit events, and review states. I also documented the honest gaps: the Nest.js layer is read/search only today, Elasticsearch is not implemented, and the worker would need a real queue before I would call it production-scale.
 
-GitHub: <add repo link>
+GitHub: https://github.com/iice257/TikTok-Lyric-Video-Pipeline
 
 I'd be glad to talk through the tradeoffs in the project and how I would keep moving it toward a Nest.js/Postgres/search backend without throwing away the media pipeline work.
 
 Best,
-<your name>
+Kingsley Afolabi Aremu
 
 ## Before Applying
 
-- Replace `<add repo link>` and `<your name>` in the email.
+- Confirm the branch/PR link is the one you want to send before applying.
 - If the repo is public, make sure no real secrets, tokens, private media, or licensed files are committed.
 - Consider recording a short walkthrough of the admin UI and worker flow if the project is easier to understand visually.
 - If you have time for one more technical improvement, expand the Nest.js companion API to cover job/alert read endpoints or add lyric-line search.

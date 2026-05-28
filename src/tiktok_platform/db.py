@@ -74,4 +74,6 @@ def session_scope() -> Generator[Session, None, None]:
 def init_db() -> None:
     from . import models  # noqa: F401
 
+    if get_settings().is_production:
+        return
     Base.metadata.create_all(bind=engine)

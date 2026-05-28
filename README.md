@@ -210,6 +210,8 @@ Important files:
 
 Production-facing API containers should set `API_HOST=0.0.0.0`; local development keeps the safer loopback default. Manual intake upload limits are configurable with `MAX_AUDIO_UPLOAD_MB`, `MAX_COVER_UPLOAD_MB`, and `MAX_LYRICS_UPLOAD_MB`.
 
+Production should run `alembic upgrade head` before starting the API or worker. `Base.metadata.create_all` is only used for local and preview environments so the production schema does not drift silently.
+
 ## Deployment Shape
 
 The intended split is:
@@ -221,7 +223,7 @@ The intended split is:
 
 The Render blueprint combines API and worker in one Docker service through `src/tiktok_platform/render_entrypoint.py`. That is convenient for a small deployment, but separating API and worker services would be cleaner once traffic or render volume grows.
 
-The Vercel config is for a UI/API preview, not the whole media system: Vercel can build the Next.js UI and route `/api/*` to FastAPI through Services, but the long-running worker and generated media storage still belong on an always-on backend host or object storage-backed design.
+The Vercel config is for a UI/API preview, not the whole media system: Vercel can build the Next.js UI and route `/api/*` to FastAPI through Services, but the long-running worker and generated media storage still belong on an always-on backend host or object storage-backed design. When `DATABASE_URL` is not set on Vercel, the API falls back to ephemeral SQLite under `/tmp` so the portfolio preview can be clicked through without committed secrets. A durable deployment should set Postgres and run migrations.
 
 ## Tradeoffs And Remaining Gaps
 

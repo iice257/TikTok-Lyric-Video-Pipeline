@@ -1,11 +1,25 @@
 "use client";
 
-const API_BASE_URL =
+const CONFIGURED_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://localhost:8000";
+  "";
 
-export const getApiBaseUrl = () => API_BASE_URL.replace(/\/$/, "");
+function isLocalHost(hostname) {
+  return ["localhost", "127.0.0.1", "::1"].includes(hostname);
+}
+
+export const getApiBaseUrl = () => {
+  const configured = CONFIGURED_API_BASE_URL.replace(/\/$/, "");
+  if (typeof window === "undefined") {
+    return configured || "http://localhost:8000";
+  }
+  const localBrowser = isLocalHost(window.location.hostname);
+  if (configured && (!configured.includes("localhost") || localBrowser)) {
+    return configured;
+  }
+  return localBrowser ? "http://localhost:8000" : "/api";
+};
 
 export const buildMediaUrl = (path) =>
   path ? `${getApiBaseUrl()}/media?path=${encodeURIComponent(path)}` : "";
