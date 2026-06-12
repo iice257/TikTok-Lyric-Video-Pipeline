@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 import { buildMediaUrl } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
@@ -10,8 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export default function SongDetailPage({ params }) {
-  const { data, loading, error } = useResource(`/songs/${params.id}`);
+export default function SongDetailPage() {
+  const params = useParams();
+  const songId = typeof params?.id === "string" ? params.id : "";
+  const { data, loading, error } = useResource(
+    songId ? `/songs/${encodeURIComponent(songId)}` : "",
+    null,
+    { enabled: Boolean(songId) }
+  );
 
   return (
     <AdminShell

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from tiktok_platform.db import get_db, utcnow
+from tiktok_platform.db import ensure_utc, get_db, utcnow
 from tiktok_platform.models import Alert, Clip, RenderJob, Song, UploadJob, WorkerHeartbeat
 from tiktok_platform.services import get_oauth_token, get_setting, serialize_alert, serialize_worker
 from tiktok_platform.settings import PlatformSettings
@@ -124,7 +124,10 @@ def dashboard_health(
 ) -> dict[str, object]:
     workers = db.scalars(select(WorkerHeartbeat).order_by(WorkerHeartbeat.worker_name.asc())).all()
     stale_workers = [
-        worker for worker in workers if (utcnow() - worker.last_seen_at).total_seconds() > 180
+        worker
+        for worker in workers
+        if ensure_utc(worker.last_seen_at)
+        and (utcnow() - ensure_utc(worker.last_seen_at)).total_seconds() > 180
     ]
     return {
         "status": "degraded" if stale_workers else "ok",

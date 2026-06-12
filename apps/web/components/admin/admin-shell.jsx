@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { apiFetch, clearCsrfToken } from "@/lib/api";
+import { apiFetch, clearCsrfToken, setCsrfToken } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -129,7 +129,7 @@ function NavButton({ active, children, icon: Icon, disabled, href, onClick }) {
 
   if (href) {
     return (
-      <Link href={href} className={classes}>
+      <Link href={href} className={classes} aria-current={active ? "page" : undefined}>
         <Icon />
         <span>{children}</span>
       </Link>
@@ -176,6 +176,7 @@ function MobileEntry({ entry, active, onIntakeOpen }) {
     return (
       <Link
         href={entry.href}
+        aria-current={active ? "page" : undefined}
         className={cn(
           "inline-flex items-center gap-2 border-b-2 px-1 py-3 text-xs font-medium uppercase tracking-[0.16em]",
           active ? "border-primary text-primary" : "border-transparent text-muted-foreground"
@@ -202,6 +203,7 @@ function MobileEntry({ entry, active, onIntakeOpen }) {
     <button
       type="button"
       onClick={onIntakeOpen}
+      aria-pressed={active}
       className={cn(
         "inline-flex items-center gap-2 border-b-2 px-1 py-3 text-xs font-medium uppercase tracking-[0.16em]",
         active ? "border-primary text-primary" : "border-transparent text-muted-foreground"
@@ -237,6 +239,9 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
       .then((payload) => {
         if (!cancelled) {
           setSession(payload);
+          if (payload?.session?.csrf_token) {
+            setCsrfToken(payload.session.csrf_token);
+          }
         }
       })
       .catch(() => {
@@ -275,6 +280,8 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
     setShellBusy(true);
     try {
       await apiFetch("/auth/logout", { method: "POST" });
+    } catch {
+      // Local session state is still cleared so a failed logout request cannot trap the operator.
     } finally {
       clearCsrfToken();
       router.push("/login");
@@ -430,7 +437,7 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
             </div>
           </header>
 
-          <main className="terminal-scroll flex-1 overflow-y-auto px-5 py-6 lg:px-8">
+          <main id="main-content" className="terminal-scroll flex-1 overflow-y-auto px-5 py-6 lg:px-8">
             <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">{children}</div>
           </main>
         </div>

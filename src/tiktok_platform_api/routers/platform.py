@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import html
 from pathlib import Path
 import re
+import secrets
 import shutil
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse, HTMLResponse
-from pydantic import BaseModel, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -58,9 +60,31 @@ router = APIRouter(tags=["platform"])
 
 
 class ClipPatchRequest(BaseModel):
-    caption: str | None = None
-    hook_category: str | None = None
+    caption: str | None = Field(default=None, max_length=2200)
+    hook_category: str | None = Field(default=None, max_length=128)
     scheduled_at: datetime | None = None
+
+    @field_validator("caption")
+    @classmethod
+    def validate_caption(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("caption cannot be empty")
+        return normalized
+
+    @field_validator("hook_category")
+    @classmethod
+    def normalize_hook_category(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip() or None
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def normalize_scheduled_at(cls, value: datetime | None) -> datetime | None:
+        return _normalize_datetime(value)
 
 
 class JobActionRequest(BaseModel):
@@ -69,6 +93,11 @@ class JobActionRequest(BaseModel):
 
 class UploadActionRequest(BaseModel):
     scheduled_at: datetime | None = None
+
+    @field_validator("scheduled_at")
+    @classmethod
+    def normalize_scheduled_at(cls, value: datetime | None) -> datetime | None:
+        return _normalize_datetime(value)
 
 
 class SettingsPatchRequest(BaseModel):
@@ -123,6 +152,15 @@ ALLOWED_RIGHTS_STATUSES = {"licensed", "tiktok_cml", "approved_tiktok", "metadat
 ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".wav", ".m4a", ".flac"}
 ALLOWED_COVER_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 ALLOWED_LYRICS_EXTENSIONS = {".lrc", ".srt", ".json", ".txt"}
+OAUTH_STATE_TTL = timedelta(minutes=10)
+
+
+def _normalize_datetime(value: datetime | None) -> datetime | None:
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def _creator_info_cache(db: Session) -> dict[str, object]:
@@ -177,6 +215,37 @@ def _build_tiktok_client(settings: PlatformSettings) -> TikTokApiClient:
     if not settings.tiktok_client_key or not settings.tiktok_client_secret or not settings.tiktok_redirect_uri:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth settings are incomplete.")
     return TikTokApiClient(settings)
+
+
+def _validate_and_consume_oauth_state(db: Session, state: str | None) -> None:
+    expected = get_setting(db, "tiktok_oauth_state", {})
+    expected_value = expected.get("value")
+    requested_at_raw = expected.get("requested_at")
+    try:
+        requested_at = _normalize_datetime(datetime.fromisoformat(str(requested_at_raw)))
+    except (TypeError, ValueError):
+        requested_at = None
+
+    if not expected_value or not requested_at or utcnow() - requested_at > OAUTH_STATE_TTL:
+        set_setting(db, "tiktok_oauth_state", {"value": None, "expired_at": utcnow().isoformat()})
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth state expired.")
+    if not state or not secrets.compare_digest(state, str(expected_value)):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth state did not match.")
+
+    set_setting(db, "tiktok_oauth_state", {"value": None, "consumed_at": utcnow().isoformat()})
+
+
+def _require_upload_job_mutable(job: UploadJob, action: str) -> None:
+    if job.status == "posted":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Posted upload jobs cannot be {action}.",
+        )
+    if job.status == "cancelled":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Cancelled upload jobs must be retried before they can be {action}.",
+        )
 
 
 def _job_payload(job: RenderJob | UploadJob) -> dict[str, object]:
@@ -299,13 +368,14 @@ def tiktok_callback(
     settings: PlatformSettings = Depends(get_platform_settings),
 ) -> HTMLResponse:
     if error:
+        safe_error = html.escape(error_description or error)
         return HTMLResponse(
-            f"<html><body><h1>TikTok connection failed</h1><p>{error_description or error}</p></body></html>",
+            f"<html><body><h1>TikTok connection failed</h1><p>{safe_error}</p></body></html>",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-    expected = get_setting(db, "tiktok_oauth_state", {})
-    if not code or not state or state != expected.get("value"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth state did not match.")
+    if not code:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="TikTok OAuth code is missing.")
+    _validate_and_consume_oauth_state(db, state)
     client = _build_tiktok_client(settings)
     try:
         bundle = client.exchange_code(code)
@@ -320,13 +390,20 @@ def tiktok_callback(
         )
     except TikTokApiError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    creator_info = client.query_creator_info(bundle.access_token)
-    set_setting(
-        db,
-        "tiktok_creator_info_cache",
-        {"data": creator_info, "fetched_at": utcnow().isoformat(), "last_error": None},
-    )
-    set_setting(db, "tiktok_oauth_state", {"state": None, "updated_at": utcnow().isoformat()})
+    try:
+        creator_info = client.query_creator_info(bundle.access_token)
+        creator_cache = {
+            "data": creator_info,
+            "fetched_at": utcnow().isoformat(),
+            "last_error": None,
+        }
+    except TikTokApiError as exc:
+        creator_cache = {
+            "data": None,
+            "fetched_at": utcnow().isoformat(),
+            "last_error": str(exc),
+        }
+    set_setting(db, "tiktok_creator_info_cache", creator_cache)
     return HTMLResponse(
         """
         <html>
@@ -490,6 +567,7 @@ def manual_intake(
 
     media_root = ensure_media_root(settings) / "manual-intake" / environment
     song_key = uuid4().hex
+    song_dir = media_root / song_key
     stem = f"{_safe_path_component(artist, fallback='Unknown Artist')} - {_safe_path_component(title, fallback='Untitled')}"
     audio_ext = _validated_upload_extension(
         audio,
@@ -497,48 +575,59 @@ def manual_intake(
         fallback=".mp3",
         label="audio",
     )
-    audio_path = media_root / song_key / f"{stem}{audio_ext}"
-    audio_meta = persist_upload_file(
-        audio,
-        audio_path,
-        max_bytes=settings.max_audio_upload_bytes,
-        label="audio",
-    )
-    cover_path = None
-    lyrics_path = None
-    if cover is not None:
-        cover_ext = _validated_upload_extension(
+    cover_ext = (
+        _validated_upload_extension(
             cover,
             allowed_extensions=ALLOWED_COVER_EXTENSIONS,
             fallback=".jpg",
             label="cover",
         )
-        cover_path = media_root / song_key / f"{stem}{cover_ext}"
-        persist_upload_file(
-            cover,
-            cover_path,
-            max_bytes=settings.max_cover_upload_bytes,
-            label="cover",
-        )
-    if lyrics is not None:
-        lyrics_ext = _validated_upload_extension(
+        if cover is not None
+        else None
+    )
+    lyrics_ext = (
+        _validated_upload_extension(
             lyrics,
             allowed_extensions=ALLOWED_LYRICS_EXTENSIONS,
             fallback=".lrc",
             label="lyrics",
         )
-        lyrics_path = media_root / song_key / f"{stem}{lyrics_ext}"
-        persist_upload_file(
-            lyrics,
-            lyrics_path,
-            max_bytes=settings.max_lyrics_upload_bytes,
-            label="lyrics",
+        if lyrics is not None
+        else None
+    )
+
+    audio_path = song_dir / f"{stem}{audio_ext}"
+    cover_path = song_dir / f"{stem}{cover_ext}" if cover_ext else None
+    lyrics_path = song_dir / f"{stem}{lyrics_ext}" if lyrics_ext else None
+    try:
+        audio_meta = persist_upload_file(
+            audio,
+            audio_path,
+            max_bytes=settings.max_audio_upload_bytes,
+            label="audio",
         )
+        if cover is not None and cover_path is not None:
+            persist_upload_file(
+                cover,
+                cover_path,
+                max_bytes=settings.max_cover_upload_bytes,
+                label="cover",
+            )
+        if lyrics is not None and lyrics_path is not None:
+            persist_upload_file(
+                lyrics,
+                lyrics_path,
+                max_bytes=settings.max_lyrics_upload_bytes,
+                label="lyrics",
+            )
+    except Exception:
+        shutil.rmtree(song_dir, ignore_errors=True)
+        raise
 
     ingest_fingerprint = f"sha256:{audio_meta['sha256']}:{environment}"
     duplicate = db.scalar(select(Song).where(Song.ingest_fingerprint == ingest_fingerprint))
     if duplicate:
-        shutil.rmtree(media_root / song_key, ignore_errors=True)
+        shutil.rmtree(song_dir, ignore_errors=True)
         return {"song": serialize_song(duplicate), "duplicate": True}
 
     publish_eligible = environment == "prod" and rights_status in {"licensed", "tiktok_cml", "approved_tiktok"}
@@ -565,38 +654,43 @@ def manual_intake(
             "audio_content_type": audio.content_type,
         },
     )
-    db.add(song)
-    db.flush()
-    db.add(
-        SongInput(
-            song_id=song.id,
-            source_type="manual",
-            provider_name="manual-intake",
-            file_path=str(audio_path),
-            raw_payload_json={"cover_path": str(cover_path) if cover_path else None, "lyrics_path": str(lyrics_path) if lyrics_path else None},
+    try:
+        db.add(song)
+        db.flush()
+        db.add(
+            SongInput(
+                song_id=song.id,
+                source_type="manual",
+                provider_name="manual-intake",
+                file_path=str(audio_path),
+                raw_payload_json={"cover_path": str(cover_path) if cover_path else None, "lyrics_path": str(lyrics_path) if lyrics_path else None},
+            )
         )
-    )
-    record_state_event(
-        db,
-        subject_type="song",
-        subject_id=song.id,
-        event_type="ingested",
-        from_state=None,
-        to_state=song.status,
-        payload={"environment": environment, "rights_status": rights_status},
-        actor_user_id=user.id,
-    )
-    log_operator_action(
-        db,
-        user_id=user.id,
-        action="manual_intake",
-        target_type="song",
-        target_id=song.id,
-        request=request,
-        details={"title": title, "artist": artist, "environment": environment},
-    )
-    db.commit()
-    db.refresh(song)
+        record_state_event(
+            db,
+            subject_type="song",
+            subject_id=song.id,
+            event_type="ingested",
+            from_state=None,
+            to_state=song.status,
+            payload={"environment": environment, "rights_status": rights_status},
+            actor_user_id=user.id,
+        )
+        log_operator_action(
+            db,
+            user_id=user.id,
+            action="manual_intake",
+            target_type="song",
+            target_id=song.id,
+            request=request,
+            details={"title": title, "artist": artist, "environment": environment},
+        )
+        db.commit()
+        db.refresh(song)
+    except Exception:
+        db.rollback()
+        shutil.rmtree(song_dir, ignore_errors=True)
+        raise
     return {"song": serialize_song(song)}
 
 
@@ -831,6 +925,7 @@ def approve_upload_job(
     job = db.get(UploadJob, job_id)
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload job not found.")
+    _require_upload_job_mutable(job, "approved")
     job.approved_at = utcnow()
     job.approved_by_id = user.id
     if job.status == "quarantined":
@@ -853,10 +948,11 @@ def reschedule_upload_job(
     job = db.get(UploadJob, job_id)
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload job not found.")
+    _require_upload_job_mutable(job, "rescheduled")
     if payload.scheduled_at is None:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="scheduled_at is required.")
     job.scheduled_at = payload.scheduled_at
-    job.status = "waiting_window"
+    job.status = "waiting_window" if payload.scheduled_at > utcnow() else "queued"
     db.add(job)
     log_operator_action(
         db,
@@ -882,6 +978,7 @@ def force_publish_upload_job(
     job = db.get(UploadJob, job_id)
     if not job:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Upload job not found.")
+    _require_upload_job_mutable(job, "force-published")
     job.scheduled_at = utcnow()
     job.approved_at = utcnow()
     job.approved_by_id = user.id

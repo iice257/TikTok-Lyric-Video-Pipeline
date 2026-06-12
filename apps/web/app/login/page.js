@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiFetch, setCsrfToken } from "@/lib/api";
+import { apiFetch, getSafeRedirectPath, setCsrfToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,7 +27,7 @@ export default function LoginPage() {
       });
       setCsrfToken(payload.csrf_token);
       const next = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : "";
-      router.push(next?.startsWith("/") ? next : "/");
+      router.replace(getSafeRedirectPath(next));
     } catch (err) {
       setError(err.message);
     } finally {
@@ -36,7 +36,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <main id="main-content" className="min-h-screen bg-background text-foreground">
       <div className="flex h-6 items-center gap-4 border-b border-border bg-card px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
         <span className="flex items-center gap-2 text-primary">
           <span className="size-1.5 rounded-full bg-primary" />

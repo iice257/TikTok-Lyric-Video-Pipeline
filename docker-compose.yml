@@ -2,13 +2,31 @@ services:
   postgres:
     image: postgres:17
     environment:
-      POSTGRES_DB: platform
-      POSTGRES_USER: platform
-      POSTGRES_PASSWORD: platform
+      POSTGRES_DB: ${POSTGRES_DB:-platform}
+      POSTGRES_USER: ${POSTGRES_USER:-platform}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-platform}
     ports:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-platform} -d ${POSTGRES_DB:-platform}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/platform.Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@postgres:5432/${POSTGRES_DB:-platform}
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   api:
     build:
@@ -17,7 +35,7 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://platform:platform@postgres:5432/platform
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@postgres:5432/${POSTGRES_DB:-platform}
       MEDIA_ROOT: /app/storage
       PIPELINE_CONFIG_PATH: /app/config/pipeline.example.json
       API_HOST: 0.0.0.0
@@ -25,7 +43,10 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       - ./storage:/app/storage
       - ./config:/app/config
@@ -39,13 +60,17 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+psycopg://platform:platform@postgres:5432/platform
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-platform}:${POSTGRES_PASSWORD:-platform}@postgres:5432/${POSTGRES_DB:-platform}
       MEDIA_ROOT: /app/storage
       PIPELINE_CONFIG_PATH: /app/config/pipeline.example.json
     command: ["python", "-m", "tiktok_platform_worker.main", "--poll-interval-seconds", "20"]
     depends_on:
-      - postgres
-      - api
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_started
     volumes:
       - ./storage:/app/storage
       - ./config:/app/config

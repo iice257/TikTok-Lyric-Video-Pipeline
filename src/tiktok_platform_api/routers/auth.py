@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from tiktok_platform.db import get_db
+from tiktok_platform.security import default_session_ttl
 from tiktok_platform.services import authenticate_user, create_session, revoke_session
 from tiktok_platform.settings import PlatformSettings
 
@@ -15,8 +16,16 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: str = Field(min_length=3, max_length=254)
+    password: str = Field(min_length=1, max_length=1024)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
+            raise ValueError("A valid email address is required.")
+        return normalized
 
 
 @router.post("/login")
@@ -37,7 +46,7 @@ def login(
         httponly=True,
         secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
-        max_age=60 * 60 * 24 * 7,
+        max_age=int(default_session_ttl().total_seconds()),
         path="/",
     )
     return {
@@ -51,10 +60,17 @@ def logout(
     response: Response,
     payload: tuple = Depends(get_current_session),
     db: Session = Depends(get_db),
+    settings: PlatformSettings = Depends(get_platform_settings),
 ) -> dict[str, str]:
     _, session = payload
     revoke_session(db, session)
-    response.delete_cookie("platform_session", path="/")
+    response.delete_cookie(
+        "platform_session",
+        path="/",
+        secure=settings.cookie_secure,
+        httponly=True,
+        samesite=settings.cookie_samesite,
+    )
     return {"status": "logged_out"}
 
 

@@ -99,7 +99,7 @@ HTTPS backend host
 
 These are the next engineering steps I would take before calling this production-grade:
 
-- Use Alembic revisions for every schema change and stop relying on `Base.metadata.create_all` in production.
+- Continue using Alembic revisions for every schema change. Container startup now applies migrations, while `Base.metadata.create_all` remains limited to local and preview environments.
 - Split API and worker into separate deployment units.
 - Add object storage for media artifacts and serve signed URLs instead of local file paths.
 - Move token encryption keys into a managed KMS/secrets system.

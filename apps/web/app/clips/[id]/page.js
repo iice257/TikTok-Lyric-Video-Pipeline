@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { apiFetch, buildMediaUrl, toDatetimeLocal } from "@/lib/api";
@@ -10,10 +11,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-export default function ClipDetailPage({ params }) {
-  const { data, loading, error, setData } = useResource(`/clips/${params.id}`);
+export default function ClipDetailPage() {
+  const params = useParams();
+  const clipId = typeof params?.id === "string" ? params.id : "";
+  const encodedClipId = encodeURIComponent(clipId);
+  const { data, loading, error, setData } = useResource(
+    clipId ? `/clips/${encodedClipId}` : "",
+    null,
+    { enabled: Boolean(clipId) }
+  );
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -23,7 +32,7 @@ export default function ClipDetailPage({ params }) {
     setSubmitting(true);
     setMessage("");
     try {
-      const payload = await apiFetch(`/clips/${params.id}`, {
+      const payload = await apiFetch(`/clips/${encodedClipId}`, {
         method: "PATCH",
         body: JSON.stringify({
           caption: form.get("caption"),
@@ -46,7 +55,7 @@ export default function ClipDetailPage({ params }) {
     setSubmitting(true);
     setMessage("");
     try {
-      await apiFetch(`/clips/${params.id}/rerender`, { method: "POST" });
+      await apiFetch(`/clips/${encodedClipId}/rerender`, { method: "POST" });
       setMessage("RERENDER QUEUED");
     } catch (err) {
       setMessage(`ERROR: ${err.message}`);
@@ -70,17 +79,18 @@ export default function ClipDetailPage({ params }) {
               <CardContent className="space-y-5">
                 <form className="space-y-5" onSubmit={saveClip}>
                   <div className="grid gap-2">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Caption</p>
-                    <Textarea name="caption" defaultValue={data.clip.caption} className="min-h-28 border-border bg-background" />
+                    <Label htmlFor="clip-caption" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Caption</Label>
+                    <Textarea id="clip-caption" name="caption" maxLength={2200} required defaultValue={data.clip.caption} className="min-h-28 border-border bg-background" />
                   </div>
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="grid gap-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Hook Category</p>
-                      <Input name="hook_category" defaultValue={data.clip.hook_category || ""} className="border-border bg-background" />
+                      <Label htmlFor="clip-hook-category" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Hook Category</Label>
+                      <Input id="clip-hook-category" name="hook_category" maxLength={128} defaultValue={data.clip.hook_category || ""} className="border-border bg-background" />
                     </div>
                     <div className="grid gap-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Scheduled At</p>
+                      <Label htmlFor="clip-scheduled-at" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Scheduled At</Label>
                       <Input
+                        id="clip-scheduled-at"
                         name="scheduled_at"
                         type="datetime-local"
                         defaultValue={toDatetimeLocal(data.clip.scheduled_at)}

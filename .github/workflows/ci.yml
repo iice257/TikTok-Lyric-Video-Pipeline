@@ -1,5 +1,12 @@
 name: CI
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   pull_request:
   push:
@@ -9,18 +16,25 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
       - name: Install backend
         run: python -m pip install -e .
+      - name: Validate backend environment
+        run: |
+          python -m pip check
+          python -m compileall -q src
       - name: Run tests
         run: python -m pytest
 
   web:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: apps/web
@@ -32,12 +46,13 @@ jobs:
           cache: npm
           cache-dependency-path: apps/web/package-lock.json
       - name: Install web dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
       - name: Build web
         run: npm run build
 
   nest-api:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: apps/api-nest
@@ -47,6 +62,6 @@ jobs:
         with:
           node-version: "22"
       - name: Install Nest API dependencies
-        run: npm install
+        run: npm install --no-audit --no-fund
       - name: Build Nest API
         run: npm run build

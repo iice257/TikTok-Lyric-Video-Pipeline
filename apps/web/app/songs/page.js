@@ -49,6 +49,7 @@ export default function SongsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,9 +78,12 @@ export default function SongsPage() {
   async function togglePipeline() {
     const paused = Boolean(pipelineResource.data?.pipeline?.paused);
     setBusy(true);
+    setActionError("");
     try {
       await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
       await pipelineResource.reload();
+    } catch (err) {
+      setActionError(err.message);
     } finally {
       setBusy(false);
     }
@@ -87,9 +91,12 @@ export default function SongsPage() {
 
   async function emergencyStop() {
     setBusy(true);
+    setActionError("");
     try {
       await apiFetch("/pipeline/pause", { method: "POST" });
       await pipelineResource.reload();
+    } catch (err) {
+      setActionError(err.message);
     } finally {
       setBusy(false);
     }
@@ -157,6 +164,7 @@ export default function SongsPage() {
         </>
       }
     >
+      {actionError ? <p aria-live="polite" className="text-sm text-destructive">{actionError}</p> : null}
       <Tabs value={view} onValueChange={setView} className="flex flex-col gap-4">
         <div className="flex flex-col gap-4 rounded-md border border-border bg-card/80 p-3">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

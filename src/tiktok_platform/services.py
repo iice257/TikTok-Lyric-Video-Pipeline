@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import hashlib
+import hmac
 from pathlib import Path
 import ipaddress
 import mimetypes
@@ -69,7 +70,7 @@ def ensure_admin_user(db: Session, settings: PlatformSettings) -> User:
 
 
 def authenticate_user(db: Session, settings: PlatformSettings, email: str, password: str) -> User | None:
-    user = db.scalar(select(User).where(User.email == email))
+    user = db.scalar(select(User).where(User.email == email.strip().lower()))
     if not user or user.status != "active":
         return None
     if not verify_password(password, user.password_hash):
@@ -137,7 +138,7 @@ def require_csrf(request: Request, session: SessionRecord) -> None:
     if request.method in {"GET", "HEAD", "OPTIONS"}:
         return
     csrf_token = request.headers.get("x-csrf-token")
-    if not csrf_token or csrf_token != session.csrf_token:
+    if not csrf_token or not hmac.compare_digest(csrf_token, session.csrf_token):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid CSRF token.")
 
 
@@ -392,16 +393,20 @@ def persist_upload_file(
     max_bytes: int | None = None,
     label: str = "file",
 ) -> dict[str, object]:
-    target.parent.mkdir(parents=True, exist_ok=True)
     digest = hashlib.sha256()
     total_bytes = 0
     file.file.seek(0)
+    first_chunk = file.file.read(1024 * 1024)
+    if not first_chunk:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"{label.capitalize()} upload is empty.",
+        )
+    target.parent.mkdir(parents=True, exist_ok=True)
     try:
         with target.open("wb") as handle:
+            chunk = first_chunk
             while True:
-                chunk = file.file.read(1024 * 1024)
-                if not chunk:
-                    break
                 total_bytes += len(chunk)
                 if max_bytes is not None and total_bytes > max_bytes:
                     raise HTTPException(
@@ -410,6 +415,9 @@ def persist_upload_file(
                     )
                 digest.update(chunk)
                 handle.write(chunk)
+                chunk = file.file.read(1024 * 1024)
+                if not chunk:
+                    break
     except HTTPException:
         try:
             target.unlink(missing_ok=True)

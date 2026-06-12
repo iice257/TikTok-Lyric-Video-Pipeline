@@ -210,7 +210,7 @@ Important files:
 
 Production-facing API containers should set `API_HOST=0.0.0.0`; local development keeps the safer loopback default. Manual intake upload limits are configurable with `MAX_AUDIO_UPLOAD_MB`, `MAX_COVER_UPLOAD_MB`, and `MAX_LYRICS_UPLOAD_MB`.
 
-Production should run `alembic upgrade head` before starting the API or worker. `Base.metadata.create_all` is only used for local and preview environments so the production schema does not drift silently.
+The Docker Compose migration service and Render entrypoint run `alembic upgrade head` before starting the API or worker. Manual deployments should do the same. `Base.metadata.create_all` is only used for local and preview environments so the production schema does not drift silently.
 
 ## Deployment Shape
 

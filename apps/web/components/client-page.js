@@ -10,6 +10,7 @@ export function useResource(path, initial = null, options = {}) {
   const [loading, setLoading] = useState(initial === null);
   const [error, setError] = useState("");
   const reloadRef = useRef(async () => {});
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!enabled || !path) {
@@ -26,20 +27,21 @@ export function useResource(path, initial = null, options = {}) {
       if (showSpinner) {
         setLoading(true);
       }
+      const requestId = ++requestIdRef.current;
       try {
         const payload = await apiFetch(path, { signal: controller.signal });
-        if (!cancelled) {
+        if (!cancelled && requestId === requestIdRef.current) {
           setData(payload);
           setError("");
         }
         return payload;
       } catch (err) {
-        if (!cancelled && err.name !== "AbortError") {
+        if (!cancelled && requestId === requestIdRef.current && err.name !== "AbortError") {
           setError(err.message);
         }
         return null;
       } finally {
-        if (!cancelled && showSpinner) {
+        if (!cancelled && requestId === requestIdRef.current) {
           setLoading(false);
         }
       }
@@ -57,6 +59,7 @@ export function useResource(path, initial = null, options = {}) {
     }
     return () => {
       cancelled = true;
+      requestIdRef.current += 1;
       controller.abort();
       if (interval) {
         window.clearInterval(interval);
@@ -74,16 +77,21 @@ export function useResource(path, initial = null, options = {}) {
     if (showSpinner) {
       setLoading(true);
     }
+    const requestId = ++requestIdRef.current;
     try {
       const payload = await apiFetch(path);
-      setData(payload);
-      setError("");
+      if (requestId === requestIdRef.current) {
+        setData(payload);
+        setError("");
+      }
       return payload;
     } catch (err) {
-      setError(err.message);
+      if (requestId === requestIdRef.current) {
+        setError(err.message);
+      }
       throw err;
     } finally {
-      if (showSpinner) {
+      if (requestId === requestIdRef.current) {
         setLoading(false);
       }
     }

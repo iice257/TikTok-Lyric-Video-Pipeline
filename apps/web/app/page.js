@@ -59,6 +59,7 @@ export default function OverviewPage() {
   const [busyAlertId, setBusyAlertId] = useState("");
   const [busyUploadId, setBusyUploadId] = useState("");
   const [openOnly, setOpenOnly] = useState(false);
+  const [actionError, setActionError] = useState("");
 
   const nextPublishLabel = useMemo(
     () => describeCountdown(data?.next_publish_at),
@@ -67,9 +68,12 @@ export default function OverviewPage() {
 
   async function togglePipeline(paused) {
     setBusy(true);
+    setActionError("");
     try {
       await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
       await reload(false);
+    } catch (err) {
+      setActionError(err.message);
     } finally {
       setBusy(false);
     }
@@ -77,9 +81,12 @@ export default function OverviewPage() {
 
   async function emergencyStop() {
     setBusy(true);
+    setActionError("");
     try {
       await apiFetch("/pipeline/pause", { method: "POST" });
       await reload(false);
+    } catch (err) {
+      setActionError(err.message);
     } finally {
       setBusy(false);
     }
@@ -87,9 +94,12 @@ export default function OverviewPage() {
 
   async function acknowledgeAlert(alertId) {
     setBusyAlertId(alertId);
+    setActionError("");
     try {
       await apiFetch(`/alerts/${alertId}/ack`, { method: "POST" });
       await reload(false);
+    } catch (err) {
+      setActionError(err.message);
     } finally {
       setBusyAlertId("");
     }
@@ -97,12 +107,15 @@ export default function OverviewPage() {
 
   async function handleUploadAction(jobId, path, body) {
     setBusyUploadId(jobId);
+    setActionError("");
     try {
       await apiFetch(path, {
         method: "POST",
         body: body ? JSON.stringify(body) : undefined,
       });
       await reload(false);
+    } catch (err) {
+      setActionError(err.message);
     } finally {
       setBusyUploadId("");
     }
@@ -170,6 +183,7 @@ export default function OverviewPage() {
       <div className="space-y-5">
         {loading ? <p className="text-sm text-muted-foreground">Loading event stream...</p> : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {actionError ? <p aria-live="polite" className="text-sm text-destructive">{actionError}</p> : null}
 
         {(data?.pending_upload_jobs || []).map((job) => (
           <Card key={job.id} className="border-border bg-card/80">
@@ -294,7 +308,7 @@ export default function OverviewPage() {
                   Worker Heartbeats
                 </p>
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  {data.workers.length} active
+                  {data.workers.filter((worker) => !worker.is_stale).length} active
                 </p>
               </div>
 

@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 function queueVariant(job) {
   if (job.status === "quarantined") return "destructive";
@@ -28,8 +29,12 @@ export default function QueuePage() {
     const jobs = data?.upload_jobs || [];
     return {
       total: jobs.length,
-      pending: jobs.filter((job) => !job.approved_at).length,
-      failed: jobs.filter((job) => job.last_error).length,
+      pending: jobs.filter(
+        (job) => !job.approved_at && !["posted", "cancelled"].includes(job.status)
+      ).length,
+      failed: jobs.filter(
+        (job) => job.last_error && !["posted", "cancelled"].includes(job.status)
+      ).length,
     };
   }, [data?.upload_jobs]);
 
@@ -49,6 +54,8 @@ export default function QueuePage() {
         }));
       }
       setMessage("QUEUE UPDATED");
+    } catch (err) {
+      setMessage(`ERROR: ${err.message}`);
     } finally {
       setBusyId("");
     }
@@ -105,7 +112,11 @@ export default function QueuePage() {
           </p>
         ) : null}
 
-        {(data?.upload_jobs || []).map((job) => (
+        {(data?.upload_jobs || []).map((job) => {
+          const terminal = ["posted", "cancelled"].includes(job.status);
+          const posted = job.status === "posted";
+          const rescheduleId = `schedule-${job.id}`;
+          return (
           <Card key={job.id} className="border-border bg-card/80">
             <CardContent className="flex flex-col gap-4 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -128,8 +139,9 @@ export default function QueuePage() {
                 </div>
 
                 <div className="grid gap-2 sm:min-w-64">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Reschedule</p>
+                  <Label htmlFor={rescheduleId} className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Reschedule</Label>
                   <Input
+                    id={rescheduleId}
                     type="datetime-local"
                     value={scheduleEdits[job.id] ?? toDatetimeLocal(job.scheduled_at)}
                     onChange={(event) =>
@@ -147,7 +159,7 @@ export default function QueuePage() {
               <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={() => runAction(job.id, `/upload-jobs/${job.id}/approve`)}
-                  disabled={busyId === job.id}
+                  disabled={busyId === job.id || terminal || Boolean(job.approved_at)}
                   size="sm"
                   className="uppercase tracking-[0.18em]"
                 >
@@ -156,7 +168,7 @@ export default function QueuePage() {
                 <Button
                   variant="outline"
                   onClick={() => reschedule(job)}
-                  disabled={busyId === job.id}
+                  disabled={busyId === job.id || terminal}
                   size="sm"
                   className="uppercase tracking-[0.18em]"
                 >
@@ -165,7 +177,7 @@ export default function QueuePage() {
                 <Button
                   variant="secondary"
                   onClick={() => runAction(job.id, `/upload-jobs/${job.id}/force-publish`)}
-                  disabled={busyId === job.id}
+                  disabled={busyId === job.id || terminal}
                   size="sm"
                   className="uppercase tracking-[0.18em]"
                 >
@@ -174,7 +186,7 @@ export default function QueuePage() {
                 <Button
                   variant="ghost"
                   onClick={() => runAction(job.id, `/jobs/${job.id}/retry`, { reason: "retried from queue" })}
-                  disabled={busyId === job.id}
+                  disabled={busyId === job.id || posted}
                   size="sm"
                   className="uppercase tracking-[0.18em]"
                 >
@@ -183,7 +195,7 @@ export default function QueuePage() {
                 <Button
                   variant="ghost"
                   onClick={() => runAction(job.id, `/jobs/${job.id}/quarantine`, { reason: "quarantined from queue" })}
-                  disabled={busyId === job.id}
+                  disabled={busyId === job.id || posted || job.status === "quarantined"}
                   size="sm"
                   className="uppercase tracking-[0.18em]"
                 >
@@ -192,7 +204,7 @@ export default function QueuePage() {
                 <Button
                   variant="ghost"
                   onClick={() => runAction(job.id, `/jobs/${job.id}/cancel`, { reason: "cancelled from queue" })}
-                  disabled={busyId === job.id}
+                  disabled={busyId === job.id || posted || job.status === "cancelled"}
                   size="sm"
                   className="uppercase tracking-[0.18em]"
                 >
@@ -204,7 +216,8 @@ export default function QueuePage() {
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
 
         {!loading && !(data?.upload_jobs || []).length ? (
           <Card className="border-border bg-card">

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib
 import io
+from datetime import timedelta
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
@@ -75,6 +76,12 @@ def test_health_and_login(tmp_path, monkeypatch) -> None:
     prefixed_summary = client.get("/api/dashboard/summary")
     assert prefixed_summary.status_code == 200
     assert "counts" in prefixed_summary.json()
+
+    normalized_login = client.post(
+        "/auth/login",
+        json={"email": " ADMIN@EXAMPLE.COM ", "password": "admin123"},
+    )
+    assert normalized_login.status_code == 200
 
 
 def test_vercel_preview_defaults_use_tmp_storage(monkeypatch) -> None:
@@ -181,6 +188,39 @@ def test_manual_intake_rejects_oversized_audio(tmp_path, monkeypatch) -> None:
     assert "Audio upload exceeds" in response.json()["detail"]
 
 
+def test_manual_intake_rejects_empty_audio_and_cleans_partial_files(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    empty = client.post(
+        "/manual-intake",
+        data={"title": "Song", "artist": "Artist", "environment": "prod", "rights_status": "licensed"},
+        files={"audio": ("track.mp3", io.BytesIO(b""), "audio/mpeg")},
+        headers={"x-csrf-token": csrf},
+    )
+    assert empty.status_code == 400
+    assert empty.json()["detail"] == "Audio upload is empty."
+
+    invalid_cover = client.post(
+        "/manual-intake",
+        data={"title": "Song", "artist": "Artist", "environment": "prod", "rights_status": "licensed"},
+        files={
+            "audio": ("track.mp3", io.BytesIO(b"audio"), "audio/mpeg"),
+            "cover": ("cover.exe", io.BytesIO(b"cover"), "application/octet-stream"),
+        },
+        headers={"x-csrf-token": csrf},
+    )
+    assert invalid_cover.status_code == 400
+    intake_root = tmp_path / "storage" / "manual-intake" / "prod"
+    remaining_files = (
+        [(path, path.stat().st_size) for path in intake_root.rglob("*") if path.is_file()]
+        if intake_root.exists()
+        else []
+    )
+    assert not remaining_files, remaining_files
+
+
 def test_search_returns_song_matches(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
     login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
@@ -255,6 +295,19 @@ def test_tiktok_connect_returns_auth_url(tmp_path, monkeypatch) -> None:
     assert "video.publish%2Cvideo.upload" in auth_url
 
 
+def test_tiktok_callback_escapes_provider_errors(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+
+    response = client.get(
+        "/integrations/tiktok/callback",
+        params={"error": "access_denied", "error_description": "<script>alert(1)</script>"},
+    )
+
+    assert response.status_code == 400
+    assert "<script>alert(1)</script>" not in response.text
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in response.text
+
+
 def test_tiktok_callback_persists_subject_and_scopes(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
     login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
@@ -281,6 +334,9 @@ def test_tiktok_callback_persists_subject_and_scopes(tmp_path, monkeypatch) -> N
 
     callback = client.get("/integrations/tiktok/callback", params={"code": "oauth-code", "state": state})
     assert callback.status_code == 200
+
+    reused = client.get("/integrations/tiktok/callback", params={"code": "oauth-code", "state": state})
+    assert reused.status_code == 400
 
     status_resp = client.get("/integrations/tiktok/status")
     assert status_resp.status_code == 200
@@ -371,3 +427,54 @@ def test_pipeline_settings_reject_invalid_ranges(tmp_path, monkeypatch) -> None:
         headers={"x-csrf-token": csrf},
     )
     assert bad_range.status_code == 422
+
+
+def test_upload_job_actions_block_posted_jobs_and_queue_past_schedules(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    csrf = login.json()["csrf_token"]
+
+    import tiktok_platform.db as db_module
+    import tiktok_platform.models as models_module
+
+    with db_module.SessionLocal() as db:
+        posted = models_module.UploadJob(
+            clip_id="posted-clip",
+            status="posted",
+            publish_mode="direct",
+            scheduled_at=db_module.utcnow(),
+            idempotency_key="posted-job",
+            completed_at=db_module.utcnow(),
+        )
+        schedulable = models_module.UploadJob(
+            clip_id="queued-clip",
+            status="waiting_window",
+            publish_mode="draft",
+            scheduled_at=db_module.utcnow() + timedelta(hours=1),
+            idempotency_key="schedulable-job",
+        )
+        db.add_all([posted, schedulable])
+        db.commit()
+        posted_id = posted.id
+        schedulable_id = schedulable.id
+
+    force_posted = client.post(
+        f"/upload-jobs/{posted_id}/force-publish",
+        headers={"x-csrf-token": csrf},
+    )
+    assert force_posted.status_code == 409
+
+    reschedule_posted = client.post(
+        f"/upload-jobs/{posted_id}/reschedule",
+        json={"scheduled_at": db_module.utcnow().isoformat()},
+        headers={"x-csrf-token": csrf},
+    )
+    assert reschedule_posted.status_code == 409
+
+    reschedule_past = client.post(
+        f"/upload-jobs/{schedulable_id}/reschedule",
+        json={"scheduled_at": (db_module.utcnow() - timedelta(minutes=1)).isoformat()},
+        headers={"x-csrf-token": csrf},
+    )
+    assert reschedule_past.status_code == 200
+    assert reschedule_past.json()["upload_job"]["status"] == "queued"

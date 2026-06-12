@@ -22,6 +22,10 @@ def _terminate(processes: list[subprocess.Popen[bytes]]) -> None:
 
 def main() -> NoReturn:
     poll_interval = os.getenv("WORKER_POLL_INTERVAL_SECONDS", "20")
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        check=True,
+    )
     commands = [
         [sys.executable, "-m", "tiktok_platform_api.app"],
         [sys.executable, "-m", "tiktok_platform_worker.main", "--poll-interval-seconds", poll_interval],

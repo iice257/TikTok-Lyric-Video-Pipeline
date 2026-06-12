@@ -9,6 +9,8 @@ pytest-cache-files-*/
 node_modules/
 .env
 apps/web/.env.local
+apps/web/.env.production
+apps/web/.env.*.local
 storage/
 output/platform.db
 output/platform.db-*

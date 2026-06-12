@@ -19,24 +19,31 @@ function alertVariant(severity) {
 export default function AlertsPage() {
   const { data, loading, error, setData } = useResource("/alerts");
   const [busyId, setBusyId] = useState("");
+  const [message, setMessage] = useState("");
 
   const stats = useMemo(() => {
     const alerts = data?.alerts || [];
     return {
       open: alerts.filter((alert) => alert.status !== "acknowledged").length,
-      critical: alerts.filter((alert) => alert.severity === "error").length,
+      critical: alerts.filter(
+        (alert) => alert.severity === "error" && alert.status !== "acknowledged"
+      ).length,
       total: alerts.length,
     };
   }, [data?.alerts]);
 
   async function acknowledge(alertId) {
     setBusyId(alertId);
+    setMessage("");
     try {
       const payload = await apiFetch(`/alerts/${alertId}/ack`, { method: "POST" });
       setData((current) => ({
         ...current,
         alerts: current.alerts.map((alert) => (alert.id === alertId ? payload.alert : alert)),
       }));
+      setMessage("ALERT ACKNOWLEDGED");
+    } catch (err) {
+      setMessage(`ERROR: ${err.message}`);
     } finally {
       setBusyId("");
     }
@@ -72,6 +79,14 @@ export default function AlertsPage() {
       <div className="space-y-4">
         {loading ? <p className="text-sm text-muted-foreground">Loading alerts...</p> : null}
         {error ? <p className="text-sm text-destructive">{error}</p> : null}
+        {message ? (
+          <p
+            aria-live="polite"
+            className={message.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}
+          >
+            {message}
+          </p>
+        ) : null}
 
         {(data?.alerts || []).map((alert) => (
           <Card key={alert.id} className="border-border bg-card/80">

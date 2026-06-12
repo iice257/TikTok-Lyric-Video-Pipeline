@@ -45,6 +45,18 @@ export function clearCsrfToken() {
   window.localStorage.removeItem("platform_csrf_token");
 }
 
+export function getSafeRedirectPath(value, fallback = "/") {
+  if (
+    typeof value !== "string" ||
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
+    return fallback;
+  }
+  return value;
+}
+
 function describeApiError(payload, fallback) {
   const detail = payload?.detail;
   if (typeof detail === "string") {
@@ -61,7 +73,11 @@ function describeApiError(payload, fallback) {
 
 export async function apiFetch(path, options = {}) {
   const headers = new Headers(options.headers || {});
-  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+  if (
+    options.body != null &&
+    !headers.has("Content-Type") &&
+    !(options.body instanceof FormData)
+  ) {
     headers.set("Content-Type", "application/json");
   }
   const csrf = getCsrfToken();
@@ -75,9 +91,9 @@ export async function apiFetch(path, options = {}) {
   });
   if (response.status === 401 && typeof window !== "undefined") {
     clearCsrfToken();
-    const next = `${window.location.pathname}${window.location.search}`;
+    const next = getSafeRedirectPath(`${window.location.pathname}${window.location.search}`);
     if (!window.location.pathname.startsWith("/login")) {
-      window.location.href = `/login?next=${encodeURIComponent(next)}`;
+      window.location.assign(`/login?next=${encodeURIComponent(next)}`);
     }
   }
   const isJson = response.headers.get("content-type")?.includes("application/json");

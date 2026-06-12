@@ -171,10 +171,13 @@ export default function SettingsPage() {
   async function togglePipeline() {
     const paused = Boolean(pipelineResource.data?.pipeline?.paused);
     setBusy(true);
+    setPipelineMessage("");
     try {
       await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
       await pipelineResource.reload();
       await dashboardResource.reload(false);
+    } catch (err) {
+      setPipelineMessage(`ERROR: ${err.message}`);
     } finally {
       setBusy(false);
     }
@@ -182,11 +185,14 @@ export default function SettingsPage() {
 
   async function emergencyStop() {
     setBusy(true);
+    setPipelineMessage("");
     try {
       await apiFetch("/pipeline/pause", { method: "POST" });
       await pipelineResource.reload();
       await dashboardResource.reload(false);
       setPipelinePaused(true);
+    } catch (err) {
+      setPipelineMessage(`ERROR: ${err.message}`);
     } finally {
       setBusy(false);
     }
@@ -202,27 +208,28 @@ export default function SettingsPage() {
   const renderBacklog = dashboardData?.counts?.render_backlog ?? 0;
   const workerCount = dashboardData?.workers?.length ?? 0;
   const pendingApprovals = dashboardData?.pending_upload_jobs?.length ?? 0;
+  const savedPipelinePaused = Boolean(pipelineResource.data?.pipeline?.paused);
 
   return (
     <AdminShell
       title="Configuration"
       subtitle="Manage system settings, integrations, and operational parameters."
       status={{
-        state: pipelinePaused ? "PAUSED" : "RUNNING",
+        state: savedPipelinePaused ? "PAUSED" : "RUNNING",
       }}
       actions={
         <>
           <Button
             variant="destructive"
             size="sm"
-            disabled={busy || pipelinePaused}
+            disabled={busy || savedPipelinePaused}
             onClick={emergencyStop}
             className="uppercase tracking-[0.18em]"
           >
             Emergency Stop
           </Button>
           <Button size="sm" disabled={busy} onClick={togglePipeline} className="uppercase tracking-[0.18em]">
-            {pipelinePaused ? "Resume Flow" : "Pause Flow"}
+            {savedPipelinePaused ? "Resume Flow" : "Pause Flow"}
           </Button>
         </>
       }
@@ -552,8 +559,8 @@ export default function SettingsPage() {
               title="Pipeline State"
               description="Current automation gate"
               control={
-                <Badge variant={pipelinePaused ? "secondary" : "default"} className="uppercase tracking-[0.18em]">
-                  {pipelinePaused ? "Paused" : "Running"}
+                <Badge variant={savedPipelinePaused ? "secondary" : "default"} className="uppercase tracking-[0.18em]">
+                  {savedPipelinePaused ? "Paused" : "Running"}
                 </Badge>
               }
             />
