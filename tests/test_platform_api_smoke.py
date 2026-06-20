@@ -14,7 +14,7 @@ def build_test_client(tmp_path, monkeypatch) -> TestClient:
     monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
     monkeypatch.setenv("SESSION_SECRET", "test-secret")
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", generate_token_encryption_key())
-    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_EMAIL", "admin99")
     monkeypatch.setenv("ADMIN_PASSWORD_HASH", "")
     monkeypatch.setenv("TIKTOK_CLIENT_KEY", "client-key")
     monkeypatch.setenv("TIKTOK_CLIENT_SECRET", "client-secret")
@@ -65,13 +65,13 @@ def test_health_and_login(tmp_path, monkeypatch) -> None:
     prefixed_health = client.get("/api/health")
     assert prefixed_health.status_code == 200
 
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     assert login.status_code == 200
     body = login.json()
-    assert body["user"]["email"] == "admin@example.com"
+    assert body["user"]["email"] == "admin99"
     assert "csrf_token" in body
 
-    prefixed_login = client.post("/api/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    prefixed_login = client.post("/api/auth/login", json={"email": "Admin99", "password": "admin99"})
     assert prefixed_login.status_code == 200
     prefixed_summary = client.get("/api/dashboard/summary")
     assert prefixed_summary.status_code == 200
@@ -79,7 +79,7 @@ def test_health_and_login(tmp_path, monkeypatch) -> None:
 
     normalized_login = client.post(
         "/auth/login",
-        json={"email": " ADMIN@EXAMPLE.COM ", "password": "admin123"},
+        json={"email": " ADMIN99 ", "password": "admin99"},
     )
     assert normalized_login.status_code == 200
 
@@ -111,7 +111,7 @@ def test_vercel_preview_defaults_use_tmp_storage(monkeypatch) -> None:
 
 def test_manual_intake_dedupes_by_audio_hash(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     files = {"audio": ("track-a.mp3", io.BytesIO(b"same-audio-binary"), "audio/mpeg")}
@@ -141,7 +141,7 @@ def test_manual_intake_dedupes_by_audio_hash(tmp_path, monkeypatch) -> None:
 
 def test_manual_intake_rejects_invalid_environment(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     response = client.post(
@@ -157,7 +157,7 @@ def test_manual_intake_rejects_invalid_environment(tmp_path, monkeypatch) -> Non
 
 def test_manual_intake_rejects_unsupported_audio_extension(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     response = client.post(
@@ -174,7 +174,7 @@ def test_manual_intake_rejects_unsupported_audio_extension(tmp_path, monkeypatch
 def test_manual_intake_rejects_oversized_audio(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("MAX_AUDIO_UPLOAD_MB", "0")
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     response = client.post(
@@ -190,7 +190,7 @@ def test_manual_intake_rejects_oversized_audio(tmp_path, monkeypatch) -> None:
 
 def test_manual_intake_rejects_empty_audio_and_cleans_partial_files(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     empty = client.post(
@@ -223,7 +223,7 @@ def test_manual_intake_rejects_empty_audio_and_cleans_partial_files(tmp_path, mo
 
 def test_search_returns_song_matches(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     created = client.post(
@@ -244,7 +244,7 @@ def test_search_returns_song_matches(tmp_path, monkeypatch) -> None:
 
 def test_search_returns_lyrics_artifact_matches(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     created = client.post(
@@ -282,7 +282,7 @@ def test_search_returns_lyrics_artifact_matches(tmp_path, monkeypatch) -> None:
 
 def test_tiktok_connect_returns_auth_url(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     response = client.post("/integrations/tiktok/connect", headers={"x-csrf-token": csrf})
@@ -310,7 +310,7 @@ def test_tiktok_callback_escapes_provider_errors(tmp_path, monkeypatch) -> None:
 
 def test_tiktok_callback_persists_subject_and_scopes(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     connect = client.post("/integrations/tiktok/connect", headers={"x-csrf-token": csrf})
@@ -380,13 +380,13 @@ def test_startup_encrypts_existing_plaintext_oauth_tokens(tmp_path, monkeypatch)
         assert token.access_token.startswith("fernet:")
         assert token.refresh_token.startswith("fernet:")
 
-    response = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    response = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     assert response.status_code == 200
 
 
 def test_pause_resume_preserves_pipeline_settings(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     patched = client.patch(
@@ -411,7 +411,7 @@ def test_pause_resume_preserves_pipeline_settings(tmp_path, monkeypatch) -> None
 
 def test_pipeline_settings_reject_invalid_ranges(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     bad_mode = client.patch(
@@ -431,7 +431,7 @@ def test_pipeline_settings_reject_invalid_ranges(tmp_path, monkeypatch) -> None:
 
 def test_upload_job_actions_block_posted_jobs_and_queue_past_schedules(tmp_path, monkeypatch) -> None:
     client = build_test_client(tmp_path, monkeypatch)
-    login = client.post("/auth/login", json={"email": "admin@example.com", "password": "admin123"})
+    login = client.post("/auth/login", json={"email": "Admin99", "password": "admin99"})
     csrf = login.json()["csrf_token"]
 
     import tiktok_platform.db as db_module

@@ -55,14 +55,14 @@ export default function LoginPage() {
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <div className="grid gap-2">
-                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Email</Label>
+                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Admin ID</Label>
                 <Input
                   id="email"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@example.com"
-                  autoComplete="email"
+                  placeholder="Admin99"
+                  autoComplete="username"
                   required
                   className="h-10 border-border bg-background"
                 />

@@ -11,7 +11,7 @@ def reload_platform_modules(monkeypatch, tmp_path):
     monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
     monkeypatch.setenv("SESSION_SECRET", "test-secret")
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", generate_token_encryption_key())
-    monkeypatch.setenv("ADMIN_EMAIL", "admin@example.com")
+    monkeypatch.setenv("ADMIN_EMAIL", "admin99")
     monkeypatch.setenv("ADMIN_PASSWORD_HASH", "")
     monkeypatch.setenv("TIKTOK_SIMULATE_UPLOADS", "true")
     monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "storage"))

@@ -149,13 +149,13 @@
 
           const login = await apiFetch("/auth/login", {
             method: "POST",
-            body: JSON.stringify({ email: "admin@example.com", password: "admin123" }),
+            body: JSON.stringify({ email: "Admin99", password: "admin99" }),
           });
           csrfToken = login.csrf_token;
           setCheck("Auth + CSRF", Boolean(csrfToken), `Logged in as ${login.user.email}`);
 
           const me = await apiFetch("/auth/me");
-          setCheck("Session cookie", me.user.email === "admin@example.com", `Session expires ${me.session.expires_at}`);
+          setCheck("Session cookie", me.user.email === "admin99", `Session expires ${me.session.expires_at}`);
 
           const beforeSearch = await apiFetch("/search?q=Smoke&limit=5");
           setCheck("Search endpoint", Array.isArray(beforeSearch.songs), `Strategy: ${beforeSearch.strategy}`);

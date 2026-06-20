@@ -93,7 +93,7 @@ def get_settings() -> PlatformSettings:
         session_secret=os.getenv("SESSION_SECRET", "change-me-session-secret"),
         token_encryption_key=os.getenv("TOKEN_ENCRYPTION_KEY", ""),
         media_root=Path(os.getenv("MEDIA_ROOT", str(default_media_root))).resolve(),
-        admin_email=os.getenv("ADMIN_EMAIL", "admin@example.com"),
+        admin_email=os.getenv("ADMIN_EMAIL", "admin99").strip().lower(),
         admin_password_hash=os.getenv("ADMIN_PASSWORD_HASH", ""),
         tiktok_client_key=os.getenv("TIKTOK_CLIENT_KEY", ""),
         tiktok_client_secret=os.getenv("TIKTOK_CLIENT_SECRET", ""),

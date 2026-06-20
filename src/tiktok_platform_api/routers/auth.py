@@ -21,10 +21,10 @@ class LoginRequest(BaseModel):
 
     @field_validator("email")
     @classmethod
-    def normalize_email(cls, value: str) -> str:
+    def normalize_login_identifier(cls, value: str) -> str:
         normalized = value.strip().lower()
-        if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
-            raise ValueError("A valid email address is required.")
+        if not normalized:
+            raise ValueError("Admin ID is required.")
         return normalized
 
 

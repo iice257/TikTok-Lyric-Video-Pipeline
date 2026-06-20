@@ -46,7 +46,8 @@ class OAuthTokenSecrets:
 
 
 def ensure_admin_user(db: Session, settings: PlatformSettings) -> User:
-    user = db.scalar(select(User).where(User.email == settings.admin_email))
+    admin_identity = settings.admin_email.strip().lower()
+    user = db.scalar(select(User).where(User.email == admin_identity))
     if user:
         return user
     if settings.admin_password_hash:
@@ -54,14 +55,14 @@ def ensure_admin_user(db: Session, settings: PlatformSettings) -> User:
     elif settings.is_production:
         raise RuntimeError("ADMIN_PASSWORD_HASH must be configured in production.")
     else:
-        password_hash = hash_password("admin123")
-    user = User(email=settings.admin_email, password_hash=password_hash, role="admin", status="active")
+        password_hash = hash_password("admin99")
+    user = User(email=admin_identity, password_hash=password_hash, role="admin", status="active")
     db.add(user)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
-        existing = db.scalar(select(User).where(User.email == settings.admin_email))
+        existing = db.scalar(select(User).where(User.email == admin_identity))
         if existing:
             return existing
         raise

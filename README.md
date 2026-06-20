@@ -169,8 +169,8 @@ If port `3000` or `8000` is blocked, run the backend/frontend on higher ports an
 
 Default local credentials are created only in development when `ADMIN_PASSWORD_HASH` is empty:
 
-- email: `admin@example.com`
-- password: `admin123`
+- admin ID: `Admin99`
+- password: `admin99`
 
 ## Docker Local Stack
 
