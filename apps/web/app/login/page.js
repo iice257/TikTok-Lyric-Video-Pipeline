@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [adminId, setAdminId] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -23,7 +23,7 @@ export default function LoginPage() {
     try {
       const payload = await apiFetch("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: adminId, password }),
       });
       setCsrfToken(payload.csrf_token);
       const next = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : "";
@@ -55,13 +55,14 @@ export default function LoginPage() {
           <CardContent>
             <form className="flex flex-col gap-4" onSubmit={onSubmit}>
               <div className="grid gap-2">
-                <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Admin ID</Label>
+                <Label htmlFor="admin-id" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Admin ID</Label>
                 <Input
-                  id="email"
+                  id="admin-id"
+                  name="admin-id"
                   type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Admin99"
+                  value={adminId}
+                  onChange={(e) => setAdminId(e.target.value)}
+                  placeholder="Enter admin ID"
                   autoComplete="username"
                   required
                   className="h-10 border-border bg-background"
