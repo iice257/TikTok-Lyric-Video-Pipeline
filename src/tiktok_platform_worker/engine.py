@@ -201,6 +201,8 @@ class PlatformWorker:
         db.commit()
 
     def _recompute_song_status(self, db: Session, song: Song) -> None:
+        # Callers add jobs/clip changes just before this; the session doesn't autoflush.
+        db.flush()
         clips = db.scalars(select(Clip).where(Clip.song_id == song.id)).all()
         if not clips:
             return
@@ -221,6 +223,9 @@ class PlatformWorker:
             return
         if any(clip.status == "failed" for clip in clips):
             song.status = "failed"
+            return
+        if all(clip.status in {"rendered", "posted"} for clip in clips):
+            song.status = "rendered"
 
     def run_forever(self, poll_interval_seconds: int = 30) -> None:
         while True:
