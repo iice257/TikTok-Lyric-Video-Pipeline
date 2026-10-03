@@ -57,7 +57,7 @@ export function VideoThumb({ path, className }) {
           playsInline
           preload="metadata"
           // #t= asks the browser to show a frame from inside the clip instead of a black first frame.
-          src={`${buildMediaUrl(path)}#t=1.5`}
+          src={`${buildMediaUrl(path)}#t=3`}
         />
       ) : (
         <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
