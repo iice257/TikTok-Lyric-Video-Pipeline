@@ -440,6 +440,7 @@ def test_process_segments_uses_configured_max_segment_count(tmp_path, monkeypatc
         font_family = "Sans"
         text_color = "#fff"
         highlight_color = "#ff0"
+        preset_id = None
 
     worker.segmenter.select_segments = lambda *args, **kwargs: [_Selection(i) for i in range(1, 6)]
     worker.styling.decide = lambda *args, **kwargs: _Style()

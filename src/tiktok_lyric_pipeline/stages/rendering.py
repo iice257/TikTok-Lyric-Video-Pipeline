@@ -11,6 +11,7 @@ import shutil
 import subprocess
 
 from ..config import PipelineConfig
+from ..presets import default_presets_path, load_presets
 from ..hooks import HOOK_CATEGORIES
 from ..models import LyricsBundle, LyricLine, LyricToken, SegmentSelection, SongAsset, StyleDecision
 from ..utils import ensure_directory, slugify, stable_id, weighted_choice
@@ -126,6 +127,7 @@ class RenderPlanner:
     def __init__(self, config: PipelineConfig, seed: int | None = None) -> None:
         self.config = config
         self.rng = random.Random(config.random_seed if seed is None else seed)
+        self.fonts_dir = load_presets(default_presets_path(config.root_dir)).fonts_dir
 
     def plan_render(
         self,
@@ -304,10 +306,12 @@ class RenderPlanner:
     def build_stacked_ass_lines(self, lines: list[LyricLine], style: StyleDecision, segment: SegmentSelection) -> list[AssLine]:
         ass_lines: list[AssLine] = []
         for index, lyric_line in enumerate(lines):
-            prev_line = lines[index - 1].text if index > 0 else ""
-            next_line = lines[index + 1].text if index + 1 < len(lines) else ""
-            highlighted_current = f"{{\\c{self.ass_colour(style.highlight_color)}}}{lyric_line.text}{{\\r}}"
-            stacked = "\n".join(part for part in [prev_line, highlighted_current, next_line] if part)
+            prev_line = self.escape_ass_text(lines[index - 1].text) if index > 0 else ""
+            next_line = self.escape_ass_text(lines[index + 1].text) if index + 1 < len(lines) else ""
+            current = self.escape_ass_text(lyric_line.text)
+            highlighted_current = f"{{\\c{self.ass_colour(style.highlight_color)}}}{current}{{\\r}}"
+            # ASS line breaks are the literal \N; a raw newline would end the Dialogue event.
+            stacked = r"\N".join(part for part in [prev_line, highlighted_current, next_line] if part)
             ass_lines.append(
                 AssLine(
                     start=max(0.0, lyric_line.start),
@@ -541,10 +545,14 @@ class RenderPlanner:
         height = self.config.render.height
         layout_template = self.normalize_layout_template(style.layout_template)
         ass_filter = f"ass={self.escape_filter_path(ass_path)}"
+        if self.fonts_dir:
+            ass_filter += f":fontsdir={self.escape_filter_value(self.fonts_dir)}"
+        background = self.ffmpeg_colour(style.background_color or "black")
+        grain = style.grain_strength if style.grain_strength is not None else self.config.render.grain_strength
         if layout_template == "minimal_typography_black":
             return (
                 f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
-                f"crop={width}:{height},drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill,{ass_filter}[vout]"
+                f"crop={width}:{height},drawbox=x=0:y=0:w=iw:h=ih:color={background}@1.0:t=fill,{ass_filter}[vout]"
             )
         if song.album_cover_path:
             if layout_template == "fullscreen_cover_overlay":
@@ -556,7 +564,7 @@ class RenderPlanner:
             return (
                 f"[0:v]split[base][art];"
                 f"[base]scale={width}:{height}:force_original_aspect_ratio=increase,"
-                f"crop={width}:{height},boxblur=24:1,noise=alls={self.config.render.grain_strength}:allf=t+u,"
+                f"crop={width}:{height},boxblur=24:1,noise=alls={grain}:allf=t+u,"
                 f"eq=contrast=1.06:saturation=1.08,"
                 f"zoompan=z='min(1.08,1+0.0005*on)':d=1:s={width}x{height}[bg];"
                 f"[art]scale={overlay_width}:-1[cover];"
@@ -564,12 +572,20 @@ class RenderPlanner:
             )
         return (
             f"[0:v]scale={width}:{height}:force_original_aspect_ratio=increase,"
-            f"crop={width}:{height},drawbox=x=0:y=0:w=iw:h=ih:color=black@1.0:t=fill,{ass_filter}[vout]"
+            f"crop={width}:{height},drawbox=x=0:y=0:w=iw:h=ih:color={background}@1.0:t=fill,{ass_filter}[vout]"
         )
 
     def escape_filter_path(self, path: Path) -> str:
+        return f"filename={self.escape_filter_value(path)}"
+
+    def escape_filter_value(self, path: Path) -> str:
         text = path.resolve().as_posix().replace(":", r"\:").replace("'", r"\'")
-        return f"filename='{text}'"
+        return f"'{text}'"
+
+    def ffmpeg_colour(self, value: str) -> str:
+        if value.startswith("#") and len(value) == 7:
+            return "0x" + value[1:]
+        return value
 
     def normalize_layout_template(self, layout_template: str) -> str:
         aliases = {

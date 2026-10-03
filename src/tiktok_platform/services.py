@@ -13,6 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from tiktok_lyric_pipeline.presets import Preset, PresetCatalog, default_presets_path, load_presets
+
 from .db import ensure_utc, utcnow
 from .models import (
     Alert,
@@ -148,6 +150,27 @@ def get_setting(db: Session, key: str, default: dict[str, object]) -> dict[str, 
     if not record:
         return default
     return dict(record.value_json)
+
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def get_preset_catalog() -> PresetCatalog:
+    return load_presets(default_presets_path(REPO_ROOT))
+
+
+def default_preset_id(db: Session) -> str:
+    """The operator-chosen default preset, else the catalog default."""
+    catalog = get_preset_catalog()
+    chosen = get_setting(db, "render_preferences", {}).get("default_preset")
+    if isinstance(chosen, str) and catalog.get(chosen):
+        return chosen
+    return catalog.default_id
+
+
+def resolve_song_preset(db: Session, preset_id: str | None) -> Preset | None:
+    catalog = get_preset_catalog()
+    return catalog.get(preset_id) or catalog.get(default_preset_id(db))
 
 
 def set_setting(db: Session, key: str, value: dict[str, object]) -> AppSetting:
@@ -451,6 +474,7 @@ def serialize_song(song: Song) -> dict[str, object]:
         "review_status": song.review_status,
         "publish_eligible": song.publish_eligible,
         "manual_priority": song.manual_priority,
+        "preset_id": song.preset_id,
         "audio_path": song.audio_path,
         "cover_path": song.cover_path,
         "lyrics_path": song.lyrics_path,
@@ -477,6 +501,7 @@ def serialize_clip(clip: Clip) -> dict[str, object]:
         "font_family": clip.font_family,
         "text_color": clip.text_color,
         "highlight_color": clip.highlight_color,
+        "preset_id": clip.preset_id,
         "duration_seconds": clip.duration_seconds,
         "render_manifest_path": clip.render_manifest_path,
         "subtitle_path": clip.subtitle_path,

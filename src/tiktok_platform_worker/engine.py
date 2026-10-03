@@ -25,7 +25,7 @@ from tiktok_platform.models import (
     UploadJob,
     WorkerHeartbeat,
 )
-from tiktok_platform.services import create_alert, get_oauth_token_secrets, get_setting, record_state_event, upsert_oauth_token
+from tiktok_platform.services import create_alert, get_oauth_token_secrets, get_preset_catalog, get_setting, record_state_event, resolve_song_preset, upsert_oauth_token
 from tiktok_platform.services import create_alert_once
 from tiktok_platform.settings import PlatformSettings, get_settings
 from tiktok_platform.tiktok_api import TikTokApiClient, TikTokApiError
@@ -459,7 +459,7 @@ class PlatformWorker:
                 db.add(candidate)
                 db.flush()
                 if candidate.selected:
-                    style = self.styling.decide(song_to_asset(song))
+                    style = self.styling.decide(song_to_asset(song), resolve_song_preset(db, song.preset_id))
                     review_required = artifact.confidence < 0.7 or candidate.score < 0.55
                     clip = Clip(
                         song_id=song.id,
@@ -474,6 +474,7 @@ class PlatformWorker:
                         font_family=style.font_family,
                         text_color=style.text_color,
                         highlight_color=style.highlight_color,
+                        preset_id=style.preset_id,
                         duration_seconds=selection.duration,
                     )
                     db.add(clip)
@@ -572,7 +573,7 @@ class PlatformWorker:
                 song_to_asset(song),
                 segment_candidate_to_selection(segment, song.song_key),
                 bundle,
-                style_override=clip_to_style(clip),
+                style_override=clip_to_style(clip, get_preset_catalog().get(clip.preset_id)),
             )
             rendered = self.render_planner.write_render_artifacts(plan)
             rendered = self.renderer.render(rendered)
