@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { apiFetch, getSafeRedirectPath, setCsrfToken } from "@/lib/api";
+import { apiFetch, getApiBaseUrl, getSafeRedirectPath, setCsrfToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,12 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Hosted deployments ship the frontend only; the API and worker run locally.
+  const [backendless, setBackendless] = useState(false);
+
+  useEffect(() => {
+    setBackendless(getApiBaseUrl() === "/api");
+  }, []);
 
   async function onSubmit(event) {
     event.preventDefault();
@@ -81,8 +87,13 @@ export function LoginForm() {
                   className="h-10 border-border bg-background"
                 />
               </div>
+              {backendless ? (
+                <p className="text-xs text-muted-foreground">
+                  This deployment is frontend only. The pipeline backend runs locally, so sign-in is available on a local install.
+                </p>
+              ) : null}
               {error ? <p aria-live="polite" className="text-xs uppercase tracking-[0.18em] text-destructive">{error}</p> : null}
-              <Button type="submit" disabled={submitting} size="lg" className="w-full uppercase tracking-[0.2em]">
+              <Button type="submit" disabled={submitting || backendless} size="lg" className="w-full uppercase tracking-[0.2em]">
                 {submitting ? "Signing In..." : "Sign In"}
               </Button>
             </form>
