@@ -799,6 +799,7 @@ def rerender_clip(
         idempotency_key=f"rerender-{clip.id}-{uuid4().hex}",
     )
     db.add(render_job)
+    db.flush()
     record_state_event(
         db,
         subject_type="render_job",

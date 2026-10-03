@@ -53,8 +53,11 @@ function describeWorkers(workers = []) {
   return liveCount ? `ALIVE (${age})` : `STALE (${age})`;
 }
 
+const workerIsBusy = (data) =>
+  (data?.workers || []).some((worker) => !worker.is_stale && worker.status === "running");
+
 export default function OverviewPage() {
-  const { data, loading, error, reload } = useResource("/dashboard/summary");
+  const { data, loading, error, reload } = useResource("/dashboard/summary", null, { isActive: workerIsBusy });
   const [busy, setBusy] = useState(false);
   const [busyAlertId, setBusyAlertId] = useState("");
   const [busyUploadId, setBusyUploadId] = useState("");

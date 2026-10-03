@@ -80,3 +80,7 @@ Write-Host "Logs:   $RunLogDir"
 Write-Host ""
 Write-Host "Stop with:"
 Write-Host ($processes | ForEach-Object { "Stop-Process -Id $($_.Id)" } | Out-String)
+
+if ([Environment]::UserInteractive -and $Host.Name -eq "ConsoleHost") {
+    Read-Host "Servers keep running in the background. Press Enter to close this window"
+}

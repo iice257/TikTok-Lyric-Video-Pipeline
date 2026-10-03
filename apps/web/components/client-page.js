@@ -4,13 +4,50 @@ import { useEffect, useRef, useState } from "react";
 
 import { apiFetch } from "@/lib/api";
 
+// Statuses where the worker is actively moving something forward, so the UI
+// should poll quickly. Long waits (retry_wait, waiting_window, approval) are
+// deliberately excluded and fall back to the slow interval.
+const ACTIVE_STATUSES = new Set([
+  "ingested",
+  "lyrics_ready",
+  "queued_for_render",
+  "claimed",
+  "rendering",
+  "queued_for_upload",
+  "uploading",
+]);
+
+export function isActiveStatus(status) {
+  return ACTIVE_STATUSES.has(status);
+}
+
 export function useResource(path, initial = null, options = {}) {
-  const { enabled = true, intervalMs = 15000, pauseWhenHidden = true } = options;
+  const {
+    enabled = true,
+    intervalMs = 15000,
+    activeIntervalMs = 2000,
+    isActive = null,
+    pauseWhenHidden = true,
+  } = options;
   const [data, setData] = useState(initial);
   const [loading, setLoading] = useState(initial === null);
   const [error, setError] = useState("");
   const reloadRef = useRef(async () => {});
   const requestIdRef = useRef(0);
+  const isActiveRef = useRef(isActive);
+  const dataRef = useRef(data);
+  const rescheduleRef = useRef(() => {});
+  isActiveRef.current = isActive;
+  dataRef.current = data;
+
+  const active = Boolean(isActive && data && isActive(data));
+  useEffect(() => {
+    // Switch to the fast interval right away when work starts (e.g. after a
+    // rerender is queued) instead of waiting out the slow timer.
+    if (active) {
+      rescheduleRef.current();
+    }
+  }, [active]);
 
   useEffect(() => {
     if (!enabled || !path) {
@@ -31,6 +68,7 @@ export function useResource(path, initial = null, options = {}) {
       try {
         const payload = await apiFetch(path, { signal: controller.signal });
         if (!cancelled && requestId === requestIdRef.current) {
+          dataRef.current = payload;
           setData(payload);
           setError("");
         }
@@ -47,11 +85,32 @@ export function useResource(path, initial = null, options = {}) {
       }
     }
 
-    load(true);
-    const interval = intervalMs ? window.setInterval(() => load(false), intervalMs) : null;
+    let timer = null;
+    function schedule() {
+      if (timer) {
+        window.clearTimeout(timer);
+        timer = null;
+      }
+      if (cancelled) {
+        return;
+      }
+      const busy = Boolean(isActiveRef.current && dataRef.current && isActiveRef.current(dataRef.current));
+      const delay = busy ? activeIntervalMs : intervalMs;
+      if (!delay) {
+        return;
+      }
+      timer = window.setTimeout(async () => {
+        timer = null;
+        await load(false);
+        schedule();
+      }, delay);
+    }
+    rescheduleRef.current = schedule;
+
+    load(true).then(schedule);
     const onVisibilityChange = () => {
       if (!document.hidden) {
-        load(false);
+        load(false).then(schedule);
       }
     };
     if (pauseWhenHidden && typeof document !== "undefined") {
@@ -61,14 +120,15 @@ export function useResource(path, initial = null, options = {}) {
       cancelled = true;
       requestIdRef.current += 1;
       controller.abort();
-      if (interval) {
-        window.clearInterval(interval);
+      rescheduleRef.current = () => {};
+      if (timer) {
+        window.clearTimeout(timer);
       }
       if (pauseWhenHidden && typeof document !== "undefined") {
         document.removeEventListener("visibilitychange", onVisibilityChange);
       }
     };
-  }, [enabled, intervalMs, path, pauseWhenHidden]);
+  }, [activeIntervalMs, enabled, intervalMs, path, pauseWhenHidden]);
 
   reloadRef.current = async (showSpinner = true) => {
     if (!path) {

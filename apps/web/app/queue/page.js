@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { apiFetch, toDatetimeLocal } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { useResource } from "@/components/client-page";
+import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,10 @@ function queueVariant(job) {
   return "secondary";
 }
 
+const uploadsAreBusy = (data) => (data?.upload_jobs || []).some((job) => isActiveStatus(job.status));
+
 export default function QueuePage() {
-  const { data, loading, error, setData } = useResource("/upload-jobs");
+  const { data, loading, error, setData } = useResource("/upload-jobs", null, { isActive: uploadsAreBusy });
   const [busyId, setBusyId] = useState("");
   const [scheduleEdits, setScheduleEdits] = useState({});
   const [message, setMessage] = useState("");
