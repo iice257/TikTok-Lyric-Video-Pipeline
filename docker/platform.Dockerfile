@@ -14,6 +14,8 @@ COPY alembic.ini /app/alembic.ini
 COPY migrations /app/migrations
 COPY src /app/src
 COPY config /app/config
+# Render presets load their fonts from here (config/presets.json fonts_dir).
+COPY apps/web/public/visualizer/fonts /app/apps/web/public/visualizer/fonts
 COPY data /app/data
 COPY run_pipeline.py /app/
 

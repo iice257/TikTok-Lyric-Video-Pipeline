@@ -152,11 +152,11 @@ def get_setting(db: Session, key: str, default: dict[str, object]) -> dict[str, 
     return dict(record.value_json)
 
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-
-
 def get_preset_catalog() -> PresetCatalog:
-    return load_presets(default_presets_path(REPO_ROOT))
+    # Same root the worker's PipelineConfig uses, so non-editable installs (Docker) find config/.
+    config_path = get_settings().pipeline_config_path
+    root = config_path.parent.parent if config_path.parent.name == "config" else config_path.parent
+    return load_presets(default_presets_path(root))
 
 
 def default_preset_id(db: Session) -> str:

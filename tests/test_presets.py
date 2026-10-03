@@ -88,3 +88,27 @@ def test_presets_api_and_intake(tmp_path, monkeypatch) -> None:
     assert intake(preset="nope").status_code == 400
     assert intake().json()["song"]["preset_id"] == "amber"
     assert intake(preset="matrix").json()["song"]["preset_id"] == "matrix"
+
+
+def test_catalog_follows_pipeline_config_root(tmp_path, monkeypatch) -> None:
+    # Docker installs the package non-editable, so presets must be found via the config path, not __file__.
+    import tiktok_platform.services as services_module
+    import tiktok_platform.settings as settings_module
+
+    config_dir = tmp_path / "config"
+    fonts_dir = tmp_path / "fonts"
+    config_dir.mkdir()
+    fonts_dir.mkdir()
+    (config_dir / "pipeline.json").write_text("{}", encoding="utf-8")
+    (config_dir / "presets.json").write_text(
+        '{"default": "only", "fonts_dir": "fonts", "presets": [{"id": "only", "name": "Only", "font": "Abel"}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PIPELINE_CONFIG_PATH", str(config_dir / "pipeline.json"))
+    settings_module.get_settings.cache_clear()
+    try:
+        presets = services_module.get_preset_catalog()
+        assert [preset.id for preset in presets.presets] == ["only"]
+        assert presets.fonts_dir == fonts_dir.resolve()
+    finally:
+        settings_module.get_settings.cache_clear()
