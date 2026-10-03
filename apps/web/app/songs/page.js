@@ -1,325 +1,182 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useDeferredValue, useMemo, useState } from "react";
 
-import { apiFetch, buildMediaUrl } from "@/lib/api";
-import { formatDateTime, formatDuration } from "@/lib/format";
+import { buildMediaUrl } from "@/lib/api";
+import { formatDuration } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState, StatusPill, VideoThumb, songName } from "@/components/app/bits";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
-
-function clipBadge(status) {
-  if (status === "posted" || status === "ready") return "default";
-  if (status === "failed") return "destructive";
-  if (status === "draft") return "secondary";
-  return "outline";
-}
-
-function describeClip(clip) {
-  return `${clip.caption || ""} ${clip.status || ""}`.toLowerCase();
-}
-
-function describeSong(song) {
-  return `${song.artist || ""} ${song.title || ""} ${song.rights_status || ""}`.toLowerCase();
-}
-
-function optionLabel(value) {
-  return value.replaceAll("_", " ");
-}
 
 const clipsAreBusy = (data) => (data?.clips || []).some((clip) => isActiveStatus(clip.status));
 const songsAreBusy = (data) => (data?.songs || []).some((song) => isActiveStatus(song.status));
 
-export default function SongsPage() {
+const FILTERS = [
+  { id: "all", label: "All", test: () => true },
+  { id: "progress", label: "In progress", test: (status) => isActiveStatus(status) },
+  { id: "ready", label: "Ready", test: (status) => status === "rendered" },
+  { id: "posted", label: "Posted", test: (status) => status === "posted" },
+  { id: "failed", label: "Failed", test: (status) => status === "failed" },
+];
+
+function Chip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "h-9 rounded-full px-4 text-sm transition-colors",
+        active ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function LibraryPage() {
   const clipResource = useResource("/clips", null, { isActive: clipsAreBusy });
   const songResource = useResource("/songs", null, { isActive: songsAreBusy });
-  const pipelineResource = useResource("/pipeline/settings");
-
-  const router = useRouter();
-  const pathname = usePathname();
-  const [queryString, setQueryString] = useState("");
+  const presetResource = useResource("/presets", null, { intervalMs: 0 });
+  const [view, setView] = useState("clips");
+  const [filter, setFilter] = useState("all");
   const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query.trim().toLowerCase());
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [busy, setBusy] = useState(false);
-  const [actionError, setActionError] = useState("");
+  const search = useDeferredValue(query.trim().toLowerCase());
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const applySearch = () => setQueryString(window.location.search);
-    applySearch();
-    window.addEventListener("popstate", applySearch);
-    return () => window.removeEventListener("popstate", applySearch);
-  }, [pathname]);
+  const songsById = useMemo(
+    () => Object.fromEntries((songResource.data?.songs || []).map((song) => [song.id, song])),
+    [songResource.data?.songs]
+  );
+  const presetNames = useMemo(
+    () => Object.fromEntries((presetResource.data?.presets || []).map((preset) => [preset.id, preset.name])),
+    [presetResource.data?.presets]
+  );
+  const test = FILTERS.find((item) => item.id === filter).test;
 
-  const params = new URLSearchParams(queryString.startsWith("?") ? queryString.slice(1) : queryString);
-  const view = params.get("view") === "songs" ? "songs" : "clips";
+  const clips = useMemo(
+    () =>
+      (clipResource.data?.clips || []).filter((clip) => {
+        const text = `${songName(songsById[clip.song_id])} ${clip.caption || ""}`.toLowerCase();
+        return test(clip.status) && (!search || text.includes(search));
+      }),
+    [clipResource.data?.clips, songsById, search, test]
+  );
+  const songs = useMemo(
+    () =>
+      (songResource.data?.songs || []).filter(
+        (song) => test(song.status) && (!search || songName(song).toLowerCase().includes(search))
+      ),
+    [songResource.data?.songs, search, test]
+  );
 
-  useEffect(() => {
-    setStatusFilter("all");
-    setTypeFilter("all");
-  }, [view]);
-
-  function setView(nextView) {
-    const nextParams = new URLSearchParams(params.toString());
-    nextParams.set("view", nextView);
-    const nextQuery = nextParams.toString();
-    setQueryString(`?${nextQuery}`);
-    router.push(`${pathname}?${nextQuery}`);
-  }
-
-  async function togglePipeline() {
-    const paused = Boolean(pipelineResource.data?.pipeline?.paused);
-    setBusy(true);
-    setActionError("");
-    try {
-      await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
-      await pipelineResource.reload();
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function emergencyStop() {
-    setBusy(true);
-    setActionError("");
-    try {
-      await apiFetch("/pipeline/pause", { method: "POST" });
-      await pipelineResource.reload();
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const filteredClips = useMemo(() => {
-    const clips = clipResource.data?.clips || [];
-    return clips.filter((clip) => {
-      const matchesQuery = !deferredQuery || describeClip(clip).includes(deferredQuery);
-      const matchesStatus = statusFilter === "all" || clip.status === statusFilter;
-      const clipType = clip.review_required ? "review" : "auto";
-      const matchesType = typeFilter === "all" || clipType === typeFilter;
-      return matchesQuery && matchesStatus && matchesType;
-    });
-  }, [clipResource.data?.clips, deferredQuery, statusFilter, typeFilter]);
-
-  const filteredSongs = useMemo(() => {
-    const songs = songResource.data?.songs || [];
-    return songs.filter((song) => {
-      const matchesQuery = !deferredQuery || describeSong(song).includes(deferredQuery);
-      const matchesStatus = statusFilter === "all" || song.status === statusFilter;
-      const matchesType = typeFilter === "all" || song.source_type === typeFilter;
-      return matchesQuery && matchesStatus && matchesType;
-    });
-  }, [songResource.data?.songs, deferredQuery, statusFilter, typeFilter]);
-
-  const statusOptions = useMemo(() => {
-    const items = view === "songs" ? songResource.data?.songs || [] : clipResource.data?.clips || [];
-    return [...new Set(items.map((item) => item.status).filter(Boolean))].sort();
-  }, [clipResource.data?.clips, songResource.data?.songs, view]);
-
-  const typeOptions = useMemo(() => {
-    if (view === "songs") {
-      return [...new Set((songResource.data?.songs || []).map((song) => song.source_type).filter(Boolean))].sort();
-    }
-    return ["auto", "review"];
-  }, [clipResource.data?.clips, songResource.data?.songs, view]);
+  const loading = view === "clips" ? clipResource.loading : songResource.loading;
+  const error = view === "clips" ? clipResource.error : songResource.error;
 
   return (
     <AdminShell
-      title="Clip Browser"
-      subtitle="Manage and review all pipeline media assets."
-      status={{
-        state: pipelineResource.data?.pipeline?.paused ? "PAUSED" : "RUNNING",
-      }}
+      title="Library"
+      subtitle="Every song you've added and the clips made from it."
       actions={
-        <>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={busy || pipelineResource.data?.pipeline?.paused}
-            onClick={emergencyStop}
-            className="uppercase tracking-[0.18em]"
-          >
-            Emergency Stop
-          </Button>
-          <Button
-            size="sm"
-            disabled={busy}
-            onClick={togglePipeline}
-            className="uppercase tracking-[0.18em]"
-          >
-            {pipelineResource.data?.pipeline?.paused ? "Resume Flow" : "Pause Flow"}
-          </Button>
-        </>
+        <Button asChild className="rounded-full">
+          <Link href="/new">New video</Link>
+        </Button>
       }
     >
-      {actionError ? <p aria-live="polite" className="text-sm text-destructive">{actionError}</p> : null}
-      <Tabs value={view} onValueChange={setView} className="flex flex-col gap-4">
-        <div className="flex flex-col gap-4 rounded-md border border-border bg-card/80 p-3">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <TabsList className="grid w-full max-w-60 grid-cols-2 rounded-md border border-border bg-background p-1">
-              <TabsTrigger value="clips" className="uppercase tracking-[0.18em]">
-                Clips
-              </TabsTrigger>
-              <TabsTrigger value="songs" className="uppercase tracking-[0.18em]">
-                Songs
-              </TabsTrigger>
-            </TabsList>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-8 min-w-36 border-border bg-background uppercase tracking-[0.18em]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">all status</SelectItem>
-                    {statusOptions.map((status) => (
-                      <SelectItem key={status} value={status}>
-                        {optionLabel(status)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-8 min-w-32 border-border bg-background uppercase tracking-[0.18em]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">all types</SelectItem>
-                    {typeOptions.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {optionLabel(type)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setQuery("");
-                  setStatusFilter("all");
-                  setTypeFilter("all");
-                }}
-                className="uppercase tracking-[0.18em]"
-              >
-                Reset
-              </Button>
-            </div>
-          </div>
-
-          <Input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Quick search..."
-            className="h-10 border-border bg-background"
-          />
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex w-fit gap-1 rounded-full border border-border p-1">
+          {["clips", "songs"].map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setView(item)}
+              aria-pressed={view === item}
+              className={cn(
+                "h-8 rounded-full px-5 text-sm capitalize transition-colors",
+                view === item ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {item}
+            </button>
+          ))}
         </div>
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((item) => (
+            <Chip key={item.id} active={filter === item.id} onClick={() => setFilter(item.id)}>
+              {item.label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+      <Input
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search by artist or title"
+        aria-label="Search library"
+        className="h-11 rounded-full px-5"
+      />
 
-        <TabsContent value="clips" className="m-0">
-          {clipResource.loading ? <p className="text-sm text-muted-foreground">Loading clips...</p> : null}
-          {clipResource.error ? <p className="text-sm text-destructive">{clipResource.error}</p> : null}
+      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-          <div className="grid gap-5 lg:grid-cols-3">
-            {filteredClips.map((clip) => (
-              <Link key={clip.id} href={`/clips/${clip.id}`}>
-                <Card className="h-full overflow-hidden border-border bg-card/80 transition-colors hover:border-primary/50">
-                  <div className="aspect-video border-b border-border bg-background">
-                    {clip.preview_path || clip.video_path ? (
-                      <video
-                        className="h-full w-full object-cover"
-                        muted
-                        playsInline
-                        preload="metadata"
-                        src={buildMediaUrl(clip.preview_path || clip.video_path)}
-                      />
-                    ) : null}
-                  </div>
-                  <CardContent className="flex flex-col gap-3 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate text-lg font-semibold tracking-tight">{clip.caption || clip.id}</p>
-                        <p className="mt-2 text-sm text-muted-foreground">
-                          {formatDuration(clip.duration_seconds)} | {formatDateTime(clip.updated_at)}
-                        </p>
-                      </div>
-                      <Badge variant={clipBadge(clip.status)} className="uppercase tracking-[0.18em]">
-                        {clip.status}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
+      {view === "clips" ? (
+        <div className="grid grid-cols-2 gap-5 sm:grid-cols-3 lg:grid-cols-5">
+          {clips.map((clip) => (
+            <Link key={clip.id} href={`/clips/${clip.id}`} className="group flex flex-col gap-2">
+              <VideoThumb
+                path={clip.status === "rendered" || clip.status === "posted" ? clip.video_path : null}
+                className="transition-transform group-hover:-translate-y-0.5"
+              />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{songName(songsById[clip.song_id])}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {formatDuration(clip.duration_seconds)}
+                  {clip.preset_id ? ` · ${presetNames[clip.preset_id] || clip.preset_id}` : ""}
+                </p>
+                <StatusPill status={clip.status} className="mt-1.5" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {songs.map((song) => (
+            <Link
+              key={song.id}
+              href={`/songs/${song.id}`}
+              className="flex items-center gap-4 rounded-2xl border border-border bg-card p-3 transition-colors hover:border-primary/60"
+            >
+              <div className="size-14 shrink-0 overflow-hidden rounded-xl bg-muted">
+                {song.cover_path ? (
+                  // Media is served by the API, so next/image optimisation doesn't apply.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={buildMediaUrl(song.cover_path)} alt="" className="h-full w-full object-cover" />
+                ) : null}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium">{song.title}</p>
+                <p className="truncate text-sm text-muted-foreground">
+                  {song.artist}
+                  {song.preset_id ? ` · ${presetNames[song.preset_id] || song.preset_id}` : ""}
+                </p>
+              </div>
+              <StatusPill status={song.status} />
+            </Link>
+          ))}
+        </div>
+      )}
 
-          {!clipResource.loading && !filteredClips.length ? (
-            <Card className="border-border bg-card">
-              <CardContent className="p-5 text-sm text-muted-foreground">
-                No clips match the current filters.
-              </CardContent>
-            </Card>
-          ) : null}
-        </TabsContent>
-
-        <TabsContent value="songs" className="m-0">
-          {songResource.loading ? <p className="text-sm text-muted-foreground">Loading songs...</p> : null}
-          {songResource.error ? <p className="text-sm text-destructive">{songResource.error}</p> : null}
-
-          <div className="space-y-3">
-            {filteredSongs.map((song) => (
-              <Link key={song.id} href={`/songs/${song.id}`}>
-                <Card className="border-border bg-card/80 transition-colors hover:border-primary/50">
-                  <CardContent className="flex flex-col gap-3 p-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold tracking-tight">
-                        {song.artist} - {song.title}
-                      </p>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        {song.source_type} | {song.rights_status}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="uppercase tracking-[0.18em]">
-                        {song.status}
-                      </Badge>
-                      <Badge variant={song.publish_eligible ? "default" : "secondary"} className="uppercase tracking-[0.18em]">
-                        {song.publish_eligible ? "Eligible" : "Review"}
-                      </Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-
-          {!songResource.loading && !filteredSongs.length ? (
-            <Card className="border-border bg-card">
-              <CardContent className="p-5 text-sm text-muted-foreground">
-                No songs match the current filters.
-              </CardContent>
-            </Card>
-          ) : null}
-        </TabsContent>
-      </Tabs>
+      {!loading && !(view === "clips" ? clips : songs).length ? (
+        <EmptyState title={query || filter !== "all" ? "Nothing matches" : "Nothing here yet"}>
+          {query || filter !== "all" ? "Try a different search or filter." : "Songs you add show up here with their clips."}
+        </EmptyState>
+      ) : null}
     </AdminShell>
   );
 }

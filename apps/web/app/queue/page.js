@@ -7,228 +7,152 @@ import { apiFetch, toDatetimeLocal } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState, Panel, StatusPill, VideoThumb, songName } from "@/components/app/bits";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 
-function queueVariant(job) {
-  if (job.status === "quarantined") return "destructive";
-  if (job.approved_at) return "default";
-  return "secondary";
-}
+export const dynamic = "force-dynamic";
 
 const uploadsAreBusy = (data) => (data?.upload_jobs || []).some((job) => isActiveStatus(job.status));
+const DONE = ["posted", "cancelled"];
 
-export default function QueuePage() {
-  const { data, loading, error, setData } = useResource("/upload-jobs", null, { isActive: uploadsAreBusy });
+function JobRow({ job, clip, song, busy, onAction }) {
+  const [editing, setEditing] = useState(false);
+  const [when, setWhen] = useState(toDatetimeLocal(job.scheduled_at));
+  const done = DONE.includes(job.status);
+  const needsApproval = !job.approved_at && !done;
+
+  function saveSchedule() {
+    const date = new Date(when);
+    if (!when || Number.isNaN(date.getTime())) return;
+    onAction(`/upload-jobs/${job.id}/reschedule`, { scheduled_at: date.toISOString() });
+    setEditing(false);
+  }
+
+  return (
+    <div className="flex gap-4 rounded-2xl border border-border p-3">
+      <Link href={`/clips/${job.clip_id}`} className="w-16 shrink-0">
+        <VideoThumb path={clip?.video_path} className="rounded-xl" />
+      </Link>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate font-medium">{songName(song)}</p>
+          <StatusPill status={needsApproval ? "pending" : job.status} />
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {job.status === "posted" ? "Posted" : "Posts"} {formatDateTime(job.completed_at || job.scheduled_at, "when ready")}
+          {{ draft: " · as a draft", direct: " · directly" }[job.publish_mode] || ""}
+        </p>
+        {job.last_error ? <p className="text-sm text-destructive">{job.last_error}</p> : null}
+        {editing ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              type="datetime-local"
+              value={when}
+              onChange={(event) => setWhen(event.target.value)}
+              aria-label="New post time"
+              className="h-9 w-auto rounded-full"
+            />
+            <Button size="sm" className="rounded-full" onClick={saveSchedule} disabled={busy}>
+              Save
+            </Button>
+            <Button size="sm" variant="ghost" className="rounded-full" onClick={() => setEditing(false)}>
+              Cancel
+            </Button>
+          </div>
+        ) : !done ? (
+          <div className="flex flex-wrap gap-2">
+            {needsApproval ? (
+              <Button size="sm" className="rounded-full" disabled={busy} onClick={() => onAction(`/upload-jobs/${job.id}/approve`)}>
+                Approve
+              </Button>
+            ) : null}
+            <Button size="sm" variant="outline" className="rounded-full" disabled={busy} onClick={() => onAction(`/upload-jobs/${job.id}/force-publish`)}>
+              Post now
+            </Button>
+            <Button size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => setEditing(true)}>
+              Change time
+            </Button>
+            {job.status === "failed" ? (
+              <Button size="sm" variant="ghost" className="rounded-full" disabled={busy} onClick={() => onAction(`/jobs/${job.id}/retry`, { reason: "retried from schedule" })}>
+                Retry
+              </Button>
+            ) : null}
+            <Button size="sm" variant="ghost" className="rounded-full text-muted-foreground" disabled={busy} onClick={() => onAction(`/jobs/${job.id}/cancel`, { reason: "cancelled from schedule" })}>
+              Remove
+            </Button>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+export default function SchedulePage() {
+  const jobs = useResource("/upload-jobs", null, { isActive: uploadsAreBusy });
+  const clips = useResource("/clips");
+  const songs = useResource("/songs");
   const [busyId, setBusyId] = useState("");
-  const [scheduleEdits, setScheduleEdits] = useState({});
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const stats = useMemo(() => {
-    const jobs = data?.upload_jobs || [];
-    return {
-      total: jobs.length,
-      pending: jobs.filter(
-        (job) => !job.approved_at && !["posted", "cancelled"].includes(job.status)
-      ).length,
-      failed: jobs.filter(
-        (job) => job.last_error && !["posted", "cancelled"].includes(job.status)
-      ).length,
-    };
-  }, [data?.upload_jobs]);
+  const clipsById = useMemo(() => Object.fromEntries((clips.data?.clips || []).map((clip) => [clip.id, clip])), [clips.data?.clips]);
+  const songsById = useMemo(() => Object.fromEntries((songs.data?.songs || []).map((song) => [song.id, song])), [songs.data?.songs]);
 
-  async function runAction(jobId, path, body) {
-    setBusyId(jobId);
-    setMessage("");
+  const groups = useMemo(() => {
+    const all = jobs.data?.upload_jobs || [];
+    const bySchedule = (a, b) => new Date(a.scheduled_at || 0) - new Date(b.scheduled_at || 0);
+    return [
+      { title: "Needs approval", items: all.filter((job) => !job.approved_at && !DONE.includes(job.status)).sort(bySchedule) },
+      { title: "Upcoming", items: all.filter((job) => job.approved_at && !DONE.includes(job.status)).sort(bySchedule) },
+      { title: "History", items: all.filter((job) => DONE.includes(job.status)).sort((a, b) => bySchedule(b, a)) },
+    ];
+  }, [jobs.data?.upload_jobs]);
+
+  async function runAction(job, path, body) {
+    setBusyId(job.id);
+    setError("");
     try {
-      const payload = await apiFetch(path, {
-        method: "POST",
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const updatedJob = payload.upload_job || payload.job;
-      if (updatedJob) {
-        setData((current) => ({
-          ...current,
-          upload_jobs: (current?.upload_jobs || []).map((job) => (job.id === jobId ? updatedJob : job)),
-        }));
-      }
-      setMessage("QUEUE UPDATED");
+      await apiFetch(path, { method: "POST", body: body ? JSON.stringify(body) : undefined });
+      await jobs.reload(false);
     } catch (err) {
-      setMessage(`ERROR: ${err.message}`);
+      setError(err.message);
     } finally {
       setBusyId("");
     }
   }
 
-  function reschedule(job) {
-    const rawValue = scheduleEdits[job.id] || toDatetimeLocal(job.scheduled_at);
-    const nextDate = new Date(rawValue);
-    if (!rawValue || Number.isNaN(nextDate.getTime())) {
-      setMessage("ERROR: Choose a valid schedule time.");
-      return;
-    }
-    runAction(job.id, `/upload-jobs/${job.id}/reschedule`, {
-      scheduled_at: nextDate.toISOString(),
-    });
-  }
+  const empty = !jobs.loading && !(jobs.data?.upload_jobs || []).length;
 
   return (
-    <AdminShell
-      title="TikTok Queue"
-      subtitle="Review and operate scheduled upload jobs."
-      status={{ queue: `${stats.total} Jobs` }}
-    >
-      <div className="grid gap-3 md:grid-cols-3">
-        <Card className="border-border bg-card/80">
-          <CardContent className="p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Total</p>
-            <p className="mt-3 text-3xl font-semibold tracking-tight">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card/80">
-          <CardContent className="p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Pending Approval</p>
-            <p className="mt-3 text-3xl font-semibold tracking-tight text-primary">{stats.pending}</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card/80">
-          <CardContent className="p-4">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Needs Attention</p>
-            <p className="mt-3 text-3xl font-semibold tracking-tight">{stats.failed}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="space-y-4">
-        {loading ? <p className="text-sm text-muted-foreground">Loading queue...</p> : null}
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {message ? (
-          <p
-            aria-live="polite"
-            className={message.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}
-          >
-            {message}
-          </p>
-        ) : null}
-
-        {(data?.upload_jobs || []).map((job) => {
-          const terminal = ["posted", "cancelled"].includes(job.status);
-          const posted = job.status === "posted";
-          const rescheduleId = `schedule-${job.id}`;
-          return (
-          <Card key={job.id} className="border-border bg-card/80">
-            <CardContent className="flex flex-col gap-4 p-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={queueVariant(job)} className="uppercase tracking-[0.18em]">
-                      {job.approved_at ? "Approved" : "Pending"}
-                    </Badge>
-                    <Badge variant="outline" className="uppercase tracking-[0.18em]">
-                      {job.publish_mode}
-                    </Badge>
-                    <Badge variant="outline" className="uppercase tracking-[0.18em]">
-                      {job.status}
-                    </Badge>
-                  </div>
-                  <p className="text-lg font-semibold tracking-tight">Clip: {job.clip_id}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Scheduled: {formatDateTime(job.scheduled_at, "unscheduled")}
-                  </p>
-                </div>
-
-                <div className="grid gap-2 sm:min-w-64">
-                  <Label htmlFor={rescheduleId} className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Reschedule</Label>
-                  <Input
-                    id={rescheduleId}
-                    type="datetime-local"
-                    value={scheduleEdits[job.id] ?? toDatetimeLocal(job.scheduled_at)}
-                    onChange={(event) =>
-                      setScheduleEdits((current) => ({ ...current, [job.id]: event.target.value }))
-                    }
-                    className="border-border bg-background"
-                  />
-                </div>
-              </div>
-
-              {job.last_error ? (
-                <p className="text-sm text-destructive">{job.last_error}</p>
-              ) : null}
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={() => runAction(job.id, `/upload-jobs/${job.id}/approve`)}
-                  disabled={busyId === job.id || terminal || Boolean(job.approved_at)}
-                  size="sm"
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Approve
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => reschedule(job)}
-                  disabled={busyId === job.id || terminal}
-                  size="sm"
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Reschedule
-                </Button>
-                <Button
-                  variant="secondary"
-                  onClick={() => runAction(job.id, `/upload-jobs/${job.id}/force-publish`)}
-                  disabled={busyId === job.id || terminal}
-                  size="sm"
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Force Publish
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => runAction(job.id, `/jobs/${job.id}/retry`, { reason: "retried from queue" })}
-                  disabled={busyId === job.id || posted}
-                  size="sm"
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Retry
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => runAction(job.id, `/jobs/${job.id}/quarantine`, { reason: "quarantined from queue" })}
-                  disabled={busyId === job.id || posted || job.status === "quarantined"}
-                  size="sm"
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Quarantine
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => runAction(job.id, `/jobs/${job.id}/cancel`, { reason: "cancelled from queue" })}
-                  disabled={busyId === job.id || posted || job.status === "cancelled"}
-                  size="sm"
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Cancel
-                </Button>
-                <Button asChild variant="outline" size="sm" className="uppercase tracking-[0.18em]">
-                  <Link href={`/clips/${job.clip_id}`}>Open Clip</Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-          );
-        })}
-
-        {!loading && !(data?.upload_jobs || []).length ? (
-          <Card className="border-border bg-card">
-            <CardContent className="p-5 text-sm text-muted-foreground">
-              Queue is empty.
-            </CardContent>
-          </Card>
-        ) : null}
-      </div>
+    <AdminShell title="Schedule" subtitle="Rendered clips waiting to post to TikTok.">
+      {error ? <p aria-live="polite" className="text-sm text-destructive">{error}</p> : null}
+      {jobs.error ? <p className="text-sm text-destructive">{jobs.error}</p> : null}
+      {jobs.loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+      {empty ? (
+        <EmptyState title="Nothing scheduled">Clips land here once they finish rendering.</EmptyState>
+      ) : null}
+      {groups
+        .filter((group) => group.items.length)
+        .map((group) => (
+          <Panel key={group.title} className="flex flex-col gap-3">
+            <h2 className="font-heading text-2xl">
+              {group.title} <span className="text-base text-muted-foreground">{group.items.length}</span>
+            </h2>
+            {group.items.map((job) => {
+              const clip = clipsById[job.clip_id];
+              return (
+                <JobRow
+                  key={job.id}
+                  job={job}
+                  clip={clip}
+                  song={clip ? songsById[clip.song_id] : null}
+                  busy={busyId === job.id}
+                  onAction={(path, body) => runAction(job, path, body)}
+                />
+              );
+            })}
+          </Panel>
+        ))}
     </AdminShell>
   );
 }
