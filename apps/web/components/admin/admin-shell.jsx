@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { apiFetch, clearCsrfToken, getApiBaseUrl, setCsrfToken } from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useThemeSync } from "@/lib/theme";
 
 function Icon({ children }) {
   return (
@@ -34,6 +35,7 @@ const NAV = [
 
 export function AdminShell({ title, subtitle, children, actions, bleed = false }) {
   const pathname = usePathname();
+  useThemeSync();
   const router = useRouter();
   const [session, setSession] = useState(null);
   const [signingOut, setSigningOut] = useState(false);

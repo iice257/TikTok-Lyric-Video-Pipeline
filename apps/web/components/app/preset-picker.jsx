@@ -17,17 +17,17 @@ const LAYOUT = {
 };
 
 const MOTION_DETAILS = {
-  karaoke: "Highlights each word as it is sung.",
-  stacked_3_line: "Shows the current lyric with nearby lines above and below it.",
-  line_swap: "Replaces each lyric line as the song progresses.",
-  beat_pulse: "Pulses the lyrics with the beat.",
+  karaoke: "Highlights each word as it's sung.",
+  stacked_3_line: "Shows the current line between the previous and next ones.",
+  line_swap: "Shows one line at a time.",
+  beat_pulse: "Lyrics pulse on every beat of the song.",
 };
 
 const LAYOUT_DETAILS = {
-  blurred_cover_center_lyrics: "Uses blurred cover art as the background, with the cover centered behind the lyrics.",
-  fullscreen_cover_overlay: "Fills the frame with cover art and overlays the lyrics.",
-  blurred_background_small_cover: "Uses a blurred backdrop with a smaller cover beside the lyrics.",
-  minimal_typography_black: "Uses a minimal, dark text-first layout without cover art.",
+  blurred_cover_center_lyrics: "Cover art centered on a blurred copy of itself, lyrics below.",
+  fullscreen_cover_overlay: "Cover art fills the frame, lyrics on top.",
+  blurred_background_small_cover: "A smaller centered cover on a blurred backdrop, lyrics below.",
+  minimal_typography_black: "Just the lyrics on the look's background color, no cover art.",
 };
 
 export function presetSummary(preset) {
@@ -36,7 +36,7 @@ export function presetSummary(preset) {
 }
 
 export function presetDescription(preset) {
-  if (!preset || preset.is_random) return "Chooses a different color palette, layout, and lyric motion for each new clip.";
+  if (!preset || preset.is_random) return "Picks different colors, layout and lyric motion for each clip.";
   return [MOTION_DETAILS[preset.lyric_style], LAYOUT_DETAILS[preset.layout]].filter(Boolean).join(" ");
 }
 
@@ -86,8 +86,7 @@ export function PresetPicker({ presets, value, onChange, name }) {
             type="button"
             role="radio"
             aria-checked={selected}
-            title={`${preset.name}: ${description}`}
-            aria-label={`${preset.name}: ${description}`}
+            title={description}
             onClick={() => onChange(preset.id)}
             className="group flex flex-col gap-2 text-left"
           >

@@ -14,7 +14,6 @@ import { PresetPicker, presetDescription } from "@/components/app/preset-picker"
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -199,129 +198,94 @@ function TikTokSection() {
   );
 }
 
-function AppearanceSection() {
+function DefaultLookSection() {
   const presets = useResource("/presets", null, { intervalMs: 0 });
-  const [theme, setTheme] = useAppTheme();
-  const [presetError, setPresetError] = useState("");
-  const [systemMode, setSystemMode] = useState("dark");
-  const selectedPreset = presets.data?.presets?.find((item) => item.id === presets.data.default);
-  const selectedAppTheme = THEMES.find((item) => item.id === theme.id) || THEMES[0];
-  const paletteMode = theme.mode === "auto" ? systemMode : theme.mode;
+  const [error, setError] = useState("");
+  const selected = presets.data?.presets?.find((item) => item.id === presets.data.default);
 
-  useEffect(() => {
-    const preference = window.matchMedia("(prefers-color-scheme: light)");
-    const updateMode = () => setSystemMode(preference.matches ? "light" : "dark");
-    updateMode();
-    preference.addEventListener("change", updateMode);
-    return () => preference.removeEventListener("change", updateMode);
-  }, []);
-
-  async function choosePreset(presetId) {
-    setPresetError("");
+  async function choose(presetId) {
+    setError("");
     try {
       await apiFetch("/presets/default", { method: "PATCH", body: JSON.stringify({ preset_id: presetId }) });
       await presets.reload(false);
     } catch (err) {
-      setPresetError(err.message);
+      setError(err.message);
     }
   }
 
-  const modeChoices = [
-    { id: "dark", label: "Dark", detail: "Use the selected theme's dark colors." },
-    { id: "light", label: "Light", detail: "Use the selected theme's light colors." },
-    { id: "auto", label: "Auto", detail: "Match your device's light or dark setting." },
-  ];
+  return (
+    <Panel>
+      <SectionTitle note="Preselected for new songs">Default look</SectionTitle>
+      {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
+      {presets.data ? (
+        <PresetPicker presets={presets.data.presets} value={presets.data.default} onChange={choose} />
+      ) : (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      )}
+      {selected ? <p className="mt-4 text-sm text-muted-foreground">{presetDescription(selected)}</p> : null}
+    </Panel>
+  );
+}
+
+const MODES = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "auto", label: "Auto", hint: "Follows your device" },
+];
+
+function AppearanceSection() {
+  const [theme, setTheme, resolvedMode] = useAppTheme();
 
   return (
     <Panel>
-      <SectionTitle note="App and video styles">Appearance</SectionTitle>
-      <Tabs defaultValue="app-theme" className="gap-5">
-        <TabsList aria-label="Appearance settings">
-          <TabsTrigger value="app-theme">App Theme</TabsTrigger>
-          <TabsTrigger value="video-theme">Video Theme</TabsTrigger>
-        </TabsList>
-        <TabsContent value="app-theme" className="space-y-5">
-          <div>
-            <h3 className="text-sm font-medium">Theme mode</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Choose how the app and Visualizer use the selected theme.</p>
-            <div className="mt-3 flex w-fit gap-1 rounded-full border border-border p-1">
-              {modeChoices.map((mode) => (
-                <button
-                  key={mode.id}
-                  type="button"
-                  title={mode.detail}
-                  aria-label={`${mode.label}: ${mode.detail}`}
-                  aria-pressed={theme.mode === mode.id}
-                  onClick={() => setTheme({ mode: mode.id })}
-                  className={cn(
-                    "h-8 rounded-full px-4 text-sm transition-colors",
-                    theme.mode === mode.id ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {mode.label}
-                </button>
-              ))}
-            </div>
-            <p aria-live="polite" className="mt-2 text-xs text-muted-foreground">
-              {modeChoices.find((mode) => mode.id === theme.mode)?.detail}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">App theme</h3>
-            <p className="mt-1 text-sm text-muted-foreground">The selected palette and typography also appear in the Visualizer.</p>
-            <p aria-live="polite" className="mt-1 text-xs text-muted-foreground">
-              {selectedAppTheme.name} applies its colors and typography across the app and Visualizer.
-            </p>
-            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
-              {THEMES.map((item) => {
-                const palette = item[paletteMode];
-                const selected = theme.id === item.id;
-                const description = `${item.name} sets the app and Visualizer colors and typography.`;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    title={description}
-                    aria-label={description}
-                    aria-pressed={selected}
-                    onClick={() => setTheme({ id: item.id })}
-                    className={cn(
-                      "flex h-20 flex-col justify-between rounded-2xl p-3 text-left ring-offset-2 ring-offset-background transition",
-                      selected ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-primary/50"
-                    )}
-                    style={{ background: palette.bg, color: palette.text }}
-                  >
-                    <span className="flex gap-1" aria-hidden="true">
-                      <span className="size-3 rounded-full" style={{ background: palette.accent }} />
-                      <span className="size-3 rounded-full" style={{ background: palette.accent2 }} />
-                    </span>
-                    <span className="truncate text-sm" style={{ fontFamily: (FONTS[item.fonts[0]] || FONTS.hanken)[1] }}>
-                      {item.name}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </TabsContent>
-        <TabsContent value="video-theme" className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium">Default look</h3>
-            <p className="mt-1 text-sm text-muted-foreground">Preselected for new songs. Existing videos keep their current look.</p>
-          </div>
-          {presetError ? <p className="text-sm text-destructive">{presetError}</p> : null}
-          {presets.data ? (
-            <PresetPicker presets={presets.data.presets} value={presets.data.default} onChange={choosePreset} />
-          ) : (
-            <p className="text-sm text-muted-foreground">Loading…</p>
-          )}
-          {selectedPreset ? (
-            <p aria-live="polite" className="text-xs text-muted-foreground">
-              {presetDescription(selectedPreset)} It will be used as the starting look for new songs.
-            </p>
-          ) : null}
-        </TabsContent>
-      </Tabs>
+      <SectionTitle note="Also used by the Visualizer">Appearance</SectionTitle>
+      <div className="mb-5 flex items-center gap-3">
+        <div className="flex w-fit gap-1 rounded-full border border-border p-1">
+          {MODES.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              title={mode.hint}
+              aria-pressed={theme.mode === mode.id}
+              onClick={() => setTheme({ mode: mode.id })}
+              className={cn(
+                "h-8 rounded-full px-4 text-sm transition-colors",
+                theme.mode === mode.id ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
+        {theme.mode === "auto" ? <span className="text-xs text-muted-foreground">Follows your device ({resolvedMode})</span> : null}
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        {THEMES.map((item) => {
+          const palette = item[resolvedMode] || item.dark;
+          const selected = theme.id === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setTheme({ id: item.id })}
+              className={cn(
+                "flex h-20 flex-col justify-between rounded-2xl p-3 text-left ring-offset-2 ring-offset-background transition",
+                selected ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-primary/50"
+              )}
+              style={{ background: palette.bg, color: palette.text }}
+            >
+              <span className="flex gap-1" aria-hidden="true">
+                <span className="size-3 rounded-full" style={{ background: palette.accent }} />
+                <span className="size-3 rounded-full" style={{ background: palette.accent2 }} />
+              </span>
+              <span className="truncate text-sm" style={{ fontFamily: (FONTS[item.fonts[0]] || FONTS.hanken)[1] }}>
+                {item.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </Panel>
   );
 }
@@ -375,6 +339,7 @@ export default function SettingsPage() {
   return (
     <AdminShell title="Settings">
       <TikTokSection />
+      <DefaultLookSection />
       <AppearanceSection />
       <ProcessingSection />
     </AdminShell>
