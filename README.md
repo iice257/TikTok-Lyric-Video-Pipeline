@@ -1,25 +1,45 @@
-# SSS
+# SSS — songs in, lyric videos out
 
-Turn songs into synced lyric videos for TikTok, and post them on a schedule.
+Drop in a song. SSS finds the hook, renders a synced lyric video, and posts it to TikTok on schedule.
 
 ![Four clips rendered with different presets](docs/media/presets.png)
 
+No editing timeline. It scores the song for its strongest 30–60 seconds, times every line to the audio, and renders a 1080×1920 clip in one of 16 looks.
+
+![The SSS dashboard](docs/media/home.jpg)
+
+**[Live UI →](https://tik-tok-lyric-video-pipeline.vercel.app)** (frontend only; the pipeline runs locally) · Python · FastAPI · ffmpeg · Next.js
+
+---
+
 ## What it does
 
-- **Add a song** with its audio, lyrics and cover, then pick a look
-- **Finds the hooks.** It scores repeated lines and loud sections to pick the strongest 30–60 second moments
-- **Renders vertical clips** (1080×1920) with every lyric timed to the audio
-- **16 looks** to choose from, each setting colors, font, lyric motion and layout, or "Surprise me" for a different one every clip
-- **Schedules posts** across the next day and publishes through TikTok's official Content Posting API
-- **Built-in visualizer:** [VISUALICER](https://github.com/iice257/VISUALICER) runs inside the app, and its themes are the same 16 looks the videos use
+- **Finds the hooks.** Scores repeated lines, loudness and musicality to pick non-overlapping 30–60 s moments
+- **Renders vertical clips** with ASS subtitles timed to the audio, through ffmpeg + libass
+- **16 looks** (color, font, lyric motion, layout), or "Surprise me" for a new one every clip
+- **Schedules and posts** through TikTok's official Content Posting API
+- **Built-in visualizer:** [VISUALICER](https://github.com/iice257/VISUALICER) runs inside the app, and its themes are the same 16 looks
 
-![The app](docs/media/home.jpg)
+Only use audio you have the rights to post.
 
 ## How it works
 
-A Python backend takes each song through lyrics → moment detection → styling → an ffmpeg render, then queues the clip for TikTok. A Next.js app on top is where you add songs, watch clips come in, approve the schedule and connect your TikTok account.
+```mermaid
+flowchart LR
+  A[Song + lyrics] --> B[Lyrics + alignment]
+  B --> C[Hook scoring]
+  C --> D[Styling preset]
+  D --> E[ffmpeg render]
+  E --> F[Schedule]
+  F --> G[TikTok API]
+```
 
-Only use audio you have the rights to post.
+Two layers share one repo:
+
+- **Pipeline library** (`src/tiktok_lyric_pipeline`): stateless stages, runnable on its own via `run_pipeline.py`.
+- **Platform** (`src/tiktok_platform*`, `apps/web`): FastAPI API, a polling worker that claims render and upload jobs with leases, idempotency keys and retries, SQLAlchemy + Alembic, and a Next.js control panel. Every state change is logged to an append-only event table.
+
+More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Run it
 
@@ -30,10 +50,10 @@ pip install -e .
 cd apps/web && npm install
 ```
 
-Then start everything (API, worker and web app) with `scripts/dev-no-docker.ps1` and open http://localhost:3000.
+Start the API, worker and web app with `scripts/dev-no-docker.ps1`, then open http://localhost:3000. Tests: `python -m pytest`.
 
 ## Built with
 
-Python, FastAPI, SQLAlchemy, ffmpeg + libass, Next.js, React, Tailwind CSS.
+Python, FastAPI, SQLAlchemy, Alembic, ffmpeg + libass, Next.js, React, Tailwind CSS, Docker.
 
-By [ICE](https://github.com/iice257).
+MIT © [Kingsley Aremu](https://github.com/iice257)
