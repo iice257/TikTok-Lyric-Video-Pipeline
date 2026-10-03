@@ -16,9 +16,28 @@ const LAYOUT = {
   minimal_typography_black: "Type only",
 };
 
+const MOTION_DETAILS = {
+  karaoke: "Highlights each word as it is sung.",
+  stacked_3_line: "Shows the current lyric with nearby lines above and below it.",
+  line_swap: "Replaces each lyric line as the song progresses.",
+  beat_pulse: "Pulses the lyrics with the beat.",
+};
+
+const LAYOUT_DETAILS = {
+  blurred_cover_center_lyrics: "Uses blurred cover art as the background, with the cover centered behind the lyrics.",
+  fullscreen_cover_overlay: "Fills the frame with cover art and overlays the lyrics.",
+  blurred_background_small_cover: "Uses a blurred backdrop with a smaller cover beside the lyrics.",
+  minimal_typography_black: "Uses a minimal, dark text-first layout without cover art.",
+};
+
 export function presetSummary(preset) {
   if (!preset || preset.is_random) return "A different look every clip";
   return [MOTION[preset.lyric_style], LAYOUT[preset.layout]].filter(Boolean).join(" · ");
+}
+
+export function presetDescription(preset) {
+  if (!preset || preset.is_random) return "Chooses a different color palette, layout, and lyric motion for each new clip.";
+  return [MOTION_DETAILS[preset.lyric_style], LAYOUT_DETAILS[preset.layout]].filter(Boolean).join(" ");
 }
 
 function PresetPreview({ preset }) {
@@ -60,12 +79,15 @@ export function PresetPicker({ presets, value, onChange, name }) {
       {name ? <input type="hidden" name={name} value={value || ""} /> : null}
       {presets.map((preset) => {
         const selected = preset.id === value;
+        const description = presetDescription(preset);
         return (
           <button
             key={preset.id}
             type="button"
             role="radio"
             aria-checked={selected}
+            title={`${preset.name}: ${description}`}
+            aria-label={`${preset.name}: ${description}`}
             onClick={() => onChange(preset.id)}
             className="group flex flex-col gap-2 text-left"
           >
