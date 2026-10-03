@@ -4,10 +4,6 @@
     "web": {
       "entrypoint": "apps/web",
       "routePrefix": "/"
-    },
-    "api": {
-      "entrypoint": "src/tiktok_platform_api/app.py",
-      "routePrefix": "/api"
     }
   }
 }
