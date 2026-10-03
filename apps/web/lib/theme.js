@@ -38,7 +38,15 @@ export function useAppTheme() {
   const [theme, setThemeState] = useState(DEFAULT_THEME);
 
   useEffect(() => {
-    setThemeState(readStoredTheme());
+    const syncTheme = () => {
+      const stored = readStoredTheme();
+      setThemeState(stored);
+      applyTheme(stored);
+    };
+    syncTheme();
+    const preference = window.matchMedia("(prefers-color-scheme: light)");
+    preference.addEventListener("change", syncTheme);
+    return () => preference.removeEventListener("change", syncTheme);
   }, []);
 
   const setTheme = useCallback((next) => {
