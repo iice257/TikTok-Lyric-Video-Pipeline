@@ -45,7 +45,17 @@ def onset_envelope(samples, sample_rate: int = SAMPLE_RATE, hop: int = HOP) -> l
         energy = sum(value * value for value in chunk) / max(len(chunk), 1)
         log_energy.append(math.log1p(energy))
     # Positive changes in loudness mark note and drum onsets.
-    return [0.0] + [max(0.0, log_energy[i] - log_energy[i - 1]) for i in range(1, len(log_energy))]
+    flux = [0.0] + [max(0.0, log_energy[i] - log_energy[i - 1]) for i in range(1, len(log_energy))]
+    # Subtract a local average (~0.3 s) so sustained tones and noise don't drown out real onsets.
+    radius = max(1, round(0.15 * sample_rate / hop))
+    prefix = [0.0]
+    for value in flux:
+        prefix.append(prefix[-1] + value)
+    envelope = []
+    for i, value in enumerate(flux):
+        lo, hi = max(0, i - radius), min(len(flux), i + radius + 1)
+        envelope.append(max(0.0, value - 1.5 * (prefix[hi] - prefix[lo]) / (hi - lo)))
+    return envelope
 
 
 def beats_from_samples(samples, sample_rate: int = SAMPLE_RATE, hop: int = HOP) -> list[float]:

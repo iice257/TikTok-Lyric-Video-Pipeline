@@ -51,6 +51,8 @@ from tiktok_platform.services import (
     set_setting,
     upsert_oauth_token,
 )
+from tiktok_lyric_pipeline.config import PipelineConfig
+from tiktok_platform.previews import PreviewUnavailable, render_preview
 from tiktok_platform.search import search_catalog
 from tiktok_platform.settings import PlatformSettings
 from tiktok_platform.tiktok_api import DEFAULT_SCOPES, TikTokApiClient, TikTokApiError
@@ -553,6 +555,25 @@ def list_presets(
 ) -> dict[str, object]:
     catalog = get_preset_catalog()
     return {"presets": [preset.to_dict() for preset in catalog.presets], "default": default_preset_id(db)}
+
+
+@router.get("/presets/{preset_id}/preview")
+def preview_preset(
+    preset_id: str,
+    _: object = Depends(get_current_user),
+    settings: PlatformSettings = Depends(get_platform_settings),
+) -> FileResponse:
+    preset = get_preset_catalog().get(preset_id)
+    if preset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Unknown preset.")
+    config_path = settings.pipeline_config_path
+    config = PipelineConfig.from_json(config_path) if config_path.exists() else PipelineConfig.default(Path.cwd())
+    try:
+        clip = render_preview(config, preset)
+    except PreviewUnavailable as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    # Fingerprinted file names change whenever the preset does, so the browser can cache freely.
+    return FileResponse(clip, media_type="video/mp4", headers={"Cache-Control": "private, max-age=86400"})
 
 
 @router.patch("/presets/default")
