@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-import { apiFetch, clearCsrfToken, setCsrfToken } from "@/lib/api";
+import { apiFetch, clearCsrfToken, getApiBaseUrl, setCsrfToken } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -234,6 +234,11 @@ export function AdminShell({ title, subtitle, children, actions, status }) {
   }, [pathname]);
 
   useEffect(() => {
+    if (getApiBaseUrl() === "/api") {
+      // Frontend-only deployment: there is no backend to authenticate against.
+      router.replace("/login");
+      return undefined;
+    }
     let cancelled = false;
     apiFetch("/auth/me")
       .then((payload) => {
