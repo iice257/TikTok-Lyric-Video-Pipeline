@@ -5,11 +5,18 @@ import { useParams } from "next/navigation";
 
 import { buildMediaUrl } from "@/lib/api";
 import { formatDuration } from "@/lib/format";
-import { useResource } from "@/components/client-page";
+import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+function songIsBusy(data) {
+  return (
+    isActiveStatus(data?.song?.status) ||
+    (data?.clips || []).some((clip) => isActiveStatus(clip.status))
+  );
+}
 
 export default function SongDetailPage() {
   const params = useParams();
@@ -17,7 +24,7 @@ export default function SongDetailPage() {
   const { data, loading, error } = useResource(
     songId ? `/songs/${encodeURIComponent(songId)}` : "",
     null,
-    { enabled: Boolean(songId) }
+    { enabled: Boolean(songId), isActive: songIsBusy }
   );
 
   return (
