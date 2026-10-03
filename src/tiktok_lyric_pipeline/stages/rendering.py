@@ -11,6 +11,7 @@ import shutil
 import subprocess
 
 from ..config import PipelineConfig
+from ..beats import detect_beats
 from ..presets import default_presets_path, load_presets
 from ..hooks import HOOK_CATEGORIES
 from ..models import LyricsBundle, LyricLine, LyricToken, SegmentSelection, SongAsset, StyleDecision
@@ -146,7 +147,8 @@ class RenderPlanner:
         ass_path = work_dir / f"{slugify(song.title)}-{render_id}.ass"
         manifest_path = work_dir / f"{slugify(song.title)}-{render_id}.json"
         output_video_path = output_dir / f"{slugify(song.artist)}-{slugify(song.title)}-{render_id}.mp4"
-        ass_document, ass_lines = self.build_ass_document(song, segment, lyrics, style)
+        beats = self.beats_for(song, segment, style)
+        ass_document, ass_lines = self.build_ass_document(song, segment, lyrics, style, beats=beats)
         layout_description = self.describe_layout(style, song, segment)
         ffmpeg_command = self.build_ffmpeg_command(song, segment, ass_path, output_video_path, style, layout_description)
         manifest = {
@@ -250,13 +252,26 @@ class RenderPlanner:
             return song.album_cover_path
         return None
 
-    def build_ass_document(self, song: SongAsset, segment: SegmentSelection, lyrics: LyricsBundle, style: StyleDecision) -> tuple[str, list[AssLine]]:
+    def beats_for(self, song: SongAsset, segment: SegmentSelection, style: StyleDecision) -> list[float]:
+        if self.normalize_lyric_style(style.lyric_style) != "beat_pulse":
+            return []
+        ffmpeg_binary = os.getenv("FFMPEG_BINARY") or "ffmpeg"
+        return detect_beats(song.audio_path, segment.start, segment.duration, ffmpeg_binary)
+
+    def build_ass_document(
+        self,
+        song: SongAsset,
+        segment: SegmentSelection,
+        lyrics: LyricsBundle,
+        style: StyleDecision,
+        beats: list[float] | None = None,
+    ) -> tuple[str, list[AssLine]]:
         lines = self._rebase_lines(
             self.select_lines_for_segment(lyrics.lines, segment.start, segment.end),
             segment.start,
             segment.end,
         )
-        ass_lines = self.build_ass_lines(lines, style, segment)
+        ass_lines = self.build_ass_lines(lines, style, segment, beats or [])
         header = self.ass_header(style)
         body = "\n".join(self.ass_line_to_ass(line) for line in ass_lines)
         return header + body, ass_lines
@@ -267,7 +282,9 @@ class RenderPlanner:
             return selected
         return lines[: min(5, len(lines))]
 
-    def build_ass_lines(self, lines: list[LyricLine], style: StyleDecision, segment: SegmentSelection) -> list[AssLine]:
+    def build_ass_lines(
+        self, lines: list[LyricLine], style: StyleDecision, segment: SegmentSelection, beats: list[float] | None = None
+    ) -> list[AssLine]:
         if not lines:
             placeholder = self.fallback_ass_lines(segment)
             return placeholder
@@ -279,7 +296,7 @@ class RenderPlanner:
             return self.build_stacked_ass_lines(lines, style, segment)
         if lyric_style == "line_swap":
             return self.build_line_swap_ass_lines(lines, style, segment)
-        return self.build_beat_pulse_ass_lines(lines, style, segment)
+        return self.build_beat_pulse_ass_lines(lines, style, segment, beats or [])
 
     def fallback_ass_lines(self, segment: SegmentSelection) -> list[AssLine]:
         return [
@@ -335,18 +352,34 @@ class RenderPlanner:
             )
         return ass_lines
 
-    def build_beat_pulse_ass_lines(self, lines: list[LyricLine], style: StyleDecision, segment: SegmentSelection) -> list[AssLine]:
+    def build_beat_pulse_ass_lines(
+        self, lines: list[LyricLine], style: StyleDecision, segment: SegmentSelection, beats: list[float] | None = None
+    ) -> list[AssLine]:
         ass_lines: list[AssLine] = []
         for lyric_line in lines:
+            start = max(0.0, lyric_line.start)
+            end = min(segment.duration, lyric_line.end)
             ass_lines.append(
                 AssLine(
-                    start=max(0.0, lyric_line.start),
-                    end=min(segment.duration, lyric_line.end),
-                    text=f"{{\\t(0,250,\\fscx115\\fscy115)}}{lyric_line.text}",
+                    start=start,
+                    end=end,
+                    text=self.pulse_tags(start, end, beats or []) + self.escape_ass_text(lyric_line.text),
                     style="Pulse",
                 )
             )
         return ass_lines
+
+    def pulse_tags(self, start: float, end: float, beats: list[float]) -> str:
+        """Scale the line up on each beat inside it and let it settle back. Times are ms from line start."""
+        offsets = [int((beat - start) * 1000) for beat in beats if start <= beat < end]
+        if not offsets:
+            # No beat grid (silent intro, decode failure): a single pop on entry.
+            return r"{\t(0,250,\fscx115\fscy115)}"
+        transforms = "".join(
+            rf"\t({offset},{offset + 90},\fscx112\fscy112)\t({offset + 90},{offset + 320},\fscx100\fscy100)"
+            for offset in offsets
+        )
+        return "{" + transforms + "}"
 
     def line_to_words(self, lyric_line: LyricLine) -> list[SubtitleWord]:
         tokens = lyric_line.tokens or self.tokenize_line(lyric_line)
