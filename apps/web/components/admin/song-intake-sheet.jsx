@@ -43,7 +43,7 @@ export function SongIntakeSheet({ open, onOpenChange }) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full border-l border-border bg-card p-0 sm:max-w-[28rem]">
+      <SheetContent side="right" className="w-full overflow-y-auto border-l border-border bg-card p-0 sm:max-w-[28rem]">
         <SheetHeader className="border-b border-border px-6 py-5">
           <SheetTitle className="text-2xl font-semibold uppercase tracking-tight text-primary">
             [ Song Intake ]

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import JSON, create_engine
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -76,4 +77,10 @@ def init_db() -> None:
 
     if get_settings().is_production:
         return
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except OperationalError as exc:
+        # API and worker can race to create tables on a fresh dev database.
+        if "already exists" not in str(exc):
+            raise
+        Base.metadata.create_all(bind=engine)

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 import json
 import math
+import os
 import random
 import shutil
 import subprocess
@@ -620,8 +621,8 @@ class RenderPlanner:
 
 
 class FFmpegRenderer:
-    def __init__(self, ffmpeg_binary: str = "ffmpeg") -> None:
-        self.ffmpeg_binary = ffmpeg_binary
+    def __init__(self, ffmpeg_binary: str | None = None) -> None:
+        self.ffmpeg_binary = ffmpeg_binary or os.getenv("FFMPEG_BINARY") or "ffmpeg"
 
     def is_available(self) -> bool:
         return shutil.which(self.ffmpeg_binary) is not None

@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { apiFetch, buildMediaUrl } from "@/lib/api";
 import { formatDateTime, formatDuration } from "@/lib/format";
-import { useResource } from "@/components/client-page";
+import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,9 +36,12 @@ function optionLabel(value) {
   return value.replaceAll("_", " ");
 }
 
+const clipsAreBusy = (data) => (data?.clips || []).some((clip) => isActiveStatus(clip.status));
+const songsAreBusy = (data) => (data?.songs || []).some((song) => isActiveStatus(song.status));
+
 export default function SongsPage() {
-  const clipResource = useResource("/clips");
-  const songResource = useResource("/songs");
+  const clipResource = useResource("/clips", null, { isActive: clipsAreBusy });
+  const songResource = useResource("/songs", null, { isActive: songsAreBusy });
   const pipelineResource = useResource("/pipeline/settings");
 
   const router = useRouter();

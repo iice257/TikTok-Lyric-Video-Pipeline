@@ -5,7 +5,7 @@ import { useState } from "react";
 
 import { apiFetch, buildMediaUrl, toDatetimeLocal } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
-import { useResource } from "@/components/client-page";
+import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,14 +14,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
+function clipIsBusy(data) {
+  return (
+    isActiveStatus(data?.clip?.status) ||
+    (data?.render_jobs || []).some((job) => isActiveStatus(job.status)) ||
+    (data?.upload_jobs || []).some((job) => isActiveStatus(job.status))
+  );
+}
+
 export default function ClipDetailPage() {
   const params = useParams();
   const clipId = typeof params?.id === "string" ? params.id : "";
   const encodedClipId = encodeURIComponent(clipId);
-  const { data, loading, error, setData } = useResource(
+  const { data, loading, error, setData, reload } = useResource(
     clipId ? `/clips/${encodedClipId}` : "",
     null,
-    { enabled: Boolean(clipId) }
+    { enabled: Boolean(clipId), isActive: clipIsBusy }
   );
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -57,6 +65,7 @@ export default function ClipDetailPage() {
     try {
       await apiFetch(`/clips/${encodedClipId}/rerender`, { method: "POST" });
       setMessage("RERENDER QUEUED");
+      await reload(false).catch(() => null);
     } catch (err) {
       setMessage(`ERROR: ${err.message}`);
     } finally {

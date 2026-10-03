@@ -595,7 +595,13 @@ class PlatformWorker:
                 now=utcnow(),
             )[0].scheduled_at
             if rendered.status != "rendered":
-                clip.last_error = job.stderr_text or "Render failed."
+                if rendered.status == "planned_only":
+                    clip.last_error = (
+                        f"ffmpeg not found ({self.renderer.ffmpeg_binary!r}). "
+                        "Install ffmpeg on PATH or set FFMPEG_BINARY."
+                    )
+                else:
+                    clip.last_error = job.stderr_text or "Render failed."
                 create_alert(db, kind="render_failed", severity="error", message=clip.last_error, source_type="clip", source_id=clip.id)
             else:
                 scheduled_at = clip.scheduled_at or utcnow()
