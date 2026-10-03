@@ -510,8 +510,14 @@ class RenderPlanner:
             self.config.render.video_codec,
             "-preset",
             "medium",
+            # Animated grain defeats inter-frame compression, so quality-only
+            # encoding balloons to ~65 Mbps. Cap at the configured bitrate.
             "-crf",
-            "18",
+            "23",
+            "-maxrate",
+            self.config.render.bitrate,
+            "-bufsize",
+            double_bitrate(self.config.render.bitrate),
             "-c:a",
             self.config.render.audio_codec,
             "-b:a",
@@ -618,6 +624,14 @@ class RenderPlanner:
             ffmpeg_command=plan.ffmpeg_command,
             status="planned",
         )
+
+
+def double_bitrate(bitrate: str) -> str:
+    """Return twice an ffmpeg bitrate like "8M" or "4500k" (used for -bufsize)."""
+    value = bitrate.strip()
+    suffix = value[-1:] if value[-1:].isalpha() else ""
+    number = float(value[: len(value) - len(suffix)])
+    return f"{number * 2:g}{suffix}"
 
 
 class FFmpegRenderer:
