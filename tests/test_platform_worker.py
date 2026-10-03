@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 import importlib
 from datetime import timedelta
 import json
@@ -255,7 +257,8 @@ def test_recompute_song_status_requires_all_clips_posted(tmp_path, monkeypatch) 
         assert song.status == "queued_for_upload"
 
 
-def test_process_render_jobs_reuses_existing_upload_job(tmp_path, monkeypatch) -> None:
+@pytest.mark.parametrize("existing_upload", [True, False])
+def test_process_render_jobs_reuses_existing_upload_job(tmp_path, monkeypatch, existing_upload) -> None:
     _, db_module, models_module, worker_engine_module = reload_platform_modules(monkeypatch, tmp_path)
     db_module.init_db()
 
@@ -328,17 +331,18 @@ def test_process_render_jobs_reuses_existing_upload_job(tmp_path, monkeypatch) -
         db.add(clip)
         db.flush()
 
-        db.add(
-            models_module.UploadJob(
-                clip_id=clip.id,
-                status="failed",
-                publish_mode="auto",
-                scheduled_at=db_module.utcnow() - timedelta(minutes=1),
-                idempotency_key="upload-existing",
-                completed_at=db_module.utcnow() - timedelta(minutes=1),
-                last_error="old failure",
+        if existing_upload:
+            db.add(
+                models_module.UploadJob(
+                    clip_id=clip.id,
+                    status="failed",
+                    publish_mode="auto",
+                    scheduled_at=db_module.utcnow() - timedelta(minutes=1),
+                    idempotency_key="upload-existing",
+                    completed_at=db_module.utcnow() - timedelta(minutes=1),
+                    last_error="old failure",
+                )
             )
-        )
 
         db.add(
             models_module.RenderJob(
@@ -379,7 +383,8 @@ def test_process_render_jobs_reuses_existing_upload_job(tmp_path, monkeypatch) -
         clip = db.scalar(select(models_module.Clip).where(models_module.Clip.song_id == song.id))
         upload_jobs = db.scalars(select(models_module.UploadJob).where(models_module.UploadJob.clip_id == clip.id)).all()
         assert len(upload_jobs) == 1
-        assert upload_jobs[0].idempotency_key == "upload-existing"
+        if existing_upload:
+            assert upload_jobs[0].idempotency_key == "upload-existing"
         assert upload_jobs[0].status in {"queued", "waiting_window"}
         assert upload_jobs[0].last_error is None
         assert song.status == "queued_for_upload"
@@ -440,6 +445,7 @@ def test_process_segments_uses_configured_max_segment_count(tmp_path, monkeypatc
         font_family = "Sans"
         text_color = "#fff"
         highlight_color = "#ff0"
+        preset_id = None
 
     worker.segmenter.select_segments = lambda *args, **kwargs: [_Selection(i) for i in range(1, 6)]
     worker.styling.decide = lambda *args, **kwargs: _Style()

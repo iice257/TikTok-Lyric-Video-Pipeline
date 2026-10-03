@@ -12,7 +12,6 @@ The pipeline can run alone from the CLI, but the more interesting backend work i
 | Component | Path | Responsibility |
 | --- | --- | --- |
 | API | `src/tiktok_platform_api` | FastAPI app, auth routes, dashboard routes, platform REST resources |
-| Nest companion API | `apps/api-nest` | TypeScript/Nest.js read/search API over the same Postgres schema |
 | Domain/database | `src/tiktok_platform` | SQLAlchemy models, DB session setup, settings, security helpers, TikTok API client, serializers |
 | Worker | `src/tiktok_platform_worker` | Long-running loop for intake sync, lyrics, segments, render jobs, upload jobs, heartbeats, health checks |
 | Pipeline | `src/tiktok_lyric_pipeline` | Song intake, lyric parsing/alignment, segment scoring, style decisions, render planning, scheduling |
@@ -106,4 +105,3 @@ These are the next engineering steps I would take before calling this production
 - Add request-size limits and deeper content validation for uploaded media.
 - Add lyric-line search and tune the Postgres full-text indexes against real catalog data.
 - Add Elasticsearch/OpenSearch only if the product needs typo tolerance, richer filters, or analytics-backed discovery beyond Postgres full-text search.
-- Expand the Nest.js companion API from read/search endpoints into mutation workflows after the contracts settle.

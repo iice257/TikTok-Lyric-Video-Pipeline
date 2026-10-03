@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 import { apiFetch, getApiBaseUrl, getSafeRedirectPath, setCsrfToken } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -42,63 +41,46 @@ export function LoginForm() {
   }
 
   return (
-    <main id="main-content" className="min-h-screen bg-background text-foreground">
-      <div className="flex h-6 items-center gap-4 border-b border-border bg-card px-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-        <span className="flex items-center gap-2 text-primary">
-          <span className="size-1.5 rounded-full bg-primary" />
-          Sys Log: Control surface locked
-        </span>
-        <span className="hidden md:inline">Secure session required</span>
-      </div>
-
-      <div className="flex min-h-[calc(100vh-1.5rem)] items-center justify-center px-4 py-8">
-        <Card className="w-full max-w-md border-border bg-card/90">
-          <CardHeader className="space-y-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Pipeline Cockpit</p>
-            <CardTitle className="text-3xl font-semibold tracking-tight">Sign In</CardTitle>
-            <p className="text-sm text-muted-foreground">Authenticate to access the admin terminal.</p>
-          </CardHeader>
-          <CardContent>
-            <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-              <div className="grid gap-2">
-                <Label htmlFor="admin-id" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Admin ID</Label>
-                <Input
-                  id="admin-id"
-                  name="admin-id"
-                  type="text"
-                  value={adminId}
-                  onChange={(e) => setAdminId(e.target.value)}
-                  placeholder="Enter admin ID"
-                  autoComplete="username"
-                  required
-                  className="h-10 border-border bg-background"
-                />
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="password" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  autoComplete="current-password"
-                  required
-                  className="h-10 border-border bg-background"
-                />
-              </div>
-              {backendless ? (
-                <p className="text-xs text-muted-foreground">
-                  This deployment is frontend only. The pipeline backend runs locally, so sign-in is available on a local install.
-                </p>
-              ) : null}
-              {error ? <p aria-live="polite" className="text-xs uppercase tracking-[0.18em] text-destructive">{error}</p> : null}
-              <Button type="submit" disabled={submitting || backendless} size="lg" className="w-full uppercase tracking-[0.2em]">
-                {submitting ? "Signing In..." : "Sign In"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+    <main id="main-content" className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-foreground">
+      <div className="w-full max-w-sm">
+        <p className="font-heading text-5xl text-primary">SSS</p>
+        <p className="mt-2 text-sm text-muted-foreground">Sign in to make and schedule lyric videos.</p>
+        <form className="mt-8 flex flex-col gap-4 rounded-3xl border border-border bg-card p-6" onSubmit={onSubmit}>
+          <div className="grid gap-2">
+            <Label htmlFor="admin-id">Username</Label>
+            <Input
+              id="admin-id"
+              name="admin-id"
+              type="text"
+              value={adminId}
+              onChange={(e) => setAdminId(e.target.value)}
+              autoComplete="username"
+              required
+              className="h-11 rounded-xl"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+              className="h-11 rounded-xl"
+            />
+          </div>
+          {backendless ? (
+            <p className="text-sm text-muted-foreground">
+              This deployment is frontend only. The pipeline backend runs locally, so sign-in is available on a local install.
+            </p>
+          ) : null}
+          {error ? <p aria-live="polite" className="text-sm text-destructive">{error}</p> : null}
+          <Button type="submit" disabled={submitting || backendless} size="lg" className="mt-2 h-11 rounded-full">
+            {submitting ? "Signing in…" : "Sign in"}
+          </Button>
+        </form>
       </div>
     </main>
   );

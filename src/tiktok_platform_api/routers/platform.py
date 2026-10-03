@@ -30,7 +30,9 @@ from tiktok_platform.models import (
 )
 from tiktok_platform.services import (
     create_alert,
+    default_preset_id,
     ensure_media_root,
+    get_preset_catalog,
     get_setting,
     get_oauth_token,
     get_oauth_token_secrets,
@@ -540,6 +542,43 @@ def get_song(
     }
 
 
+class DefaultPresetRequest(BaseModel):
+    preset_id: str = Field(min_length=1, max_length=64)
+
+
+@router.get("/presets")
+def list_presets(
+    _: object = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    catalog = get_preset_catalog()
+    return {"presets": [preset.to_dict() for preset in catalog.presets], "default": default_preset_id(db)}
+
+
+@router.patch("/presets/default")
+def set_default_preset(
+    payload: DefaultPresetRequest,
+    request: Request,
+    user: object = Depends(require_mutation_auth),
+    db: Session = Depends(get_db),
+) -> dict[str, object]:
+    if get_preset_catalog().get(payload.preset_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown preset.")
+    preferences = get_setting(db, "render_preferences", {})
+    set_setting(db, "render_preferences", {**preferences, "default_preset": payload.preset_id})
+    log_operator_action(
+        db,
+        user_id=user.id,
+        action="set_default_preset",
+        target_type="settings",
+        target_id="render_preferences",
+        request=request,
+        details={"preset_id": payload.preset_id},
+    )
+    db.commit()
+    return {"default": payload.preset_id}
+
+
 @router.post("/manual-intake")
 def manual_intake(
     request: Request,
@@ -550,6 +589,7 @@ def manual_intake(
     audio: UploadFile = File(...),
     cover: UploadFile | None = File(None),
     lyrics: UploadFile | None = File(None),
+    preset: str | None = Form(None),
     user: object = Depends(require_mutation_auth),
     db: Session = Depends(get_db),
     settings: PlatformSettings = Depends(get_platform_settings),
@@ -564,6 +604,9 @@ def manual_intake(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported environment.")
     if rights_status not in ALLOWED_RIGHTS_STATUSES:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported rights status.")
+    preset_id = (preset or "").strip() or default_preset_id(db)
+    if get_preset_catalog().get(preset_id) is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown preset.")
 
     media_root = ensure_media_root(settings) / "manual-intake" / environment
     song_key = uuid4().hex
@@ -643,6 +686,7 @@ def manual_intake(
         review_status="pending",
         publish_eligible=publish_eligible,
         manual_priority=True,
+        preset_id=preset_id,
         ingest_fingerprint=ingest_fingerprint,
         audio_path=str(audio_path),
         cover_path=str(cover_path) if cover_path else None,

@@ -3,385 +3,163 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { apiFetch, buildMediaUrl } from "@/lib/api";
-import { formatDateTime, formatRelativeAge } from "@/lib/format";
-import { useResource } from "@/components/client-page";
+import { apiFetch } from "@/lib/api";
+import { formatDateTime } from "@/lib/format";
+import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Badge } from "@/components/ui/badge";
+import { EmptyState, Panel, StatusPill, VideoThumb, songName } from "@/components/app/bits";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
-function eventTone(alert) {
-  if (alert.severity === "error") {
-    return "destructive";
-  }
-  if (alert.status === "acknowledged") {
-    return "secondary";
-  }
-  return "outline";
-}
-
-function describeCountdown(nextPublishAt) {
-  if (!nextPublishAt) {
-    return "Next post: unscheduled";
-  }
-
-  const deltaMs = new Date(nextPublishAt).getTime() - Date.now();
-  if (Number.isNaN(deltaMs) || deltaMs <= 0) {
-    return "Next post: due now";
-  }
-
-  const totalMinutes = Math.floor(deltaMs / 60000);
-  const days = Math.floor(totalMinutes / (24 * 60));
-  const hours = Math.floor((totalMinutes % (24 * 60)) / 60);
-  const minutes = totalMinutes % 60;
-  return `Next post: ${days}d ${hours}h ${minutes}m`;
-}
-
-function describeWorkers(workers = []) {
-  if (!workers.length) {
-    return "IDLE";
-  }
-  const freshest = workers.reduce((current, worker) => {
-    if (!current) return worker;
-    return new Date(worker.last_seen_at) > new Date(current.last_seen_at) ? worker : current;
-  }, null);
-  const liveCount = workers.filter((worker) => !worker.is_stale).length;
-  const age = freshest ? formatRelativeAge(freshest.last_seen_at) : "unknown";
-  return liveCount ? `ALIVE (${age})` : `STALE (${age})`;
-}
-
 const workerIsBusy = (data) =>
   (data?.workers || []).some((worker) => !worker.is_stale && worker.status === "running");
+const clipsAreBusy = (data) => (data?.clips || []).some((clip) => isActiveStatus(clip.status));
 
-export default function OverviewPage() {
-  const { data, loading, error, reload } = useResource("/dashboard/summary", null, { isActive: workerIsBusy });
-  const [busy, setBusy] = useState(false);
-  const [busyAlertId, setBusyAlertId] = useState("");
-  const [busyUploadId, setBusyUploadId] = useState("");
-  const [openOnly, setOpenOnly] = useState(false);
-  const [actionError, setActionError] = useState("");
-
-  const nextPublishLabel = useMemo(
-    () => describeCountdown(data?.next_publish_at),
-    [data?.next_publish_at]
+function Stat({ label, value, detail, href }) {
+  const body = (
+    <>
+      <p className="text-sm text-muted-foreground">{label}</p>
+      <p className={typeof value === "number" ? "mt-1 font-heading text-3xl" : "mt-2 font-heading text-xl"}>{value}</p>
+      {detail ? <p className="mt-1 truncate text-xs text-muted-foreground">{detail}</p> : null}
+    </>
   );
+  const className = "rounded-3xl border border-border bg-card p-5 transition-colors";
+  return href ? (
+    <Link href={href} className={`${className} hover:border-primary/60`}>
+      {body}
+    </Link>
+  ) : (
+    <div className={className}>{body}</div>
+  );
+}
 
-  async function togglePipeline(paused) {
-    setBusy(true);
-    setActionError("");
+function Notice({ children, action }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-3xl border border-primary/40 bg-primary/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-sm">{children}</p>
+      {action}
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const summary = useResource("/dashboard/summary", null, { isActive: workerIsBusy });
+  const clips = useResource("/clips", null, { isActive: clipsAreBusy });
+  const songs = useResource("/songs");
+  const [resuming, setResuming] = useState(false);
+
+  const data = summary.data;
+  const songsById = useMemo(
+    () => Object.fromEntries((songs.data?.songs || []).map((song) => [song.id, song])),
+    [songs.data?.songs]
+  );
+  const allClips = clips.data?.clips || [];
+  const recent = allClips.slice(0, 8);
+  const inProgress = allClips.filter((clip) => isActiveStatus(clip.status)).length;
+  const ready = allClips.filter((clip) => clip.status === "rendered").length;
+  const tiktok = data?.integrations?.tiktok;
+  const liveWorkers = (data?.workers || []).filter((worker) => !worker.is_stale);
+  const openAlerts = data?.counts?.open_alerts ?? 0;
+
+  async function resume() {
+    setResuming(true);
     try {
-      await apiFetch(paused ? "/pipeline/resume" : "/pipeline/pause", { method: "POST" });
-      await reload(false);
-    } catch (err) {
-      setActionError(err.message);
+      await apiFetch("/pipeline/resume", { method: "POST" });
+      await summary.reload(false);
     } finally {
-      setBusy(false);
+      setResuming(false);
     }
   }
-
-  async function emergencyStop() {
-    setBusy(true);
-    setActionError("");
-    try {
-      await apiFetch("/pipeline/pause", { method: "POST" });
-      await reload(false);
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function acknowledgeAlert(alertId) {
-    setBusyAlertId(alertId);
-    setActionError("");
-    try {
-      await apiFetch(`/alerts/${alertId}/ack`, { method: "POST" });
-      await reload(false);
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setBusyAlertId("");
-    }
-  }
-
-  async function handleUploadAction(jobId, path, body) {
-    setBusyUploadId(jobId);
-    setActionError("");
-    try {
-      await apiFetch(path, {
-        method: "POST",
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      await reload(false);
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setBusyUploadId("");
-    }
-  }
-
-  const visibleAlerts = useMemo(() => {
-    const alerts = data?.recent_alerts || [];
-    return openOnly ? alerts.filter((alert) => alert.status !== "acknowledged") : alerts;
-  }, [data?.recent_alerts, openOnly]);
 
   return (
     <AdminShell
-      title="Live Event Stream"
-      subtitle="Monitoring all pipeline activities and required actions"
-      status={{
-        state: data?.pipeline?.paused ? "PAUSED" : "RUNNING",
-        worker: describeWorkers(data?.workers),
-        queue: `${data?.counts?.upload_backlog ?? 0} Jobs`,
-      }}
+      title="Your videos"
+      subtitle="Songs in, synced lyric clips out."
       actions={
-        <>
-          <Button variant="outline" size="sm" disabled className="uppercase tracking-[0.18em] text-destructive">
-            {nextPublishLabel}
-          </Button>
-          <Button
-            variant="destructive"
-            size="sm"
-            disabled={busy || data?.pipeline?.paused}
-            onClick={emergencyStop}
-            className="uppercase tracking-[0.18em]"
-          >
-            Emergency Stop
-          </Button>
-          <Button
-            size="sm"
-            className="uppercase tracking-[0.18em]"
-            disabled={busy}
-            onClick={() => togglePipeline(Boolean(data?.pipeline?.paused))}
-          >
-            {data?.pipeline?.paused ? "Resume Flow" : "Pause Flow"}
-          </Button>
-        </>
+        <Button asChild size="lg" className="rounded-full px-6">
+          <Link href="/new">New video</Link>
+        </Button>
       }
     >
-      <div className="flex items-center justify-end gap-2">
-        <Button
-          variant={openOnly ? "secondary" : "outline"}
-          size="sm"
-          onClick={() => setOpenOnly((current) => !current)}
-          className="uppercase tracking-[0.18em]"
-        >
-          Open Only
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={!openOnly}
-          onClick={() => setOpenOnly(false)}
-          className="uppercase tracking-[0.18em] text-muted-foreground"
-        >
-          Clear
-        </Button>
-      </div>
+      {summary.error ? <p className="text-sm text-destructive">{summary.error}</p> : null}
 
-      <div className="space-y-5">
-        {loading ? <p className="text-sm text-muted-foreground">Loading event stream...</p> : null}
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
-        {actionError ? <p aria-live="polite" className="text-sm text-destructive">{actionError}</p> : null}
-
-        {(data?.pending_upload_jobs || []).map((job) => (
-          <Card key={job.id} className="border-border bg-card/80">
-            <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-              <div className="flex min-w-0 flex-1 items-center gap-4">
-                <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
-                  {job.clip_preview_path || job.clip_video_path ? (
-                    <video
-                      className="h-full w-full object-cover"
-                      muted
-                      playsInline
-                      preload="metadata"
-                      src={buildMediaUrl(job.clip_preview_path || job.clip_video_path)}
-                    />
-                  ) : null}
-                </div>
-                <div className="min-w-0 space-y-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge className="uppercase tracking-[0.18em]">Pending Approval</Badge>
-                    <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                      {job.song_artist && job.song_title ? `${job.song_artist} | ${job.song_title}` : job.publish_mode}
-                    </span>
-                  </div>
-                  <p className="truncate text-lg font-semibold tracking-tight">
-                    {job.clip_caption || job.id}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Scheduled {formatDateTime(job.scheduled_at, "unscheduled")} | {job.status}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={busyUploadId === job.id}
-                  onClick={() =>
-                    handleUploadAction(job.id, `/jobs/${job.id}/quarantine`, {
-                      reason: "rejected from event console",
-                    })
-                  }
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Reject
-                </Button>
-                <Button
-                  size="sm"
-                  disabled={busyUploadId === job.id}
-                  onClick={() => handleUploadAction(job.id, `/upload-jobs/${job.id}/approve`)}
-                  className="uppercase tracking-[0.18em]"
-                >
-                  Approve & Post
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {data?.recent_alerts?.length ? (
-          <div className="space-y-4">
-            {visibleAlerts.map((alert) => (
-              <Card key={alert.id} className="border-border bg-card/80">
-                <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge variant={eventTone(alert)} className="uppercase tracking-[0.18em]">
-                        {alert.kind.replaceAll("_", " ")}
-                      </Badge>
-                      <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                        {formatDateTime(alert.created_at)} | {alert.source_type || "system"}
-                      </span>
-                    </div>
-                    <p className="text-lg font-semibold tracking-tight">{alert.message}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Severity: {alert.severity} | Status: {alert.status}
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {alert.status !== "acknowledged" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={busyAlertId === alert.id}
-                        onClick={() => acknowledgeAlert(alert.id)}
-                        className="uppercase tracking-[0.18em]"
-                      >
-                        Acknowledge
-                      </Button>
-                    ) : null}
-                    {alert.source_id ? (
-                      <Button variant="ghost" size="sm" disabled className="uppercase tracking-[0.18em] text-muted-foreground">
-                        Source {alert.source_id.slice(0, 8)}
-                      </Button>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {!visibleAlerts.length ? (
-              <Card className="border-border bg-card">
-                <CardContent className="p-5 text-sm text-muted-foreground">
-                  No open alerts in the recent event stream.
-                </CardContent>
-              </Card>
-            ) : null}
-          </div>
-        ) : (
-          <Card className="border-border bg-card">
-            <CardContent className="p-5 text-sm text-muted-foreground">
-              No alerts in the current event stream.
-            </CardContent>
-          </Card>
-        )}
-
-        {data?.workers?.length ? (
-          <Card className="border-border bg-card/80">
-            <CardContent className="space-y-4 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  Worker Heartbeats
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-                  {data.workers.filter((worker) => !worker.is_stale).length} active
-                </p>
-              </div>
-
-              <div className="grid gap-3 lg:grid-cols-3">
-                {data.workers.map((worker) => (
-                  <div key={worker.id} className="rounded-md border border-border bg-background px-4 py-3">
-                    <p className="text-sm font-semibold">{worker.worker_name}</p>
-                    <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-primary">
-                      {worker.status}
-                    </p>
-                    <p className="mt-2 text-sm text-muted-foreground">{worker.current_loop || "idle"}</p>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        {!data?.integrations?.tiktok?.connected || data?.integrations?.tiktok?.last_error ? (
-          <Card className="border-border bg-card/80">
-            <CardContent className="flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary" className="uppercase tracking-[0.18em]">
-                    Auth Required
-                  </Badge>
-                  <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Account: {data?.integrations?.tiktok?.creator_nickname || data?.integrations?.tiktok?.subject || "unlinked"}
-                  </span>
-                </div>
-                <p className="text-lg font-semibold tracking-tight">
-                  {data?.integrations?.tiktok?.connected ? "TikTok token needs attention" : "TikTok API session missing"}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {data?.integrations?.tiktok?.last_error || "Scheduled uploads will stall until the TikTok connection is refreshed."}
-                </p>
-              </div>
-
-              <Button asChild variant="outline" size="sm" className="uppercase tracking-[0.18em]">
-                <Link href="/settings">Re-authenticate</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <Card className="border-border bg-card/60">
-          <CardContent className="flex flex-col gap-2 p-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="uppercase tracking-[0.18em]">
-                  System
-                </Badge>
-                <span className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                  Pipeline
-                </span>
-              </div>
-              <p className="text-lg font-semibold tracking-tight">
-                {data?.health === "healthy" ? "System healthy and synchronized" : "Pipeline requires operator attention"}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {data?.counts?.render_backlog ?? 0} render jobs | {data?.counts?.upload_backlog ?? 0} upload jobs | {data?.counts?.open_alerts ?? 0} open alerts
-              </p>
-            </div>
-
-            <Button asChild variant="ghost" size="sm" className="uppercase tracking-[0.18em] text-muted-foreground">
-              <Link href="/logs">Open Logs</Link>
+      {data?.pipeline?.paused ? (
+        <Notice
+          action={
+            <Button size="sm" className="rounded-full" onClick={resume} disabled={resuming}>
+              Resume
             </Button>
-          </CardContent>
-        </Card>
+          }
+        >
+          Processing is paused. New songs wait until you resume.
+        </Notice>
+      ) : null}
+      {data && !liveWorkers.length ? (
+        <Notice>The worker isn&apos;t running, so nothing will render. Start it with <code>scripts/dev-no-docker.ps1</code>.</Notice>
+      ) : null}
+      {openAlerts ? (
+        <Notice
+          action={
+            <Button asChild size="sm" variant="outline" className="rounded-full">
+              <Link href="/alerts">Review</Link>
+            </Button>
+          }
+        >
+          {openAlerts === 1 ? "1 thing needs a look." : `${openAlerts} things need a look.`}
+        </Notice>
+      ) : null}
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label="In progress" value={inProgress} detail={inProgress ? "Rendering now" : "Nothing rendering"} href="/songs" />
+        <Stat
+          label="Scheduled"
+          value={data?.counts?.upload_backlog ?? 0}
+          detail={data?.next_publish_at ? `Next ${formatDateTime(data.next_publish_at)}` : `${ready} ready to schedule`}
+          href="/queue"
+        />
+        <Stat
+          label="TikTok"
+          value={tiktok?.connected ? "Connected" : "Not connected"}
+          detail={tiktok?.connected ? tiktok?.subject || "Ready to post" : "Connect in Settings"}
+          href="/settings"
+        />
       </div>
+
+      <Panel>
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="font-heading text-2xl">Recent</h2>
+          {allClips.length ? (
+            <Link href="/songs" className="text-sm text-muted-foreground hover:text-foreground">
+              See all
+            </Link>
+          ) : null}
+        </div>
+        {clips.loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+        {!clips.loading && !recent.length ? (
+          <EmptyState
+            title="No videos yet"
+            action={
+              <Button asChild className="rounded-full">
+                <Link href="/new">Start with a song</Link>
+              </Button>
+            }
+          >
+            Add a song with its lyrics and pick a look. Clips render automatically.
+          </EmptyState>
+        ) : null}
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {recent.map((clip) => (
+            <Link key={clip.id} href={`/clips/${clip.id}`} className="group flex flex-col gap-2">
+              <VideoThumb path={clip.status === "rendered" || clip.status === "posted" ? clip.video_path : null} className="transition-transform group-hover:-translate-y-0.5" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{songName(songsById[clip.song_id])}</p>
+                <StatusPill status={clip.status} className="mt-1.5" />
+              </div>
+            </Link>
+          ))}
+        </div>
+      </Panel>
     </AdminShell>
   );
 }

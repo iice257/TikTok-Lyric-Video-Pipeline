@@ -23,6 +23,19 @@ INBOX_UPLOAD_INIT_URL = "https://open.tiktokapis.com/v2/post/publish/inbox/video
 STATUS_FETCH_URL = "https://open.tiktokapis.com/v2/post/publish/status/fetch/"
 DEFAULT_SCOPES = ("video.publish", "video.upload")
 
+# TikTok media transfer: files up to 64 MB go in one chunk; larger files use
+# 5-64 MB chunks, with the last chunk taking the remainder (up to 128 MB).
+MAX_SINGLE_CHUNK_BYTES = 64 * 1024 * 1024
+UPLOAD_CHUNK_BYTES = 10 * 1024 * 1024
+UPLOAD_TIMEOUT_SECONDS = 120.0
+
+
+def chunk_plan(video_size: int) -> tuple[int, int]:
+    """Return (chunk_size, total_chunk_count) for a TikTok FILE_UPLOAD."""
+    if video_size <= MAX_SINGLE_CHUNK_BYTES:
+        return video_size, 1
+    return UPLOAD_CHUNK_BYTES, video_size // UPLOAD_CHUNK_BYTES
+
 
 class TikTokApiError(RuntimeError):
     def __init__(self, message: str, *, payload: dict[str, object] | None = None) -> None:
@@ -153,23 +166,29 @@ class TikTokApiClient:
 
     def upload_file(self, upload_url: str, file_path: Path) -> None:
         total_size = file_path.stat().st_size
+        chunk_size, chunk_count = chunk_plan(total_size)
         content_type = mimetypes.guess_type(file_path.name)[0] or "video/mp4"
         with file_path.open("rb") as handle:
-            response = httpx.put(
-                upload_url,
-                content=handle.read(),
-                headers={
-                    "Content-Type": content_type,
-                    "Content-Length": str(total_size),
-                    "Content-Range": f"bytes 0-{max(total_size - 1, 0)}/{total_size}",
-                },
-                timeout=self.timeout_seconds,
-            )
-        if response.status_code >= 400:
-            raise TikTokApiError(
-                f"TikTok upload failed with status {response.status_code}.",
-                payload={"response_text": response.text},
-            )
+            for index in range(chunk_count):
+                start = index * chunk_size
+                # The final chunk absorbs the remainder, per TikTok's media transfer rules.
+                end = total_size - 1 if index == chunk_count - 1 else start + chunk_size - 1
+                body = handle.read(end - start + 1)
+                response = httpx.put(
+                    upload_url,
+                    content=body,
+                    headers={
+                        "Content-Type": content_type,
+                        "Content-Length": str(len(body)),
+                        "Content-Range": f"bytes {start}-{end}/{total_size}",
+                    },
+                    timeout=UPLOAD_TIMEOUT_SECONDS,
+                )
+                if response.status_code >= 400:
+                    raise TikTokApiError(
+                        f"TikTok upload failed on chunk {index + 1}/{chunk_count} with status {response.status_code}.",
+                        payload={"response_text": response.text},
+                    )
 
     def fetch_post_status(self, access_token: str, publish_id: str) -> dict[str, object]:
         payload = self._request_json(
@@ -181,11 +200,13 @@ class TikTokApiClient:
         return self._extract_data(payload)
 
     def _file_source_info(self, file_path: Path) -> dict[str, object]:
+        video_size = file_path.stat().st_size
+        chunk_size, chunk_count = chunk_plan(video_size)
         return {
             "source": "FILE_UPLOAD",
-            "video_size": file_path.stat().st_size,
-            "chunk_size": file_path.stat().st_size,
-            "total_chunk_count": 1,
+            "video_size": video_size,
+            "chunk_size": chunk_size,
+            "total_chunk_count": chunk_count,
         }
 
     def _parse_token_bundle(self, payload: dict[str, object]) -> TikTokTokenBundle:

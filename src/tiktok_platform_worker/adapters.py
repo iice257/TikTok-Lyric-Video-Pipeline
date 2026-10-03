@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from tiktok_lyric_pipeline.config import PipelineConfig
+from tiktok_lyric_pipeline.presets import Preset
 from tiktok_lyric_pipeline.models import AudioSection, LyricLine, LyricToken, LyricsBundle, SongAsset, StyleDecision
 from tiktok_platform.models import Clip, LyricsArtifact, SegmentCandidate, Song
 
@@ -74,16 +75,21 @@ def segment_candidate_to_selection(segment: SegmentCandidate, song_key: str):
     )
 
 
-def clip_to_style(clip: Clip) -> StyleDecision:
+def clip_to_style(clip: Clip, preset: Preset | None = None) -> StyleDecision:
+    # Background and grain aren't stored per clip, so a rerender reads them back from its preset.
+    fixed = preset if preset is not None and not preset.is_random else None
     return StyleDecision(
         lyric_style=clip.lyric_style,
         layout_template=clip.layout_template,
         font_family=clip.font_family,
         text_color=clip.text_color,
         highlight_color=clip.highlight_color,
-        use_album_palette=clip.highlight_color.startswith("#"),
+        use_album_palette=clip.highlight_color.startswith("#") and fixed is None,
         hook_category=clip.hook_category,
         hook_phrase=None,
+        preset_id=clip.preset_id,
+        background_color=fixed.colors.get("background") if fixed else None,
+        grain_strength=fixed.grain if fixed else None,
     )
 
 
