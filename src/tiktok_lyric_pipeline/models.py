@@ -111,6 +111,9 @@ class StyleDecision:
     use_album_palette: bool
     hook_category: str | None
     hook_phrase: str | None
+    preset_id: str | None = None
+    background_color: str | None = None
+    grain_strength: int | None = None
 
 
 @dataclass(slots=True)

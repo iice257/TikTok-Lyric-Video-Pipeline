@@ -13,7 +13,6 @@ const ACTIVE_STATUSES = new Set([
   "queued_for_render",
   "claimed",
   "rendering",
-  "queued_for_upload",
   "uploading",
 ]);
 

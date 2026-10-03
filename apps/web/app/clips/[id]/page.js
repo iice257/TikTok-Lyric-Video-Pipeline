@@ -1,18 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
 
 import { apiFetch, buildMediaUrl, toDatetimeLocal } from "@/lib/api";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatDuration } from "@/lib/format";
 import { isActiveStatus, useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Badge } from "@/components/ui/badge";
+import { Panel, StatusPill, VideoThumb, statusLabel } from "@/components/app/bits";
+import { presetSummary } from "@/components/app/preset-picker";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
+export const dynamic = "force-dynamic";
 
 function clipIsBusy(data) {
   return (
@@ -22,17 +25,24 @@ function clipIsBusy(data) {
   );
 }
 
-export default function ClipDetailPage() {
+export default function ClipPage() {
   const params = useParams();
   const clipId = typeof params?.id === "string" ? params.id : "";
   const encodedClipId = encodeURIComponent(clipId);
-  const { data, loading, error, setData, reload } = useResource(
-    clipId ? `/clips/${encodedClipId}` : "",
-    null,
-    { enabled: Boolean(clipId), isActive: clipIsBusy }
-  );
+  const { data, loading, error, setData, reload } = useResource(clipId ? `/clips/${encodedClipId}` : "", null, {
+    enabled: Boolean(clipId),
+    isActive: clipIsBusy,
+  });
+  const songId = data?.clip?.song_id;
+  const songResource = useResource(songId ? `/songs/${encodeURIComponent(songId)}` : "", null, { enabled: Boolean(songId), intervalMs: 0 });
+  const presets = useResource("/presets", null, { intervalMs: 0 });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+
+  const clip = data?.clip;
+  const song = songResource.data?.song;
+  const preset = (presets.data?.presets || []).find((item) => item.id === clip?.preset_id);
+  const playable = clip?.video_path && ["rendered", "posted"].includes(clip.status);
 
   async function saveClip(event) {
     event.preventDefault();
@@ -45,15 +55,13 @@ export default function ClipDetailPage() {
         body: JSON.stringify({
           caption: form.get("caption"),
           hook_category: form.get("hook_category"),
-          scheduled_at: form.get("scheduled_at")
-            ? new Date(form.get("scheduled_at")).toISOString()
-            : null,
+          scheduled_at: form.get("scheduled_at") ? new Date(form.get("scheduled_at")).toISOString() : null,
         }),
       });
       setData((current) => ({ ...current, clip: payload.clip }));
-      setMessage("CLIP UPDATED");
+      setMessage("Saved.");
     } catch (err) {
-      setMessage(`ERROR: ${err.message}`);
+      setMessage(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -64,195 +72,126 @@ export default function ClipDetailPage() {
     setMessage("");
     try {
       await apiFetch(`/clips/${encodedClipId}/rerender`, { method: "POST" });
-      setMessage("RERENDER QUEUED");
+      setMessage("Re-rendering…");
       await reload(false).catch(() => null);
     } catch (err) {
-      setMessage(`ERROR: ${err.message}`);
+      setMessage(err.message);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <AdminShell title="Clip Detail" subtitle="Edit caption, inspect jobs, and preview media.">
-      <div className="space-y-6">
-        {loading ? <p className="text-sm text-muted-foreground">Loading clip...</p> : null}
-        {error ? <p className="text-sm text-destructive">{error}</p> : null}
+    <AdminShell
+      title={song ? song.title : "Clip"}
+      subtitle={song ? song.artist : null}
+      actions={
+        song ? (
+          <Button asChild variant="outline" className="rounded-full">
+            <Link href={`/songs/${song.id}`}>All clips from this song</Link>
+          </Button>
+        ) : null
+      }
+    >
+      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-        {data?.clip ? (
-          <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <Card className="border-border bg-card/80">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold tracking-tight">Clip Metadata</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <form className="space-y-5" onSubmit={saveClip}>
-                  <div className="grid gap-2">
-                    <Label htmlFor="clip-caption" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Caption</Label>
-                    <Textarea id="clip-caption" name="caption" maxLength={2200} required defaultValue={data.clip.caption} className="min-h-28 border-border bg-background" />
-                  </div>
-                  <div className="grid gap-4 md:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="clip-hook-category" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Hook Category</Label>
-                      <Input id="clip-hook-category" name="hook_category" maxLength={128} defaultValue={data.clip.hook_category || ""} className="border-border bg-background" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="clip-scheduled-at" className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Scheduled At</Label>
-                      <Input
-                        id="clip-scheduled-at"
-                        name="scheduled_at"
-                        type="datetime-local"
-                        defaultValue={toDatetimeLocal(data.clip.scheduled_at)}
-                        className="border-border bg-background"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline" className="uppercase tracking-[0.18em]">{data.clip.lyric_style}</Badge>
-                    <Badge variant="outline" className="uppercase tracking-[0.18em]">{data.clip.layout_template}</Badge>
-                    <Badge variant="secondary" className="uppercase tracking-[0.18em]">{data.clip.status}</Badge>
-                  </div>
-
-                  {message ? (
-                    <p aria-live="polite" className={message.startsWith("ERROR") ? "text-xs uppercase tracking-[0.18em] text-destructive" : "text-xs uppercase tracking-[0.18em] text-primary"}>
-                      {message}
-                    </p>
-                  ) : null}
-
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="submit" disabled={submitting} className="uppercase tracking-[0.18em]">
-                      Save
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={rerender}
-                      disabled={submitting}
-                      className="uppercase tracking-[0.18em]"
-                    >
-                      Queue Rerender
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border bg-card/80">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold tracking-tight">Media Preview</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {data.clip.video_path ? (
-                  <>
-                    <video className="aspect-video w-full rounded-md border border-border bg-background object-cover" controls playsInline src={buildMediaUrl(data.clip.video_path)} />
-                    <div className="flex flex-wrap gap-2">
-                      <Button asChild size="sm" className="uppercase tracking-[0.18em]">
-                        <a href={buildMediaUrl(data.clip.video_path)} target="_blank" rel="noreferrer">Open Video</a>
-                      </Button>
-                      {data.clip.subtitle_path ? (
-                        <Button asChild variant="outline" size="sm" className="uppercase tracking-[0.18em]">
-                          <a href={buildMediaUrl(data.clip.subtitle_path)} target="_blank" rel="noreferrer">Subtitles</a>
-                        </Button>
-                      ) : null}
-                      {data.clip.render_manifest_path ? (
-                        <Button asChild variant="ghost" size="sm" className="uppercase tracking-[0.18em]">
-                          <a href={buildMediaUrl(data.clip.render_manifest_path)} target="_blank" rel="noreferrer">Manifest</a>
-                        </Button>
-                      ) : null}
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No render output yet.</p>
-                )}
-              </CardContent>
-            </Card>
+      {clip ? (
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,22rem)_1fr]">
+          <div className="mx-auto flex w-full max-w-xs flex-col gap-3 lg:max-w-none">
+            {playable ? (
+              <video
+                className="aspect-[9/16] w-full rounded-3xl bg-muted object-cover"
+                controls
+                playsInline
+                preload="metadata"
+                src={buildMediaUrl(clip.video_path)}
+              />
+            ) : (
+              <VideoThumb path={null} className="rounded-3xl" />
+            )}
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill status={clip.status} />
+              <span className="text-sm text-muted-foreground">{formatDuration(clip.duration_seconds)}</span>
+              {playable ? (
+                <a href={buildMediaUrl(clip.video_path)} download className="ml-auto text-sm text-primary hover:underline">
+                  Download
+                </a>
+              ) : null}
+            </div>
+            {clip.last_error ? <p className="text-sm text-destructive">{clip.last_error}</p> : null}
           </div>
-        ) : null}
 
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="border-border bg-card/80">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold tracking-tight">Segment Context</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {data?.segment ? (
-                <div className="rounded-md border border-border bg-background px-4 py-3">
-                  <p className="text-sm font-medium">{data.segment.caption_seed || "Selected segment"}</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {data.segment.start_second}s - {data.segment.end_second}s | score {data.segment.score}
-                  </p>
-                  <p className="mt-2 text-sm text-muted-foreground">{data.segment.reason}</p>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">No segment context available.</p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex flex-col gap-6">
+            <Panel>
+              <h2 className="font-heading text-2xl">Look</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {preset ? `${preset.name} · ${presetSummary(preset)}` : "Surprise me"}
+                {data.segment ? ` · ${formatDuration(data.segment.start_second)}–${formatDuration(data.segment.end_second)} of the song` : ""}
+              </p>
+              <Button variant="outline" className="mt-4 rounded-full" onClick={rerender} disabled={submitting || isActiveStatus(clip.status)}>
+                Render again
+              </Button>
+            </Panel>
 
-          <Card className="border-border bg-card/80">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold tracking-tight">Render Jobs</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {(data?.render_jobs || []).map((job) => (
-                <div key={job.id} className="rounded-md border border-border bg-background px-4 py-3">
-                  <p className="text-sm font-medium">Render job</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">{job.status}</p>
-                  {job.stderr_text ? <p className="mt-2 text-sm text-destructive">{job.stderr_text}</p> : null}
+            <Panel>
+              <form className="flex flex-col gap-4" onSubmit={saveClip}>
+                <h2 className="font-heading text-2xl">Post</h2>
+                <div className="grid gap-2">
+                  <Label htmlFor="clip-caption">Caption</Label>
+                  <Textarea id="clip-caption" name="caption" maxLength={2200} required defaultValue={clip.caption} className="min-h-24 rounded-xl" />
                 </div>
-              ))}
-              {!loading && !(data?.render_jobs || []).length ? (
-                <p className="text-sm text-muted-foreground">No render jobs yet.</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="clip-hook-category">Hook</Label>
+                    <Input id="clip-hook-category" name="hook_category" maxLength={128} defaultValue={clip.hook_category || ""} className="rounded-xl" />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="clip-scheduled-at">Post time</Label>
+                    <Input id="clip-scheduled-at" name="scheduled_at" type="datetime-local" defaultValue={toDatetimeLocal(clip.scheduled_at)} className="rounded-xl" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Button type="submit" disabled={submitting} className="rounded-full px-6">
+                    Save
+                  </Button>
+                  {message ? <p aria-live="polite" className="text-sm text-muted-foreground">{message}</p> : null}
+                </div>
+              </form>
+            </Panel>
+
+            <details className="group rounded-3xl border border-border bg-card p-5 sm:p-6">
+              <summary className="cursor-pointer list-none font-heading text-xl">
+                History <span className="text-sm text-muted-foreground group-open:hidden">· show</span>
+              </summary>
+              <ol className="mt-4 flex flex-col gap-3">
+                {(data.state_events || []).map((event) => (
+                  <li key={event.id} className="flex flex-wrap justify-between gap-2 text-sm">
+                    <span>
+                      {event.event_type.replaceAll("_", " ")}
+                      {event.to_state ? <span className="text-muted-foreground"> → {statusLabel(event.to_state).toLowerCase()}</span> : null}
+                    </span>
+                    <span className="text-muted-foreground">{formatDateTime(event.created_at)}</span>
+                  </li>
+                ))}
+                {[...(data.render_jobs || []), ...(data.upload_jobs || [])]
+                  .filter((job) => job.stderr_text || job.last_error)
+                  .map((job) => (
+                    <li key={job.id} className="text-sm text-destructive">
+                      {job.last_error || job.stderr_text}
+                    </li>
+                  ))}
+                {!(data.state_events || []).length ? <li className="text-sm text-muted-foreground">Nothing yet.</li> : null}
+              </ol>
+              {clip.subtitle_path ? (
+                <a href={buildMediaUrl(clip.subtitle_path)} target="_blank" rel="noreferrer" className="mt-4 inline-block text-sm text-primary hover:underline">
+                  Subtitle file
+                </a>
               ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border bg-card/80">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold tracking-tight">Upload Jobs</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {(data?.upload_jobs || []).map((job) => (
-                <div key={job.id} className="rounded-md border border-border bg-background px-4 py-3">
-                  <p className="text-sm font-medium">Upload job</p>
-                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-muted-foreground">
-                    {job.status} | {job.publish_mode}
-                  </p>
-                  {job.last_error ? <p className="mt-2 text-sm text-destructive">{job.last_error}</p> : null}
-                </div>
-              ))}
-              {!loading && !(data?.upload_jobs || []).length ? (
-                <p className="text-sm text-muted-foreground">No upload jobs yet.</p>
-              ) : null}
-            </CardContent>
-          </Card>
+            </details>
+          </div>
         </div>
-
-        <Card className="border-border bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold tracking-tight">State Timeline</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {(data?.state_events || []).map((event) => (
-              <div key={event.id} className="rounded-md border border-border bg-background px-4 py-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-sm font-medium">{event.event_type.replaceAll("_", " ")}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                    {formatDateTime(event.created_at)}
-                  </p>
-                </div>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {event.subject_type} | {event.from_state || "new"} to {event.to_state || "current"}
-                </p>
-              </div>
-            ))}
-            {!loading && !(data?.state_events || []).length ? (
-              <p className="text-sm text-muted-foreground">No state events recorded yet.</p>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
+      ) : null}
     </AdminShell>
   );
 }

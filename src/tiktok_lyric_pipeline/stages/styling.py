@@ -5,6 +5,7 @@ import random
 from ..config import RenderConfig
 from ..hooks import HOOK_CATEGORIES
 from ..models import SongAsset, StyleDecision
+from ..presets import Preset
 from ..utils import weighted_choice
 
 
@@ -13,7 +14,9 @@ class StyleDecisionEngine:
         self.config = config
         self.rng = rng
 
-    def decide(self, song: SongAsset) -> StyleDecision:
+    def decide(self, song: SongAsset, preset: Preset | None = None) -> StyleDecision:
+        if preset is not None and not preset.is_random:
+            return self.from_preset(preset)
         lyric_style = weighted_choice(
             self.rng,
             [
@@ -57,6 +60,25 @@ class StyleDecisionEngine:
             use_album_palette=use_album_palette,
             hook_category=hook_category,
             hook_phrase=hook_phrase,
+        )
+
+    def from_preset(self, preset: Preset) -> StyleDecision:
+        """Fixed look and motion from a preset; the hook category still varies per clip."""
+        hook_category = self.rng.choice(list(HOOK_CATEGORIES.keys()))
+        include_hook = self.rng.random() < 0.50
+        hook_phrase = self.rng.choice(HOOK_CATEGORIES[hook_category]) if include_hook else None
+        return StyleDecision(
+            lyric_style=preset.lyric_style or "karaoke",
+            layout_template=preset.layout or "blurred_cover_center_lyrics",
+            font_family=preset.font or "Arial Bold",
+            text_color=preset.colors.get("text", "white"),
+            highlight_color=preset.colors.get("highlight", "yellow"),
+            use_album_palette=False,
+            hook_category=hook_category,
+            hook_phrase=hook_phrase,
+            preset_id=preset.id,
+            background_color=preset.colors.get("background"),
+            grain_strength=preset.grain,
         )
 
     def _pick_highlight(self, song: SongAsset, text_color: str, use_album_palette: bool) -> str:
