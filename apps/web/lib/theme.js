@@ -6,9 +6,11 @@ import { DEFAULT_THEME, THEME_STORAGE_KEY, THEMES, themeTokens } from "./theme-d
 
 export { THEMES, FONTS, DEFAULT_THEME } from "./theme-data";
 
-function resolveMode(mode) {
+const LIGHT_QUERY = "(prefers-color-scheme: light)";
+
+export function resolveMode(mode) {
   if (mode !== "auto") return mode;
-  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  return window.matchMedia(LIGHT_QUERY).matches ? "light" : "dark";
 }
 
 export function applyTheme({ id, mode }) {
@@ -34,17 +36,45 @@ export function readStoredTheme() {
   return DEFAULT_THEME;
 }
 
+// Re-applies the saved theme when the OS switches light/dark (for Auto) or
+// another tab changes it. The Visualizer iframe listens to the same key.
+function subscribeToThemeChanges(onChange) {
+  const preference = window.matchMedia(LIGHT_QUERY);
+  const onStorage = (event) => {
+    if (event.key === THEME_STORAGE_KEY || event.key === null) onChange();
+  };
+  preference.addEventListener("change", onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    preference.removeEventListener("change", onChange);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+export function useThemeSync() {
+  useEffect(() => subscribeToThemeChanges(() => applyTheme(readStoredTheme())), []);
+}
+
 export function useAppTheme() {
   const [theme, setThemeState] = useState(DEFAULT_THEME);
+  const [resolvedMode, setResolvedMode] = useState("dark");
 
   useEffect(() => {
-    setThemeState(readStoredTheme());
+    const sync = () => {
+      const stored = readStoredTheme();
+      setThemeState(stored);
+      setResolvedMode(resolveMode(stored.mode));
+      applyTheme(stored);
+    };
+    sync();
+    return subscribeToThemeChanges(sync);
   }, []);
 
   const setTheme = useCallback((next) => {
     setThemeState((current) => {
       const merged = { ...current, ...next };
       applyTheme(merged);
+      setResolvedMode(resolveMode(merged.mode));
       try {
         window.localStorage.setItem(THEME_STORAGE_KEY, JSON.stringify(merged));
       } catch {
@@ -54,5 +84,5 @@ export function useAppTheme() {
     });
   }, []);
 
-  return [theme, setTheme];
+  return [theme, setTheme, resolvedMode];
 }

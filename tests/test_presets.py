@@ -112,3 +112,11 @@ def test_catalog_follows_pipeline_config_root(tmp_path, monkeypatch) -> None:
         assert presets.fonts_dir == fonts_dir.resolve()
     finally:
         settings_module.get_settings.cache_clear()
+
+
+def test_preview_endpoint_rejects_unknown_and_random_presets(tmp_path, monkeypatch) -> None:
+    client = build_test_client(tmp_path, monkeypatch)
+    client.post("/auth/login", json={"email": "admin99", "password": "admin99"})
+    assert client.get("/presets/nope/preview").status_code == 404
+    # "Surprise me" is random per clip, so there is no single look to show.
+    assert client.get("/presets/surprise/preview").status_code == 422

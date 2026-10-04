@@ -10,10 +10,11 @@ import { cn } from "@/lib/utils";
 import { useResource } from "@/components/client-page";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Panel } from "@/components/app/bits";
-import { PresetPicker } from "@/components/app/preset-picker";
+import { PresetPicker, presetDescription } from "@/components/app/preset-picker";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const dynamic = "force-dynamic";
 
@@ -198,81 +199,106 @@ function TikTokSection() {
   );
 }
 
-function DefaultLookSection() {
-  const resource = useResource("/presets", null, { intervalMs: 0 });
-  const [error, setError] = useState("");
+const MODES = [
+  { id: "dark", label: "Dark" },
+  { id: "light", label: "Light" },
+  { id: "auto", label: "Auto", hint: "Follows your device" },
+];
 
-  async function choose(presetId) {
-    setError("");
+function AppearanceSection() {
+  const presets = useResource("/presets", null, { intervalMs: 0 });
+  const [theme, setTheme, resolvedMode] = useAppTheme();
+  const [presetError, setPresetError] = useState("");
+  const selectedPreset = presets.data?.presets?.find((item) => item.id === presets.data.default);
+
+  async function choosePreset(presetId) {
+    setPresetError("");
     try {
       await apiFetch("/presets/default", { method: "PATCH", body: JSON.stringify({ preset_id: presetId }) });
-      await resource.reload(false);
+      await presets.reload(false);
     } catch (err) {
-      setError(err.message);
+      setPresetError(err.message);
     }
   }
 
   return (
     <Panel>
-      <SectionTitle note="Preselected for new songs">Default look</SectionTitle>
-      {error ? <p className="mb-3 text-sm text-destructive">{error}</p> : null}
-      {resource.data ? (
-        <PresetPicker presets={resource.data.presets} value={resource.data.default} onChange={choose} />
-      ) : (
-        <p className="text-sm text-muted-foreground">Loading…</p>
-      )}
-    </Panel>
-  );
-}
-
-function AppearanceSection() {
-  const [theme, setTheme] = useAppTheme();
-  return (
-    <Panel>
-      <SectionTitle note="Saved in this browser">Appearance</SectionTitle>
-      <div className="mb-5 flex w-fit gap-1 rounded-full border border-border p-1">
-        {["dark", "light", "auto"].map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={theme.mode === mode}
-            onClick={() => setTheme({ mode })}
-            className={cn(
-              "h-8 rounded-full px-4 text-sm capitalize transition-colors",
-              theme.mode === mode ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {mode}
-          </button>
-        ))}
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-        {THEMES.map((item) => {
-          const palette = item.dark;
-          const selected = theme.id === item.id;
-          return (
-            <button
-              key={item.id}
-              type="button"
-              aria-pressed={selected}
-              onClick={() => setTheme({ id: item.id })}
-              className={cn(
-                "flex h-20 flex-col justify-between rounded-2xl p-3 text-left ring-offset-2 ring-offset-background transition",
-                selected ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-primary/50"
-              )}
-              style={{ background: palette.bg, color: palette.text }}
-            >
-              <span className="flex gap-1">
-                <span className="size-3 rounded-full" style={{ background: palette.accent }} />
-                <span className="size-3 rounded-full" style={{ background: palette.accent2 }} />
-              </span>
-              <span className="truncate text-sm" style={{ fontFamily: (FONTS[item.fonts[0]] || FONTS.hanken)[1] }}>
-                {item.name}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      <SectionTitle note="App and video styles">Appearance</SectionTitle>
+      <Tabs defaultValue="app-theme" className="gap-5">
+        <TabsList aria-label="Appearance settings">
+          <TabsTrigger value="app-theme">App Theme</TabsTrigger>
+          <TabsTrigger value="video-theme">Video Theme</TabsTrigger>
+        </TabsList>
+        <TabsContent value="app-theme" className="space-y-5">
+          <div>
+            <h3 className="text-sm font-medium">Theme mode</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Applies to the app and the Visualizer.</p>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex w-fit gap-1 rounded-full border border-border p-1">
+                {MODES.map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    title={mode.hint}
+                    aria-pressed={theme.mode === mode.id}
+                    onClick={() => setTheme({ mode: mode.id })}
+                    className={cn(
+                      "h-8 rounded-full px-4 text-sm transition-colors",
+                      theme.mode === mode.id ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+              {theme.mode === "auto" ? <span className="text-xs text-muted-foreground">Follows your device ({resolvedMode})</span> : null}
+            </div>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium">App theme</h3>
+            <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+              {THEMES.map((item) => {
+                const palette = item[resolvedMode] || item.dark;
+                const selected = theme.id === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => setTheme({ id: item.id })}
+                    className={cn(
+                      "flex h-20 flex-col justify-between rounded-2xl p-3 text-left ring-offset-2 ring-offset-background transition",
+                      selected ? "ring-2 ring-primary" : "ring-1 ring-border hover:ring-primary/50"
+                    )}
+                    style={{ background: palette.bg, color: palette.text }}
+                  >
+                    <span className="flex gap-1" aria-hidden="true">
+                      <span className="size-3 rounded-full" style={{ background: palette.accent }} />
+                      <span className="size-3 rounded-full" style={{ background: palette.accent2 }} />
+                    </span>
+                    <span className="truncate text-sm" style={{ fontFamily: (FONTS[item.fonts[0]] || FONTS.hanken)[1] }}>
+                      {item.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </TabsContent>
+        <TabsContent value="video-theme" className="space-y-4">
+          <div>
+            <h3 className="text-sm font-medium">Default look</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Preselected for new songs. Existing videos keep their current look.</p>
+          </div>
+          {presetError ? <p className="text-sm text-destructive">{presetError}</p> : null}
+          {presets.data ? (
+            <PresetPicker presets={presets.data.presets} value={presets.data.default} onChange={choosePreset} />
+          ) : (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          )}
+          {selectedPreset ? <p className="text-sm text-muted-foreground">{presetDescription(selectedPreset)}</p> : null}
+        </TabsContent>
+      </Tabs>
     </Panel>
   );
 }
@@ -326,7 +352,6 @@ export default function SettingsPage() {
   return (
     <AdminShell title="Settings">
       <TikTokSection />
-      <DefaultLookSection />
       <AppearanceSection />
       <ProcessingSection />
     </AdminShell>

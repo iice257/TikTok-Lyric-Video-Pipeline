@@ -5,7 +5,7 @@ import themeData from "./themes.json";
 // every component follows the active theme.
 export const THEMES = themeData.themes;
 export const FONTS = themeData.fonts;
-export const DEFAULT_THEME = { id: "amber", mode: "dark" };
+export const DEFAULT_THEME = { id: "paper", mode: "dark" };
 export const THEME_STORAGE_KEY = "sss-theme";
 
 export function themeTokens(theme, mode) {
