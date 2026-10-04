@@ -6,7 +6,7 @@ import { AdminShell } from "@/components/admin/admin-shell";
 // its own settings in localStorage and never uploads media.
 const ABOUT_URL = "https://lyric-audio-visualizer.vercel.app/about";
 // Versioned so browsers don't reuse a cached copy served with the old X-Frame-Options: DENY.
-const VISUALIZER_SRC = "/visualizer/index.html?v=4";
+const VISUALIZER_SRC = "/visualizer/index.html?v=5";
 
 function connectAboutLink(event) {
   const readMore = event.currentTarget.contentDocument?.querySelector("#infoPanel a");

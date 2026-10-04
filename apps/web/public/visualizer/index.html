@@ -189,7 +189,7 @@ let uiStage=1;function applyUiStage(){E.app.classList.remove('ui-stage-2','ui-st
 </script><script>
 const APP_THEME_STORAGE_KEY='sss-theme';
 function applyInheritedAppTheme(){
- let preferences={id:'amber',mode:'dark'};
+ let preferences={id:'paper',mode:'dark'};
  try{
   const stored=JSON.parse(localStorage.getItem(APP_THEME_STORAGE_KEY)||'null');
   if(stored&&THEMES.some(item=>item.id===stored.id))preferences.id=stored.id;
