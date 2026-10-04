@@ -5,29 +5,29 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Defaults = VISUALICER "Amber Noir" (dark). lib/theme.js overrides these per theme. */
-  --background: #0b0907;
-  --foreground: #f7ead8;
-  --card: #211811e8;
-  --card-foreground: #f7ead8;
-  --popover: #1b1109;
-  --popover-foreground: #f7ead8;
-  --primary: #e96b42;
-  --primary-foreground: #0b0907;
-  --secondary: #1b1109;
-  --secondary-foreground: #f7ead8;
-  --muted: #1b1109;
-  --muted-foreground: #a99580;
-  --accent: #ffffff0d;
-  --accent-foreground: #f7ead8;
+  /* Defaults = VISUALICER "Paper" (dark), the default app theme. lib/theme.js overrides these per theme. */
+  --background: #171411;
+  --foreground: #f7f0e5;
+  --card: #2d2822e8;
+  --card-foreground: #f7f0e5;
+  --popover: #24201b;
+  --popover-foreground: #f7f0e5;
+  --primary: #d2a33b;
+  --primary-foreground: #171411;
+  --secondary: #24201b;
+  --secondary-foreground: #f7f0e5;
+  --muted: #24201b;
+  --muted-foreground: #b4a99a;
+  --accent: #ffffff0c;
+  --accent-foreground: #f7f0e5;
   --destructive: #e5484d;
-  --border: #f0c59b24;
-  --input: #f0c59b24;
-  --ring: #e96b42;
-  --highlight: #52b9aa;
-  --shadow-color: #000000a8;
-  --app-font-title: "DM Serif Display", Georgia, serif;
-  --app-font-ui: "Hanken Grotesk", Arial, sans-serif;
+  --border: #efe3d221;
+  --input: #efe3d221;
+  --ring: #d2a33b;
+  --highlight: #6ea091;
+  --shadow-color: #0000009c;
+  --app-font-title: Borel, cursive;
+  --app-font-ui: Abel, Arial, sans-serif;
   --radius: 0.875rem;
   --chart-1: var(--primary);
   --chart-2: var(--highlight);
