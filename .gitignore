@@ -23,6 +23,7 @@ output/scheduled_uploads.ndjson
 
 output/render_work/*
 !output/render_work/.gitkeep
+output/previews/
 
 output/videos/*
 !output/videos/.gitkeep
