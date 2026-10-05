@@ -1,5 +1,7 @@
 "use client";
 
+import { demoFetch, demoMediaUrl, isDemoMode } from "./demo";
+
 const CONFIGURED_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
@@ -21,8 +23,12 @@ export const getApiBaseUrl = () => {
   return localBrowser ? "http://localhost:8000" : "/api";
 };
 
-export const buildMediaUrl = (path) =>
-  path ? `${getApiBaseUrl()}/media?path=${encodeURIComponent(path)}` : "";
+export const buildMediaUrl = (path) => {
+  if (isDemoMode(getApiBaseUrl())) {
+    return demoMediaUrl(path);
+  }
+  return path ? `${getApiBaseUrl()}/media?path=${encodeURIComponent(path)}` : "";
+};
 
 export function getCsrfToken() {
   if (typeof window === "undefined") {
@@ -72,6 +78,9 @@ function describeApiError(payload, fallback) {
 }
 
 export async function apiFetch(path, options = {}) {
+  if (isDemoMode(getApiBaseUrl())) {
+    return demoFetch(path, options);
+  }
   const headers = new Headers(options.headers || {});
   if (
     options.body != null &&

@@ -1,0 +1,29 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Alignment,MarginL,MarginR,MarginV,Outline,Shadow,Encoding
+Style: Default,Righteous,62,&H00fff1ff&,&H00a142ff&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+Style: Karaoke,Righteous,62,&H00fff1ff&,&H00a142ff&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+Style: Stacked,Righteous,66,&H00fff1ff&,&H00a142ff&,&H000000&,&H000000&,True,False,2,84,84,210,5,1,1
+Style: Swap,Righteous,70,&H00fff1ff&,&H00a142ff&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+Style: Pulse,Righteous,72,&H00fff1ff&,&H00a142ff&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+
+[Events]
+Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+Dialogue: 0,0:00:01.80,0:00:05.12,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Pink neon on the boulevard
+Dialogue: 0,0:00:05.20,0:00:08.52,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Dancing like we're not that far
+Dialogue: 0,0:00:08.60,0:00:11.92,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Turn the bass up let it shake
+Dialogue: 0,0:00:12.00,0:00:15.32,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Turn the bass up let it shake
+Dialogue: 0,0:00:15.40,0:00:18.72,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Every heartbeat on the beat
+Dialogue: 0,0:00:18.80,0:00:22.12,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Summer melting on the street
+Dialogue: 0,0:00:22.20,0:00:25.52,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Pink neon on the boulevard
+Dialogue: 0,0:00:25.60,0:00:28.92,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Dancing like we're not that far
+Dialogue: 0,0:00:29.00,0:00:32.32,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Turn the bass up let it shake
+Dialogue: 0,0:00:32.40,0:00:35.72,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Turn the bass up let it shake
+Dialogue: 0,0:00:35.80,0:00:39.12,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Every heartbeat on the beat
+Dialogue: 0,0:00:39.20,0:00:42.52,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Summer melting on the street
+Dialogue: 0,0:00:42.60,0:00:43.00,Pulse,,0,0,0,,{\t(0,250,\fscx115\fscy115)}Pink neon on the boulevard
