@@ -1,0 +1,29 @@
+[Script Info]
+ScriptType: v4.00+
+PlayResX: 1080
+PlayResY: 1920
+ScaledBorderAndShadow: yes
+
+[V4+ Styles]
+Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Alignment,MarginL,MarginR,MarginV,Outline,Shadow,Encoding
+Style: Default,Pixelify Sans,58,&H00e0ffd9&,&H0068e546&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+Style: Karaoke,Pixelify Sans,58,&H00e0ffd9&,&H0068e546&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+Style: Stacked,Pixelify Sans,62,&H00e0ffd9&,&H0068e546&,&H000000&,&H000000&,True,False,2,84,84,210,5,1,1
+Style: Swap,Pixelify Sans,66,&H00e0ffd9&,&H0068e546&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+Style: Pulse,Pixelify Sans,68,&H00e0ffd9&,&H0068e546&,&H000000&,&H000000&,True,False,2,84,84,180,5,1,1
+
+[Events]
+Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
+Dialogue: 0,0:00:01.80,0:00:05.12,Karaoke,,0,0,0,,{\k67}Static {\k67}on {\k67}the {\k67}radio {\k67}tonight
+Dialogue: 0,0:00:05.20,0:00:08.52,Karaoke,,0,0,0,,{\k56}Green {\k56}lights {\k56}all {\k56}the {\k56}way {\k56}home
+Dialogue: 0,0:00:08.60,0:00:11.92,Karaoke,,0,0,0,,{\k83}Running {\k83}every {\k83}signal {\k83}red
+Dialogue: 0,0:00:12.00,0:00:15.32,Karaoke,,0,0,0,,{\k83}Running {\k83}every {\k83}signal {\k83}red
+Dialogue: 0,0:00:15.40,0:00:18.72,Karaoke,,0,0,0,,{\k48}Hold {\k48}the {\k48}wheel {\k48}and {\k48}close {\k48}your {\k48}eyes
+Dialogue: 0,0:00:18.80,0:00:22.12,Karaoke,,0,0,0,,{\k67}City {\k67}humming {\k67}in {\k67}the {\k67}dark
+Dialogue: 0,0:00:22.20,0:00:25.52,Karaoke,,0,0,0,,{\k67}Static {\k67}on {\k67}the {\k67}radio {\k67}tonight
+Dialogue: 0,0:00:25.60,0:00:28.92,Karaoke,,0,0,0,,{\k56}Green {\k56}lights {\k56}all {\k56}the {\k56}way {\k56}home
+Dialogue: 0,0:00:29.00,0:00:32.32,Karaoke,,0,0,0,,{\k84}Running {\k83}every {\k84}signal {\k83}red
+Dialogue: 0,0:00:32.40,0:00:35.72,Karaoke,,0,0,0,,{\k83}Running {\k83}every {\k84}signal {\k83}red
+Dialogue: 0,0:00:35.80,0:00:39.12,Karaoke,,0,0,0,,{\k48}Hold {\k48}the {\k48}wheel {\k48}and {\k48}close {\k48}your {\k48}eyes
+Dialogue: 0,0:00:39.20,0:00:42.52,Karaoke,,0,0,0,,{\k67}City {\k67}humming {\k67}in {\k67}the {\k67}dark
+Dialogue: 0,0:00:42.60,0:00:43.00,Karaoke,,0,0,0,,{\k41}Static

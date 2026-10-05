@@ -1,0 +1,3034 @@
+{
+ "/auth/me": {
+  "user": {
+   "id": "7f3a8e5bb2564bbe9d719b47024a6806",
+   "email": "admin99",
+   "role": "admin"
+  },
+  "session": {
+   "expires_at": "2026-10-12T00:19:20.325239",
+   "csrf_token": "uforGSWzA-WZtyXMX9NlEtBOiu020EZWQkYkNLUGfiM"
+  }
+ },
+ "/dashboard/summary": {
+  "health": "healthy",
+  "counts": {
+   "songs": 4,
+   "clips": 4,
+   "render_backlog": 0,
+   "upload_backlog": 0,
+   "open_alerts": 0
+  },
+  "pipeline": {
+   "paused": false
+  },
+  "next_publish_at": null,
+  "workers": [
+   {
+    "id": "9e29c7230be2430cbdbbd9f694bc8d2f",
+    "worker_name": "platform-worker",
+    "status": "idle",
+    "current_loop": "sleep",
+    "current_job_id": null,
+    "metadata": {
+     "app_env": "dev"
+    },
+    "last_seen_at": "2026-10-05T00:18:59.010970",
+    "seconds_since_seen": 21,
+    "is_stale": false
+   }
+  ],
+  "recent_alerts": [],
+  "pending_upload_jobs": [],
+  "integrations": {
+   "tiktok": {
+    "configured": false,
+    "connected": false,
+    "subject": null,
+    "expires_at": null,
+    "last_error": null,
+    "creator_username": null,
+    "creator_nickname": null
+   }
+  }
+ },
+ "/clips": {
+  "clips": [
+   {
+    "id": "ef20fef9bf6049d8996a935a54515601",
+    "song_id": "507dd480570b44d1bce605873c40ef6f",
+    "segment_candidate_id": "0c8e84afa390449ebe7792303fe6e8aa",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[songs that hurt] Turn the bass up let it shake | Test Artist - Pink Neon",
+    "hook_category": "songs that hurt",
+    "lyric_style": "beat_pulse",
+    "layout_template": "fullscreen_cover_overlay",
+    "font_family": "Righteous",
+    "text_color": "#fff1ff",
+    "highlight_color": "#ff42a1",
+    "preset_id": "miami",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/pink-neon-6e4315da4114.json",
+    "subtitle_path": "/demo/pink-neon.ass",
+    "video_path": "/demo/pink-neon.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T22:36:37",
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:19.894632",
+    "updated_at": "2026-10-03T10:47:12.074518"
+   },
+   {
+    "id": "02ad5c910d954bb5990af9c3b187f371",
+    "song_id": "f1a343cfb7c643be851a3c1edbf0e0ee",
+    "segment_candidate_id": "a8b380fc87e14628940dd6a0e05589b4",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[main character songs] Don't you let the fire die | Test Artist - Burning Slow",
+    "hook_category": "main character songs",
+    "lyric_style": "beat_pulse",
+    "layout_template": "minimal_typography_black",
+    "font_family": "Uncial Antiqua",
+    "text_color": "#fff1ef",
+    "highlight_color": "#ef1010",
+    "preset_id": "inferno",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/burning-slow-725cbb32619c.json",
+    "subtitle_path": "/demo/burning-slow.ass",
+    "video_path": "/demo/burning-slow.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T14:04:15",
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:19.873384",
+    "updated_at": "2026-10-03T10:46:40.195025"
+   },
+   {
+    "id": "e3ac1c6134844adb87c3f9eaf795826f",
+    "song_id": "fb23102d993943a7ae526271da898377",
+    "segment_candidate_id": "4a96ba768bc14c0b8d5567b7ce65e78b",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[healing songs] Running every signal red | Test Artist - Night Drive",
+    "hook_category": "healing songs",
+    "lyric_style": "karaoke",
+    "layout_template": "minimal_typography_black",
+    "font_family": "Pixelify Sans",
+    "text_color": "#d9ffe0",
+    "highlight_color": "#46e568",
+    "preset_id": "matrix",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/night-drive-9f533716e51c.json",
+    "subtitle_path": "/demo/night-drive.ass",
+    "video_path": "/demo/night-drive.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T20:23:37",
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:19.850727",
+    "updated_at": "2026-10-03T10:45:48.300105"
+   },
+   {
+    "id": "67d73f5545fc4d038a926f9b014ffc97",
+    "song_id": "e7103d781e9e48e692203da9ad7d038d",
+    "segment_candidate_id": "639af6adac72420ea5c48fb66b287ad9",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[healing songs] Say my name like it's the last | Test Artist - Golden Hour",
+    "hook_category": "healing songs",
+    "lyric_style": "stacked_3_line",
+    "layout_template": "blurred_cover_center_lyrics",
+    "font_family": "Cuprum",
+    "text_color": "#f7ead8",
+    "highlight_color": "#e96b42",
+    "preset_id": "amber",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/golden-hour-5dc806140250.json",
+    "subtitle_path": "/demo/golden-hour.ass",
+    "video_path": "/demo/golden-hour.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T20:23:37",
+    "last_error": null,
+    "created_at": "2026-10-03T10:36:01.463142",
+    "updated_at": "2026-10-03T10:36:44.124088"
+   }
+  ]
+ },
+ "/songs": {
+  "songs": [
+   {
+    "id": "507dd480570b44d1bce605873c40ef6f",
+    "song_key": "530275ca2b464251b86eb3965c396d7a",
+    "title": "Pink Neon",
+    "artist": "Test Artist",
+    "source_type": "manual",
+    "provider_name": "manual-intake",
+    "environment": "prod",
+    "rights_status": "licensed",
+    "status": "queued_for_upload",
+    "review_status": "pending",
+    "publish_eligible": true,
+    "manual_priority": true,
+    "preset_id": "miami",
+    "audio_path": "/demo/pink-neon.mp3",
+    "cover_path": "/demo/pink-neon.jpg",
+    "lyrics_path": "/demo/pink-neon.lrc",
+    "duration_seconds": null,
+    "metadata": {
+     "original_audio_name": "pink_neon.mp3",
+     "audio_sha256": "23c1a32ac4a9070cdb628dbdbbb4fc8a5c1d76c6c5735312176cd929e956195b",
+     "audio_size_bytes": 1441166,
+     "audio_content_type": "application/octet-stream"
+    },
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:15.428494",
+    "updated_at": "2026-10-03T10:47:12.079923"
+   },
+   {
+    "id": "f1a343cfb7c643be851a3c1edbf0e0ee",
+    "song_key": "b366ea2a50c84223a936f6a74db86344",
+    "title": "Burning Slow",
+    "artist": "Test Artist",
+    "source_type": "manual",
+    "provider_name": "manual-intake",
+    "environment": "prod",
+    "rights_status": "licensed",
+    "status": "queued_for_upload",
+    "review_status": "pending",
+    "publish_eligible": true,
+    "manual_priority": true,
+    "preset_id": "inferno",
+    "audio_path": "/demo/burning-slow.mp3",
+    "cover_path": "/demo/burning-slow.jpg",
+    "lyrics_path": "/demo/burning-slow.lrc",
+    "duration_seconds": null,
+    "metadata": {
+     "original_audio_name": "burning_slow.mp3",
+     "audio_sha256": "931f308d1ad75313a6d8fccb77c29b0a61136b7fa5dfb8ceaf5c55456a1e6024",
+     "audio_size_bytes": 1441166,
+     "audio_content_type": "application/octet-stream"
+    },
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:14.226970",
+    "updated_at": "2026-10-03T10:46:40.200058"
+   },
+   {
+    "id": "fb23102d993943a7ae526271da898377",
+    "song_key": "0b6b13d86b6f4db9a1273205b3a088bf",
+    "title": "Night Drive",
+    "artist": "Test Artist",
+    "source_type": "manual",
+    "provider_name": "manual-intake",
+    "environment": "prod",
+    "rights_status": "licensed",
+    "status": "queued_for_upload",
+    "review_status": "pending",
+    "publish_eligible": true,
+    "manual_priority": true,
+    "preset_id": "matrix",
+    "audio_path": "/demo/night-drive.mp3",
+    "cover_path": "/demo/night-drive.jpg",
+    "lyrics_path": "/demo/night-drive.lrc",
+    "duration_seconds": null,
+    "metadata": {
+     "original_audio_name": "night_drive.mp3",
+     "audio_sha256": "357923c5104201dbcf60f16ce18a824ca0b77090e44ad583b9c1a65321fdb7d7",
+     "audio_size_bytes": 1441166,
+     "audio_content_type": "application/octet-stream"
+    },
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:12.491620",
+    "updated_at": "2026-10-03T10:45:48.310961"
+   },
+   {
+    "id": "e7103d781e9e48e692203da9ad7d038d",
+    "song_key": "77f5e6966e8441b9923ac87780268a55",
+    "title": "Golden Hour",
+    "artist": "Test Artist",
+    "source_type": "manual",
+    "provider_name": "manual-intake",
+    "environment": "prod",
+    "rights_status": "licensed",
+    "status": "queued_for_render",
+    "review_status": "pending",
+    "publish_eligible": true,
+    "manual_priority": true,
+    "preset_id": "amber",
+    "audio_path": "/demo/golden-hour.mp3",
+    "cover_path": "/demo/golden-hour.jpg",
+    "lyrics_path": "/demo/golden-hour.lrc",
+    "duration_seconds": null,
+    "metadata": {
+     "original_audio_name": "Test Artist - Golden Hour.wav",
+     "audio_sha256": "13d7ba51752e92d56c6753ebe2023d448b2b82dc76b40259d20d1cef9d866675",
+     "audio_size_bytes": 3969044,
+     "audio_content_type": "audio/wav"
+    },
+    "last_error": null,
+    "created_at": "2026-10-03T10:36:00.186355",
+    "updated_at": "2026-10-03T10:36:01.465759"
+   }
+  ]
+ },
+ "/presets": {
+  "presets": [
+   {
+    "id": "surprise",
+    "name": "Surprise me",
+    "description": "Random look and motion per clip",
+    "font": null,
+    "lyric_style": null,
+    "layout": null,
+    "grain": null,
+    "colors": {},
+    "is_random": true
+   },
+   {
+    "id": "amber",
+    "name": "Amber Noir",
+    "description": "",
+    "font": "Cuprum",
+    "lyric_style": "stacked_3_line",
+    "layout": "blurred_cover_center_lyrics",
+    "grain": 12,
+    "colors": {
+     "background": "#0b0907",
+     "text": "#f7ead8",
+     "highlight": "#e96b42",
+     "accent": "#52b9aa"
+    },
+    "is_random": false
+   },
+   {
+    "id": "paper",
+    "name": "Paper",
+    "description": "",
+    "font": "DM Serif Display",
+    "lyric_style": "line_swap",
+    "layout": "minimal_typography_black",
+    "grain": 8,
+    "colors": {
+     "background": "#171411",
+     "text": "#f7f0e5",
+     "highlight": "#d2a33b",
+     "accent": "#6ea091"
+    },
+    "is_random": false
+   },
+   {
+    "id": "slate",
+    "name": "Slate",
+    "description": "",
+    "font": "Hanken Grotesk",
+    "lyric_style": "karaoke",
+    "layout": "blurred_background_small_cover",
+    "grain": 10,
+    "colors": {
+     "background": "#0c1218",
+     "text": "#edf5fb",
+     "highlight": "#4f94ef",
+     "accent": "#75d8c7"
+    },
+    "is_random": false
+   },
+   {
+    "id": "mono",
+    "name": "Mono",
+    "description": "",
+    "font": "Unbounded",
+    "lyric_style": "line_swap",
+    "layout": "minimal_typography_black",
+    "grain": 6,
+    "colors": {
+     "background": "#090909",
+     "text": "#f1f1f1",
+     "highlight": "#e1e1e1",
+     "accent": "#888888"
+    },
+    "is_random": false
+   },
+   {
+    "id": "heaven",
+    "name": "Soft Heaven",
+    "description": "",
+    "font": "DM Serif Display",
+    "lyric_style": "stacked_3_line",
+    "layout": "blurred_cover_center_lyrics",
+    "grain": 10,
+    "colors": {
+     "background": "#14120f",
+     "text": "#fff9ea",
+     "highlight": "#d4ad55",
+     "accent": "#86bbae"
+    },
+    "is_random": false
+   },
+   {
+    "id": "miami",
+    "name": "Miami Nightlife",
+    "description": "",
+    "font": "Righteous",
+    "lyric_style": "beat_pulse",
+    "layout": "fullscreen_cover_overlay",
+    "grain": 12,
+    "colors": {
+     "background": "#10051f",
+     "text": "#fff1ff",
+     "highlight": "#ff42a1",
+     "accent": "#48e1e8"
+    },
+    "is_random": false
+   },
+   {
+    "id": "inferno",
+    "name": "Inferno",
+    "description": "",
+    "font": "Uncial Antiqua",
+    "lyric_style": "beat_pulse",
+    "layout": "minimal_typography_black",
+    "grain": 14,
+    "colors": {
+     "background": "#000000",
+     "text": "#fff1ef",
+     "highlight": "#ef1010",
+     "accent": "#ff4b1f"
+    },
+    "is_random": false
+   },
+   {
+    "id": "matrix",
+    "name": "Matrix Radiation",
+    "description": "",
+    "font": "Pixelify Sans",
+    "lyric_style": "karaoke",
+    "layout": "minimal_typography_black",
+    "grain": 16,
+    "colors": {
+     "background": "#020805",
+     "text": "#d9ffe0",
+     "highlight": "#46e568",
+     "accent": "#c5ff42"
+    },
+    "is_random": false
+   },
+   {
+    "id": "coastal",
+    "name": "Coastal Air",
+    "description": "",
+    "font": "Hanken Grotesk",
+    "lyric_style": "line_swap",
+    "layout": "blurred_background_small_cover",
+    "grain": 10,
+    "colors": {
+     "background": "#07171b",
+     "text": "#e6fbff",
+     "highlight": "#39a6b8",
+     "accent": "#f0aa62"
+    },
+    "is_random": false
+   },
+   {
+    "id": "blush",
+    "name": "Blush Studio",
+    "description": "",
+    "font": "Hanken Grotesk",
+    "lyric_style": "stacked_3_line",
+    "layout": "blurred_cover_center_lyrics",
+    "grain": 10,
+    "colors": {
+     "background": "#1d0d12",
+     "text": "#ffedf1",
+     "highlight": "#e66583",
+     "accent": "#7fb0a8"
+    },
+    "is_random": false
+   },
+   {
+    "id": "violet",
+    "name": "Velvet Signal",
+    "description": "",
+    "font": "DM Serif Display",
+    "lyric_style": "karaoke",
+    "layout": "fullscreen_cover_overlay",
+    "grain": 12,
+    "colors": {
+     "background": "#11091b",
+     "text": "#faefff",
+     "highlight": "#9e67ff",
+     "accent": "#ff8fd2"
+    },
+    "is_random": false
+   },
+   {
+    "id": "citrus",
+    "name": "Citrus Field",
+    "description": "",
+    "font": "Changa",
+    "lyric_style": "beat_pulse",
+    "layout": "blurred_background_small_cover",
+    "grain": 12,
+    "colors": {
+     "background": "#0b1105",
+     "text": "#f4ffd7",
+     "highlight": "#b9e63d",
+     "accent": "#ff9f1c"
+    },
+    "is_random": false
+   },
+   {
+    "id": "arcade",
+    "name": "Arcade Static",
+    "description": "",
+    "font": "Pixelify Sans",
+    "lyric_style": "beat_pulse",
+    "layout": "minimal_typography_black",
+    "grain": 16,
+    "colors": {
+     "background": "#07050d",
+     "text": "#fff4ff",
+     "highlight": "#ff4edb",
+     "accent": "#80fff4"
+    },
+    "is_random": false
+   },
+   {
+    "id": "heritage",
+    "name": "Sankofa Gold",
+    "description": "",
+    "font": "Sankofa Display",
+    "lyric_style": "stacked_3_line",
+    "layout": "blurred_cover_center_lyrics",
+    "grain": 12,
+    "colors": {
+     "background": "#100b05",
+     "text": "#fff1c7",
+     "highlight": "#d9a51e",
+     "accent": "#fff0a6"
+    },
+    "is_random": false
+   },
+   {
+    "id": "storybook",
+    "name": "Swanky Borel",
+    "description": "",
+    "font": "Fontdiner Swanky",
+    "lyric_style": "line_swap",
+    "layout": "blurred_cover_center_lyrics",
+    "grain": 10,
+    "colors": {
+     "background": "#150b12",
+     "text": "#fff0f7",
+     "highlight": "#df5597",
+     "accent": "#ffd36a"
+    },
+    "is_random": false
+   },
+   {
+    "id": "imperial",
+    "name": "Imperial Bloom",
+    "description": "",
+    "font": "Condiment",
+    "lyric_style": "stacked_3_line",
+    "layout": "fullscreen_cover_overlay",
+    "grain": 10,
+    "colors": {
+     "background": "#130812",
+     "text": "#fff0fa",
+     "highlight": "#e85fa8",
+     "accent": "#ffd36e"
+    },
+    "is_random": false
+   }
+  ],
+  "default": "surprise"
+ },
+ "/alerts": {
+  "alerts": []
+ },
+ "/operator-actions": {
+  "operator_actions": [
+   {
+    "id": "f64ae9268c674a9489e8b35c1416d967",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "surprise"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-04T05:39:59.807191"
+   },
+   {
+    "id": "0e011b3afaa34bd08c86e9b11126d46b",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "amber"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-04T05:39:57.734045"
+   },
+   {
+    "id": "ac66d78e333348ce936638f147810f28",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "surprise"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:46:27.236485"
+   },
+   {
+    "id": "eddc98d80e6f474cb847f5e43bbcb0e1",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "amber"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:46:26.105248"
+   },
+   {
+    "id": "2361cf5ea61243e3b76a2e069a561920",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "cancelled_job",
+    "target_type": "upload_job",
+    "target_id": "b06f0680e6424059bbff5037a302e8cd",
+    "details": {
+     "reason": "cancelled from schedule"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:07:51.792880"
+   },
+   {
+    "id": "93e7f663236748a9affe4b0633f957bc",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "cancelled_job",
+    "target_type": "upload_job",
+    "target_id": "61c2db80fa334055ba6f719ccafc569a",
+    "details": {
+     "reason": "cancelled from schedule"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:07:50.791498"
+   },
+   {
+    "id": "62eb267fea314bd5b4d99225f4f9ce0b",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "cancelled_job",
+    "target_type": "upload_job",
+    "target_id": "518d260779e546c4b07981952e184a9e",
+    "details": {
+     "reason": "cancelled from schedule"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:07:49.667477"
+   },
+   {
+    "id": "ed2c6fcdad2b494c9d35413b647428a4",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "cancelled_job",
+    "target_type": "upload_job",
+    "target_id": "c32eaafec5a648289094a88bc58a3e50",
+    "details": {
+     "reason": "cancelled from schedule"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:07:46.059464"
+   },
+   {
+    "id": "b740dfb135f243f4bd03eb6de4637e9a",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "surprise"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:06:19.781117"
+   },
+   {
+    "id": "b6f0425364f441009612fc2076a941ff",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "matrix"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:06:18.942853"
+   },
+   {
+    "id": "02ccdc3172314b00831540b780bb49a4",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "matrix"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:06:18.255551"
+   },
+   {
+    "id": "da793e29e514400bb4404b2ae131a1fc",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "matrix"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:06:17.095220"
+   },
+   {
+    "id": "9808f609ab9145e0aaf997121731c641",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "amber"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:04:38.378027"
+   },
+   {
+    "id": "fec7a40784c647e794a44149d3c74c07",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "paper"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:04:37.524788"
+   },
+   {
+    "id": "e506c93701514e7b94a1aae5170d8c46",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "amber"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:04:29.147486"
+   },
+   {
+    "id": "e8daf28c3c49484ca7fea979d3711cda",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "slate"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:04:27.400774"
+   },
+   {
+    "id": "cff0585873034f098fc1a799e2a19ba9",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "amber"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:04:26.589968"
+   },
+   {
+    "id": "64da1de38bd0499cb48eada819c103af",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "amber"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T12:04:24.832469"
+   },
+   {
+    "id": "dff4393a3aca498c9f51653879a2195f",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "set_default_preset",
+    "target_type": "settings",
+    "target_id": "render_preferences",
+    "details": {
+     "preset_id": "coastal"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T10:56:28.270766"
+   },
+   {
+    "id": "a1ff333fc44f488b958ff1a067bf24d6",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "manual_intake",
+    "target_type": "song",
+    "target_id": "507dd480570b44d1bce605873c40ef6f",
+    "details": {
+     "title": "Pink Neon",
+     "artist": "Test Artist",
+     "environment": "prod"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T10:45:15.432628"
+   },
+   {
+    "id": "e1d7c6b9014041f492f4abd56a1c2518",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "manual_intake",
+    "target_type": "song",
+    "target_id": "f1a343cfb7c643be851a3c1edbf0e0ee",
+    "details": {
+     "title": "Burning Slow",
+     "artist": "Test Artist",
+     "environment": "prod"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T10:45:14.231072"
+   },
+   {
+    "id": "0d9261c229dd48e48f90caef5451db77",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "manual_intake",
+    "target_type": "song",
+    "target_id": "fb23102d993943a7ae526271da898377",
+    "details": {
+     "title": "Night Drive",
+     "artist": "Test Artist",
+     "environment": "prod"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T10:45:12.496002"
+   },
+   {
+    "id": "93fbeeb0d25f4d8c91cb1a6524506405",
+    "user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "action": "manual_intake",
+    "target_type": "song",
+    "target_id": "e7103d781e9e48e692203da9ad7d038d",
+    "details": {
+     "title": "Golden Hour",
+     "artist": "Test Artist",
+     "environment": "prod"
+    },
+    "ip_address": "203.0.113.10",
+    "user_agent": "Mozilla/5.0 (demo)",
+    "created_at": "2026-10-03T10:36:00.196752"
+   }
+  ]
+ },
+ "/upload-jobs": {
+  "upload_jobs": [
+   {
+    "id": "b06f0680e6424059bbff5037a302e8cd",
+    "job_type": "upload",
+    "clip_id": "02ad5c910d954bb5990af9c3b187f371",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T14:04:15",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:46:40.197521",
+    "updated_at": "2026-10-03T12:07:51.791696",
+    "completed_at": "2026-10-03T12:07:51.789060"
+   },
+   {
+    "id": "61c2db80fa334055ba6f719ccafc569a",
+    "job_type": "upload",
+    "clip_id": "67d73f5545fc4d038a926f9b014ffc97",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T20:23:37",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:36:44.132024",
+    "updated_at": "2026-10-03T12:07:50.790387",
+    "completed_at": "2026-10-03T12:07:50.788150"
+   },
+   {
+    "id": "518d260779e546c4b07981952e184a9e",
+    "job_type": "upload",
+    "clip_id": "e3ac1c6134844adb87c3f9eaf795826f",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T20:23:37",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:45:48.305964",
+    "updated_at": "2026-10-03T12:07:49.666425",
+    "completed_at": "2026-10-03T12:07:49.661084"
+   },
+   {
+    "id": "c32eaafec5a648289094a88bc58a3e50",
+    "job_type": "upload",
+    "clip_id": "ef20fef9bf6049d8996a935a54515601",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T22:36:37",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:47:12.076600",
+    "updated_at": "2026-10-03T12:07:46.058076",
+    "completed_at": "2026-10-03T12:07:46.054323"
+   }
+  ]
+ },
+ "/integrations/tiktok/status": {
+  "integration": {
+   "configured": false,
+   "connected": false,
+   "subject": null,
+   "expires_at": null,
+   "scopes": [],
+   "preferences": {
+    "preferred_privacy_level": "SELF_ONLY",
+    "allow_comment": false,
+    "allow_duet": false,
+    "allow_stitch": false
+   },
+   "creator_info": null,
+   "creator_info_fetched_at": null,
+   "last_error": null,
+   "upload_mode": "hybrid",
+   "simulate_uploads": true,
+   "required_scopes": [
+    "video.publish",
+    "video.upload"
+   ]
+  }
+ },
+ "/pipeline/settings": {
+  "pipeline": {
+   "paused": false
+  },
+  "env": {
+   "app_env": "dev",
+   "upload_mode": "hybrid",
+   "lab_enabled": true
+  }
+ },
+ "/songs/507dd480570b44d1bce605873c40ef6f": {
+  "song": {
+   "id": "507dd480570b44d1bce605873c40ef6f",
+   "song_key": "530275ca2b464251b86eb3965c396d7a",
+   "title": "Pink Neon",
+   "artist": "Test Artist",
+   "source_type": "manual",
+   "provider_name": "manual-intake",
+   "environment": "prod",
+   "rights_status": "licensed",
+   "status": "queued_for_upload",
+   "review_status": "pending",
+   "publish_eligible": true,
+   "manual_priority": true,
+   "preset_id": "miami",
+   "audio_path": "/demo/pink-neon.mp3",
+   "cover_path": "/demo/pink-neon.jpg",
+   "lyrics_path": "/demo/pink-neon.lrc",
+   "duration_seconds": null,
+   "metadata": {
+    "original_audio_name": "pink_neon.mp3",
+    "audio_sha256": "23c1a32ac4a9070cdb628dbdbbb4fc8a5c1d76c6c5735312176cd929e956195b",
+    "audio_size_bytes": 1441166,
+    "audio_content_type": "application/octet-stream"
+   },
+   "last_error": null,
+   "created_at": "2026-10-03T10:45:15.428494",
+   "updated_at": "2026-10-03T10:47:12.079923"
+  },
+  "lyrics_artifacts": [
+   {
+    "id": "4851cbc6813e45728d4c1fceb69700ff",
+    "source_format": "lrc",
+    "source_name": "local-sidecar",
+    "source_ref": "storage/manual-intake/prod/530275ca2b464251b86eb3965c396d7a/Test Artist - Pink Neon.lrc",
+    "status": "ready",
+    "was_aligned": false,
+    "confidence": 0.85,
+    "line_count": 24,
+    "created_at": "2026-10-03T10:45:19.821299"
+   }
+  ],
+  "segment_candidates": [
+   {
+    "id": "0c8e84afa390449ebe7792303fe6e8aa",
+    "start_second": 0.2,
+    "end_second": 43.2,
+    "score": 0.714,
+    "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+    "caption_seed": "Turn the bass up let it shake",
+    "selected": true,
+    "rank": 1
+   }
+  ],
+  "clips": [
+   {
+    "id": "ef20fef9bf6049d8996a935a54515601",
+    "song_id": "507dd480570b44d1bce605873c40ef6f",
+    "segment_candidate_id": "0c8e84afa390449ebe7792303fe6e8aa",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[songs that hurt] Turn the bass up let it shake | Test Artist - Pink Neon",
+    "hook_category": "songs that hurt",
+    "lyric_style": "beat_pulse",
+    "layout_template": "fullscreen_cover_overlay",
+    "font_family": "Righteous",
+    "text_color": "#fff1ff",
+    "highlight_color": "#ff42a1",
+    "preset_id": "miami",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/pink-neon-6e4315da4114.json",
+    "subtitle_path": "/demo/pink-neon.ass",
+    "video_path": "/demo/pink-neon.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T22:36:37",
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:19.894632",
+    "updated_at": "2026-10-03T10:47:12.074518"
+   }
+  ]
+ },
+ "/songs/f1a343cfb7c643be851a3c1edbf0e0ee": {
+  "song": {
+   "id": "f1a343cfb7c643be851a3c1edbf0e0ee",
+   "song_key": "b366ea2a50c84223a936f6a74db86344",
+   "title": "Burning Slow",
+   "artist": "Test Artist",
+   "source_type": "manual",
+   "provider_name": "manual-intake",
+   "environment": "prod",
+   "rights_status": "licensed",
+   "status": "queued_for_upload",
+   "review_status": "pending",
+   "publish_eligible": true,
+   "manual_priority": true,
+   "preset_id": "inferno",
+   "audio_path": "/demo/burning-slow.mp3",
+   "cover_path": "/demo/burning-slow.jpg",
+   "lyrics_path": "/demo/burning-slow.lrc",
+   "duration_seconds": null,
+   "metadata": {
+    "original_audio_name": "burning_slow.mp3",
+    "audio_sha256": "931f308d1ad75313a6d8fccb77c29b0a61136b7fa5dfb8ceaf5c55456a1e6024",
+    "audio_size_bytes": 1441166,
+    "audio_content_type": "application/octet-stream"
+   },
+   "last_error": null,
+   "created_at": "2026-10-03T10:45:14.226970",
+   "updated_at": "2026-10-03T10:46:40.200058"
+  },
+  "lyrics_artifacts": [
+   {
+    "id": "7fe6088c3322468f90ce3a22eaca7f84",
+    "source_format": "lrc",
+    "source_name": "local-sidecar",
+    "source_ref": "storage/manual-intake/prod/b366ea2a50c84223a936f6a74db86344/Test Artist - Burning Slow.lrc",
+    "status": "ready",
+    "was_aligned": false,
+    "confidence": 0.85,
+    "line_count": 24,
+    "created_at": "2026-10-03T10:45:19.800181"
+   }
+  ],
+  "segment_candidates": [
+   {
+    "id": "a8b380fc87e14628940dd6a0e05589b4",
+    "start_second": 0.2,
+    "end_second": 43.2,
+    "score": 0.714,
+    "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+    "caption_seed": "Don't you let the fire die",
+    "selected": true,
+    "rank": 1
+   }
+  ],
+  "clips": [
+   {
+    "id": "02ad5c910d954bb5990af9c3b187f371",
+    "song_id": "f1a343cfb7c643be851a3c1edbf0e0ee",
+    "segment_candidate_id": "a8b380fc87e14628940dd6a0e05589b4",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[main character songs] Don't you let the fire die | Test Artist - Burning Slow",
+    "hook_category": "main character songs",
+    "lyric_style": "beat_pulse",
+    "layout_template": "minimal_typography_black",
+    "font_family": "Uncial Antiqua",
+    "text_color": "#fff1ef",
+    "highlight_color": "#ef1010",
+    "preset_id": "inferno",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/burning-slow-725cbb32619c.json",
+    "subtitle_path": "/demo/burning-slow.ass",
+    "video_path": "/demo/burning-slow.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T14:04:15",
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:19.873384",
+    "updated_at": "2026-10-03T10:46:40.195025"
+   }
+  ]
+ },
+ "/songs/fb23102d993943a7ae526271da898377": {
+  "song": {
+   "id": "fb23102d993943a7ae526271da898377",
+   "song_key": "0b6b13d86b6f4db9a1273205b3a088bf",
+   "title": "Night Drive",
+   "artist": "Test Artist",
+   "source_type": "manual",
+   "provider_name": "manual-intake",
+   "environment": "prod",
+   "rights_status": "licensed",
+   "status": "queued_for_upload",
+   "review_status": "pending",
+   "publish_eligible": true,
+   "manual_priority": true,
+   "preset_id": "matrix",
+   "audio_path": "/demo/night-drive.mp3",
+   "cover_path": "/demo/night-drive.jpg",
+   "lyrics_path": "/demo/night-drive.lrc",
+   "duration_seconds": null,
+   "metadata": {
+    "original_audio_name": "night_drive.mp3",
+    "audio_sha256": "357923c5104201dbcf60f16ce18a824ca0b77090e44ad583b9c1a65321fdb7d7",
+    "audio_size_bytes": 1441166,
+    "audio_content_type": "application/octet-stream"
+   },
+   "last_error": null,
+   "created_at": "2026-10-03T10:45:12.491620",
+   "updated_at": "2026-10-03T10:45:48.310961"
+  },
+  "lyrics_artifacts": [
+   {
+    "id": "6ed1447e48c346c09df99d6eeaba34b7",
+    "source_format": "lrc",
+    "source_name": "local-sidecar",
+    "source_ref": "storage/manual-intake/prod/0b6b13d86b6f4db9a1273205b3a088bf/Test Artist - Night Drive.lrc",
+    "status": "ready",
+    "was_aligned": false,
+    "confidence": 0.85,
+    "line_count": 24,
+    "created_at": "2026-10-03T10:45:19.774830"
+   }
+  ],
+  "segment_candidates": [
+   {
+    "id": "4a96ba768bc14c0b8d5567b7ce65e78b",
+    "start_second": 0.2,
+    "end_second": 43.2,
+    "score": 0.714,
+    "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+    "caption_seed": "Running every signal red",
+    "selected": true,
+    "rank": 1
+   }
+  ],
+  "clips": [
+   {
+    "id": "e3ac1c6134844adb87c3f9eaf795826f",
+    "song_id": "fb23102d993943a7ae526271da898377",
+    "segment_candidate_id": "4a96ba768bc14c0b8d5567b7ce65e78b",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[healing songs] Running every signal red | Test Artist - Night Drive",
+    "hook_category": "healing songs",
+    "lyric_style": "karaoke",
+    "layout_template": "minimal_typography_black",
+    "font_family": "Pixelify Sans",
+    "text_color": "#d9ffe0",
+    "highlight_color": "#46e568",
+    "preset_id": "matrix",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/night-drive-9f533716e51c.json",
+    "subtitle_path": "/demo/night-drive.ass",
+    "video_path": "/demo/night-drive.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T20:23:37",
+    "last_error": null,
+    "created_at": "2026-10-03T10:45:19.850727",
+    "updated_at": "2026-10-03T10:45:48.300105"
+   }
+  ]
+ },
+ "/songs/e7103d781e9e48e692203da9ad7d038d": {
+  "song": {
+   "id": "e7103d781e9e48e692203da9ad7d038d",
+   "song_key": "77f5e6966e8441b9923ac87780268a55",
+   "title": "Golden Hour",
+   "artist": "Test Artist",
+   "source_type": "manual",
+   "provider_name": "manual-intake",
+   "environment": "prod",
+   "rights_status": "licensed",
+   "status": "queued_for_render",
+   "review_status": "pending",
+   "publish_eligible": true,
+   "manual_priority": true,
+   "preset_id": "amber",
+   "audio_path": "/demo/golden-hour.mp3",
+   "cover_path": "/demo/golden-hour.jpg",
+   "lyrics_path": "/demo/golden-hour.lrc",
+   "duration_seconds": null,
+   "metadata": {
+    "original_audio_name": "Test Artist - Golden Hour.wav",
+    "audio_sha256": "13d7ba51752e92d56c6753ebe2023d448b2b82dc76b40259d20d1cef9d866675",
+    "audio_size_bytes": 3969044,
+    "audio_content_type": "audio/wav"
+   },
+   "last_error": null,
+   "created_at": "2026-10-03T10:36:00.186355",
+   "updated_at": "2026-10-03T10:36:01.465759"
+  },
+  "lyrics_artifacts": [
+   {
+    "id": "596ea7dd68ad4053b201964dc48a82b2",
+    "source_format": "lrc",
+    "source_name": "local-sidecar",
+    "source_ref": "storage/manual-intake/prod/77f5e6966e8441b9923ac87780268a55/Test Artist - Golden Hour.lrc",
+    "status": "ready",
+    "was_aligned": false,
+    "confidence": 0.85,
+    "line_count": 24,
+    "created_at": "2026-10-03T10:36:01.424831"
+   }
+  ],
+  "segment_candidates": [
+   {
+    "id": "639af6adac72420ea5c48fb66b287ad9",
+    "start_second": 0.2,
+    "end_second": 43.2,
+    "score": 0.714,
+    "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+    "caption_seed": "Say my name like it's the last",
+    "selected": true,
+    "rank": 1
+   }
+  ],
+  "clips": [
+   {
+    "id": "67d73f5545fc4d038a926f9b014ffc97",
+    "song_id": "e7103d781e9e48e692203da9ad7d038d",
+    "segment_candidate_id": "639af6adac72420ea5c48fb66b287ad9",
+    "environment": "prod",
+    "status": "rendered",
+    "review_required": false,
+    "caption": "[healing songs] Say my name like it's the last | Test Artist - Golden Hour",
+    "hook_category": "healing songs",
+    "lyric_style": "stacked_3_line",
+    "layout_template": "blurred_cover_center_lyrics",
+    "font_family": "Cuprum",
+    "text_color": "#f7ead8",
+    "highlight_color": "#e96b42",
+    "preset_id": "amber",
+    "duration_seconds": 43.0,
+    "render_manifest_path": "output/render_work/golden-hour-5dc806140250.json",
+    "subtitle_path": "/demo/golden-hour.ass",
+    "video_path": "/demo/golden-hour.mp4",
+    "preview_path": null,
+    "scheduled_at": "2026-10-04T20:23:37",
+    "last_error": null,
+    "created_at": "2026-10-03T10:36:01.463142",
+    "updated_at": "2026-10-03T10:36:44.124088"
+   }
+  ]
+ },
+ "/clips/ef20fef9bf6049d8996a935a54515601": {
+  "clip": {
+   "id": "ef20fef9bf6049d8996a935a54515601",
+   "song_id": "507dd480570b44d1bce605873c40ef6f",
+   "segment_candidate_id": "0c8e84afa390449ebe7792303fe6e8aa",
+   "environment": "prod",
+   "status": "rendered",
+   "review_required": false,
+   "caption": "[songs that hurt] Turn the bass up let it shake | Test Artist - Pink Neon",
+   "hook_category": "songs that hurt",
+   "lyric_style": "beat_pulse",
+   "layout_template": "fullscreen_cover_overlay",
+   "font_family": "Righteous",
+   "text_color": "#fff1ff",
+   "highlight_color": "#ff42a1",
+   "preset_id": "miami",
+   "duration_seconds": 43.0,
+   "render_manifest_path": "output/render_work/pink-neon-6e4315da4114.json",
+   "subtitle_path": "/demo/pink-neon.ass",
+   "video_path": "/demo/pink-neon.mp4",
+   "preview_path": null,
+   "scheduled_at": "2026-10-04T22:36:37",
+   "last_error": null,
+   "created_at": "2026-10-03T10:45:19.894632",
+   "updated_at": "2026-10-03T10:47:12.074518"
+  },
+  "segment": {
+   "id": "0c8e84afa390449ebe7792303fe6e8aa",
+   "start_second": 0.2,
+   "end_second": 43.2,
+   "score": 0.714,
+   "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+   "caption_seed": "Turn the bass up let it shake"
+  },
+  "render_jobs": [
+   {
+    "id": "4d9aebcbf22043ccb7c64f04151fb11c",
+    "job_type": "render",
+    "clip_id": "ef20fef9bf6049d8996a935a54515601",
+    "status": "rendered",
+    "priority": 0,
+    "attempt_count": 1,
+    "claimed_by": "platform-worker",
+    "claimed_at": "2026-10-03T10:47:00.234754",
+    "lease_expires_at": "2026-10-03T10:57:00.234754",
+    "ffmpeg_command": [
+     "ffmpeg",
+     "-y",
+     "-loop",
+     "1",
+     "-i",
+     "storage/manual-intake/prod/530275ca2b464251b86eb3965c396d7a/Test Artist - Pink Neon.png",
+     "-i",
+     "storage/manual-intake/prod/530275ca2b464251b86eb3965c396d7a/Test Artist - Pink Neon.mp3",
+     "-ss",
+     "0.200",
+     "-t",
+     "43.000",
+     "-filter_complex",
+     "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,ass=filename='output/render_work/pink-neon-6e4315da4114.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+     "-map",
+     "[vout]",
+     "-map",
+     "1:a",
+     "-r",
+     "30",
+     "-c:v",
+     "libx264",
+     "-preset",
+     "medium",
+     "-crf",
+     "23",
+     "-maxrate",
+     "8M",
+     "-bufsize",
+     "16M",
+     "-c:a",
+     "aac",
+     "-b:a",
+     "192k",
+     "-shortest",
+     "-pix_fmt",
+     "yuv420p",
+     "output/videos/test-artist-pink-neon-6e4315da4114.mp4"
+    ],
+    "stderr_text": null,
+    "artifact_metadata": {
+     "render_id": "6e4315da4114",
+     "song_id": "530275ca2b464251b86eb3965c396d7a",
+     "segment_id": "0c8e84afa390449ebe7792303fe6e8aa",
+     "song_title": "Pink Neon",
+     "artist": "Test Artist",
+     "audio_path": "/demo/pink-neon.mp3",
+     "output_path": "/demo/pink-neon.mp4",
+     "ass_path": "/demo/pink-neon.ass",
+     "style": {
+      "lyric_style": "beat_pulse",
+      "layout_template": "fullscreen_cover_overlay",
+      "font_family": "Righteous",
+      "text_color": "#fff1ff",
+      "highlight_color": "#ff42a1",
+      "use_album_palette": false,
+      "hook_category": "songs that hurt",
+      "hook_phrase": null,
+      "preset_id": "miami",
+      "background_color": "#10051f",
+      "grain_strength": 12
+     },
+     "layout_description": "Fullscreen album cover with lyric overlay",
+     "segment": {
+      "start": 0.2,
+      "end": 43.2,
+      "duration": 43.0,
+      "score": 0.714,
+      "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+      "caption_seed": "Turn the bass up let it shake"
+     },
+     "ass_lines": [
+      {
+       "start": 1.8,
+       "end": 5.12,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Pink neon on the boulevard",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 5.2,
+       "end": 8.520000000000001,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Dancing like we're not that far",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 8.600000000000001,
+       "end": 11.92,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Turn the bass up let it shake",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 12.0,
+       "end": 15.32,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Turn the bass up let it shake",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 15.4,
+       "end": 18.720000000000002,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Every heartbeat on the beat",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 18.8,
+       "end": 22.12,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Summer melting on the street",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 22.2,
+       "end": 25.52,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Pink neon on the boulevard",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 25.6,
+       "end": 28.92,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Dancing like we're not that far",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 29.0,
+       "end": 32.32,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Turn the bass up let it shake",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 32.4,
+       "end": 35.72,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Turn the bass up let it shake",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 35.8,
+       "end": 39.12,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Every heartbeat on the beat",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 39.199999999999996,
+       "end": 42.519999999999996,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Summer melting on the street",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 42.599999999999994,
+       "end": 43.0,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Pink neon on the boulevard",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      }
+     ],
+     "ffmpeg_command": [
+      "ffmpeg",
+      "-y",
+      "-loop",
+      "1",
+      "-i",
+      "storage/manual-intake/prod/530275ca2b464251b86eb3965c396d7a/Test Artist - Pink Neon.png",
+      "-i",
+      "storage/manual-intake/prod/530275ca2b464251b86eb3965c396d7a/Test Artist - Pink Neon.mp3",
+      "-ss",
+      "0.200",
+      "-t",
+      "43.000",
+      "-filter_complex",
+      "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,ass=filename='output/render_work/pink-neon-6e4315da4114.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+      "-map",
+      "[vout]",
+      "-map",
+      "1:a",
+      "-r",
+      "30",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "medium",
+      "-crf",
+      "23",
+      "-maxrate",
+      "8M",
+      "-bufsize",
+      "16M",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-shortest",
+      "-pix_fmt",
+      "yuv420p",
+      "output/videos/test-artist-pink-neon-6e4315da4114.mp4"
+     ]
+    },
+    "created_at": "2026-10-03T10:45:19.895512",
+    "updated_at": "2026-10-03T10:47:12.075878",
+    "completed_at": "2026-10-03T10:47:12.072669"
+   }
+  ],
+  "upload_jobs": [
+   {
+    "id": "c32eaafec5a648289094a88bc58a3e50",
+    "job_type": "upload",
+    "clip_id": "ef20fef9bf6049d8996a935a54515601",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T22:36:37",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:47:12.076600",
+    "updated_at": "2026-10-03T12:07:46.058076",
+    "completed_at": "2026-10-03T12:07:46.054323"
+   }
+  ],
+  "state_events": [
+   {
+    "id": "67f1f459e73c43c2ae05b4ce551f9318",
+    "subject_type": "upload_job",
+    "subject_id": "c32eaafec5a648289094a88bc58a3e50",
+    "event_type": "status_change",
+    "from_state": "waiting_window",
+    "to_state": "cancelled",
+    "payload": {
+     "reason": "cancelled from schedule"
+    },
+    "actor_user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "created_at": "2026-10-03T12:07:46.054936"
+   },
+   {
+    "id": "80d26e5a880843429e01c51ea9eefcbf",
+    "subject_type": "render_job",
+    "subject_id": "4d9aebcbf22043ccb7c64f04151fb11c",
+    "event_type": "render_finished",
+    "from_state": "rendering",
+    "to_state": "rendered",
+    "payload": {
+     "clip_id": "ef20fef9bf6049d8996a935a54515601",
+     "song_id": "507dd480570b44d1bce605873c40ef6f"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:47:12.080283"
+   },
+   {
+    "id": "1758227129884181bad7246b65bedac7",
+    "subject_type": "render_job",
+    "subject_id": "4d9aebcbf22043ccb7c64f04151fb11c",
+    "event_type": "render_started",
+    "from_state": "claimed",
+    "to_state": "rendering",
+    "payload": {
+     "worker_name": "platform-worker"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:47:00.256088"
+   }
+  ]
+ },
+ "/clips/02ad5c910d954bb5990af9c3b187f371": {
+  "clip": {
+   "id": "02ad5c910d954bb5990af9c3b187f371",
+   "song_id": "f1a343cfb7c643be851a3c1edbf0e0ee",
+   "segment_candidate_id": "a8b380fc87e14628940dd6a0e05589b4",
+   "environment": "prod",
+   "status": "rendered",
+   "review_required": false,
+   "caption": "[main character songs] Don't you let the fire die | Test Artist - Burning Slow",
+   "hook_category": "main character songs",
+   "lyric_style": "beat_pulse",
+   "layout_template": "minimal_typography_black",
+   "font_family": "Uncial Antiqua",
+   "text_color": "#fff1ef",
+   "highlight_color": "#ef1010",
+   "preset_id": "inferno",
+   "duration_seconds": 43.0,
+   "render_manifest_path": "output/render_work/burning-slow-725cbb32619c.json",
+   "subtitle_path": "/demo/burning-slow.ass",
+   "video_path": "/demo/burning-slow.mp4",
+   "preview_path": null,
+   "scheduled_at": "2026-10-04T14:04:15",
+   "last_error": null,
+   "created_at": "2026-10-03T10:45:19.873384",
+   "updated_at": "2026-10-03T10:46:40.195025"
+  },
+  "segment": {
+   "id": "a8b380fc87e14628940dd6a0e05589b4",
+   "start_second": 0.2,
+   "end_second": 43.2,
+   "score": 0.714,
+   "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+   "caption_seed": "Don't you let the fire die"
+  },
+  "render_jobs": [
+   {
+    "id": "d5a2cd2c62d54bc3894623f9b8bed8f7",
+    "job_type": "render",
+    "clip_id": "02ad5c910d954bb5990af9c3b187f371",
+    "status": "rendered",
+    "priority": 0,
+    "attempt_count": 1,
+    "claimed_by": "platform-worker",
+    "claimed_at": "2026-10-03T10:46:08.343168",
+    "lease_expires_at": "2026-10-03T10:56:08.343168",
+    "ffmpeg_command": [
+     "ffmpeg",
+     "-y",
+     "-loop",
+     "1",
+     "-i",
+     "storage/manual-intake/prod/b366ea2a50c84223a936f6a74db86344/Test Artist - Burning Slow.png",
+     "-i",
+     "storage/manual-intake/prod/b366ea2a50c84223a936f6a74db86344/Test Artist - Burning Slow.mp3",
+     "-ss",
+     "0.200",
+     "-t",
+     "43.000",
+     "-filter_complex",
+     "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,drawbox=x=0:y=0:w=iw:h=ih:color=0x000000@1.0:t=fill,ass=filename='output/render_work/burning-slow-725cbb32619c.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+     "-map",
+     "[vout]",
+     "-map",
+     "1:a",
+     "-r",
+     "30",
+     "-c:v",
+     "libx264",
+     "-preset",
+     "medium",
+     "-crf",
+     "23",
+     "-maxrate",
+     "8M",
+     "-bufsize",
+     "16M",
+     "-c:a",
+     "aac",
+     "-b:a",
+     "192k",
+     "-shortest",
+     "-pix_fmt",
+     "yuv420p",
+     "output/videos/test-artist-burning-slow-725cbb32619c.mp4"
+    ],
+    "stderr_text": null,
+    "artifact_metadata": {
+     "render_id": "725cbb32619c",
+     "song_id": "b366ea2a50c84223a936f6a74db86344",
+     "segment_id": "a8b380fc87e14628940dd6a0e05589b4",
+     "song_title": "Burning Slow",
+     "artist": "Test Artist",
+     "audio_path": "/demo/burning-slow.mp3",
+     "output_path": "/demo/burning-slow.mp4",
+     "ass_path": "/demo/burning-slow.ass",
+     "style": {
+      "lyric_style": "beat_pulse",
+      "layout_template": "minimal_typography_black",
+      "font_family": "Uncial Antiqua",
+      "text_color": "#fff1ef",
+      "highlight_color": "#ef1010",
+      "use_album_palette": false,
+      "hook_category": "main character songs",
+      "hook_phrase": null,
+      "preset_id": "inferno",
+      "background_color": "#000000",
+      "grain_strength": 14
+     },
+     "layout_description": "Minimal typography on a black background",
+     "segment": {
+      "start": 0.2,
+      "end": 43.2,
+      "duration": 43.0,
+      "score": 0.714,
+      "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+      "caption_seed": "Don't you let the fire die"
+     },
+     "ass_lines": [
+      {
+       "start": 1.8,
+       "end": 5.12,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Every word a little spark",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 5.2,
+       "end": 8.520000000000001,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Burning slow inside the dark",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 8.600000000000001,
+       "end": 11.92,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Don't you let the fire die",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 12.0,
+       "end": 15.32,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Don't you let the fire die",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 15.4,
+       "end": 18.720000000000002,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Ashes falling like the rain",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 18.8,
+       "end": 22.12,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Light me up and start again",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 22.2,
+       "end": 25.52,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Every word a little spark",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 25.6,
+       "end": 28.92,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Burning slow inside the dark",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 29.0,
+       "end": 32.32,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Don't you let the fire die",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 32.4,
+       "end": 35.72,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Don't you let the fire die",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 35.8,
+       "end": 39.12,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Ashes falling like the rain",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 39.199999999999996,
+       "end": 42.519999999999996,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Light me up and start again",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 42.599999999999994,
+       "end": 43.0,
+       "text": "{\\t(0,250,\\fscx115\\fscy115)}Every word a little spark",
+       "style": "Pulse",
+       "layer": 0,
+       "words": []
+      }
+     ],
+     "ffmpeg_command": [
+      "ffmpeg",
+      "-y",
+      "-loop",
+      "1",
+      "-i",
+      "storage/manual-intake/prod/b366ea2a50c84223a936f6a74db86344/Test Artist - Burning Slow.png",
+      "-i",
+      "storage/manual-intake/prod/b366ea2a50c84223a936f6a74db86344/Test Artist - Burning Slow.mp3",
+      "-ss",
+      "0.200",
+      "-t",
+      "43.000",
+      "-filter_complex",
+      "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,drawbox=x=0:y=0:w=iw:h=ih:color=0x000000@1.0:t=fill,ass=filename='output/render_work/burning-slow-725cbb32619c.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+      "-map",
+      "[vout]",
+      "-map",
+      "1:a",
+      "-r",
+      "30",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "medium",
+      "-crf",
+      "23",
+      "-maxrate",
+      "8M",
+      "-bufsize",
+      "16M",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-shortest",
+      "-pix_fmt",
+      "yuv420p",
+      "output/videos/test-artist-burning-slow-725cbb32619c.mp4"
+     ]
+    },
+    "created_at": "2026-10-03T10:45:19.874574",
+    "updated_at": "2026-10-03T10:46:40.196699",
+    "completed_at": "2026-10-03T10:46:40.192929"
+   }
+  ],
+  "upload_jobs": [
+   {
+    "id": "b06f0680e6424059bbff5037a302e8cd",
+    "job_type": "upload",
+    "clip_id": "02ad5c910d954bb5990af9c3b187f371",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T14:04:15",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:46:40.197521",
+    "updated_at": "2026-10-03T12:07:51.791696",
+    "completed_at": "2026-10-03T12:07:51.789060"
+   }
+  ],
+  "state_events": [
+   {
+    "id": "a146580250be45108ea79f4f6f3b17f5",
+    "subject_type": "upload_job",
+    "subject_id": "b06f0680e6424059bbff5037a302e8cd",
+    "event_type": "status_change",
+    "from_state": "waiting_window",
+    "to_state": "cancelled",
+    "payload": {
+     "reason": "cancelled from schedule"
+    },
+    "actor_user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "created_at": "2026-10-03T12:07:51.789599"
+   },
+   {
+    "id": "51e9234ecece4bec85c6fd2d669bbb3f",
+    "subject_type": "render_job",
+    "subject_id": "d5a2cd2c62d54bc3894623f9b8bed8f7",
+    "event_type": "render_finished",
+    "from_state": "rendering",
+    "to_state": "rendered",
+    "payload": {
+     "clip_id": "02ad5c910d954bb5990af9c3b187f371",
+     "song_id": "f1a343cfb7c643be851a3c1edbf0e0ee"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:46:40.200507"
+   },
+   {
+    "id": "799c9a9603b7449f9226c2b6fa33f4b5",
+    "subject_type": "render_job",
+    "subject_id": "d5a2cd2c62d54bc3894623f9b8bed8f7",
+    "event_type": "render_started",
+    "from_state": "claimed",
+    "to_state": "rendering",
+    "payload": {
+     "worker_name": "platform-worker"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:46:08.363993"
+   }
+  ]
+ },
+ "/clips/e3ac1c6134844adb87c3f9eaf795826f": {
+  "clip": {
+   "id": "e3ac1c6134844adb87c3f9eaf795826f",
+   "song_id": "fb23102d993943a7ae526271da898377",
+   "segment_candidate_id": "4a96ba768bc14c0b8d5567b7ce65e78b",
+   "environment": "prod",
+   "status": "rendered",
+   "review_required": false,
+   "caption": "[healing songs] Running every signal red | Test Artist - Night Drive",
+   "hook_category": "healing songs",
+   "lyric_style": "karaoke",
+   "layout_template": "minimal_typography_black",
+   "font_family": "Pixelify Sans",
+   "text_color": "#d9ffe0",
+   "highlight_color": "#46e568",
+   "preset_id": "matrix",
+   "duration_seconds": 43.0,
+   "render_manifest_path": "output/render_work/night-drive-9f533716e51c.json",
+   "subtitle_path": "/demo/night-drive.ass",
+   "video_path": "/demo/night-drive.mp4",
+   "preview_path": null,
+   "scheduled_at": "2026-10-04T20:23:37",
+   "last_error": null,
+   "created_at": "2026-10-03T10:45:19.850727",
+   "updated_at": "2026-10-03T10:45:48.300105"
+  },
+  "segment": {
+   "id": "4a96ba768bc14c0b8d5567b7ce65e78b",
+   "start_second": 0.2,
+   "end_second": 43.2,
+   "score": 0.714,
+   "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+   "caption_seed": "Running every signal red"
+  },
+  "render_jobs": [
+   {
+    "id": "b7fbf456571f4ec0ab9bd30c833b6c2a",
+    "job_type": "render",
+    "clip_id": "e3ac1c6134844adb87c3f9eaf795826f",
+    "status": "rendered",
+    "priority": 0,
+    "attempt_count": 1,
+    "claimed_by": "platform-worker",
+    "claimed_at": "2026-10-03T10:45:19.902345",
+    "lease_expires_at": "2026-10-03T10:55:19.902345",
+    "ffmpeg_command": [
+     "ffmpeg",
+     "-y",
+     "-loop",
+     "1",
+     "-i",
+     "storage/manual-intake/prod/0b6b13d86b6f4db9a1273205b3a088bf/Test Artist - Night Drive.png",
+     "-i",
+     "storage/manual-intake/prod/0b6b13d86b6f4db9a1273205b3a088bf/Test Artist - Night Drive.mp3",
+     "-ss",
+     "0.200",
+     "-t",
+     "43.000",
+     "-filter_complex",
+     "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,drawbox=x=0:y=0:w=iw:h=ih:color=0x020805@1.0:t=fill,ass=filename='output/render_work/night-drive-9f533716e51c.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+     "-map",
+     "[vout]",
+     "-map",
+     "1:a",
+     "-r",
+     "30",
+     "-c:v",
+     "libx264",
+     "-preset",
+     "medium",
+     "-crf",
+     "23",
+     "-maxrate",
+     "8M",
+     "-bufsize",
+     "16M",
+     "-c:a",
+     "aac",
+     "-b:a",
+     "192k",
+     "-shortest",
+     "-pix_fmt",
+     "yuv420p",
+     "output/videos/test-artist-night-drive-9f533716e51c.mp4"
+    ],
+    "stderr_text": null,
+    "artifact_metadata": {
+     "render_id": "9f533716e51c",
+     "song_id": "0b6b13d86b6f4db9a1273205b3a088bf",
+     "segment_id": "4a96ba768bc14c0b8d5567b7ce65e78b",
+     "song_title": "Night Drive",
+     "artist": "Test Artist",
+     "audio_path": "/demo/night-drive.mp3",
+     "output_path": "/demo/night-drive.mp4",
+     "ass_path": "/demo/night-drive.ass",
+     "style": {
+      "lyric_style": "karaoke",
+      "layout_template": "minimal_typography_black",
+      "font_family": "Pixelify Sans",
+      "text_color": "#d9ffe0",
+      "highlight_color": "#46e568",
+      "use_album_palette": false,
+      "hook_category": "healing songs",
+      "hook_phrase": null,
+      "preset_id": "matrix",
+      "background_color": "#020805",
+      "grain_strength": 16
+     },
+     "layout_description": "Minimal typography on a black background",
+     "segment": {
+      "start": 0.2,
+      "end": 43.2,
+      "duration": 43.0,
+      "score": 0.714,
+      "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+      "caption_seed": "Running every signal red"
+     },
+     "ass_lines": [
+      {
+       "start": 1.8,
+       "end": 5.12,
+       "text": "{\\k67}Static {\\k67}on {\\k67}the {\\k67}radio {\\k67}tonight",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Static",
+         "start": 1.8,
+         "end": 2.464,
+         "highlight": false
+        },
+        {
+         "text": "on",
+         "start": 2.464,
+         "end": 3.1279999999999997,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 3.1279999999999997,
+         "end": 3.792,
+         "highlight": false
+        },
+        {
+         "text": "radio",
+         "start": 3.792,
+         "end": 4.4559999999999995,
+         "highlight": false
+        },
+        {
+         "text": "tonight",
+         "start": 4.4559999999999995,
+         "end": 5.12,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 5.2,
+       "end": 8.520000000000001,
+       "text": "{\\k56}Green {\\k56}lights {\\k56}all {\\k56}the {\\k56}way {\\k56}home",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Green",
+         "start": 5.2,
+         "end": 5.753,
+         "highlight": false
+        },
+        {
+         "text": "lights",
+         "start": 5.753,
+         "end": 6.3069999999999995,
+         "highlight": false
+        },
+        {
+         "text": "all",
+         "start": 6.3069999999999995,
+         "end": 6.859999999999999,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 6.859999999999999,
+         "end": 7.413,
+         "highlight": false
+        },
+        {
+         "text": "way",
+         "start": 7.413,
+         "end": 7.967,
+         "highlight": false
+        },
+        {
+         "text": "home",
+         "start": 7.967,
+         "end": 8.520000000000001,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 8.600000000000001,
+       "end": 11.92,
+       "text": "{\\k83}Running {\\k83}every {\\k83}signal {\\k83}red",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Running",
+         "start": 8.600000000000001,
+         "end": 9.430000000000001,
+         "highlight": false
+        },
+        {
+         "text": "every",
+         "start": 9.430000000000001,
+         "end": 10.260000000000002,
+         "highlight": false
+        },
+        {
+         "text": "signal",
+         "start": 10.260000000000002,
+         "end": 11.09,
+         "highlight": false
+        },
+        {
+         "text": "red",
+         "start": 11.09,
+         "end": 11.92,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 12.0,
+       "end": 15.32,
+       "text": "{\\k83}Running {\\k83}every {\\k83}signal {\\k83}red",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Running",
+         "start": 12.0,
+         "end": 12.83,
+         "highlight": false
+        },
+        {
+         "text": "every",
+         "start": 12.83,
+         "end": 13.66,
+         "highlight": false
+        },
+        {
+         "text": "signal",
+         "start": 13.66,
+         "end": 14.49,
+         "highlight": false
+        },
+        {
+         "text": "red",
+         "start": 14.49,
+         "end": 15.32,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 15.4,
+       "end": 18.720000000000002,
+       "text": "{\\k48}Hold {\\k48}the {\\k48}wheel {\\k48}and {\\k48}close {\\k48}your {\\k48}eyes",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Hold",
+         "start": 15.4,
+         "end": 15.874000000000002,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 15.874000000000002,
+         "end": 16.349,
+         "highlight": false
+        },
+        {
+         "text": "wheel",
+         "start": 16.349,
+         "end": 16.823,
+         "highlight": false
+        },
+        {
+         "text": "and",
+         "start": 16.823,
+         "end": 17.297,
+         "highlight": false
+        },
+        {
+         "text": "close",
+         "start": 17.297,
+         "end": 17.771,
+         "highlight": false
+        },
+        {
+         "text": "your",
+         "start": 17.771,
+         "end": 18.246000000000002,
+         "highlight": false
+        },
+        {
+         "text": "eyes",
+         "start": 18.246000000000002,
+         "end": 18.720000000000002,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 18.8,
+       "end": 22.12,
+       "text": "{\\k67}City {\\k67}humming {\\k67}in {\\k67}the {\\k67}dark",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "City",
+         "start": 18.8,
+         "end": 19.464000000000002,
+         "highlight": false
+        },
+        {
+         "text": "humming",
+         "start": 19.464000000000002,
+         "end": 20.128,
+         "highlight": false
+        },
+        {
+         "text": "in",
+         "start": 20.128,
+         "end": 20.792,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 20.792,
+         "end": 21.456,
+         "highlight": false
+        },
+        {
+         "text": "dark",
+         "start": 21.456,
+         "end": 22.12,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 22.2,
+       "end": 25.52,
+       "text": "{\\k67}Static {\\k67}on {\\k67}the {\\k67}radio {\\k67}tonight",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Static",
+         "start": 22.2,
+         "end": 22.864,
+         "highlight": false
+        },
+        {
+         "text": "on",
+         "start": 22.864,
+         "end": 23.528000000000002,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 23.528000000000002,
+         "end": 24.192,
+         "highlight": false
+        },
+        {
+         "text": "radio",
+         "start": 24.192,
+         "end": 24.856,
+         "highlight": false
+        },
+        {
+         "text": "tonight",
+         "start": 24.856,
+         "end": 25.52,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 25.6,
+       "end": 28.92,
+       "text": "{\\k56}Green {\\k56}lights {\\k56}all {\\k56}the {\\k56}way {\\k56}home",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Green",
+         "start": 25.6,
+         "end": 26.153000000000002,
+         "highlight": false
+        },
+        {
+         "text": "lights",
+         "start": 26.153000000000002,
+         "end": 26.707,
+         "highlight": false
+        },
+        {
+         "text": "all",
+         "start": 26.707,
+         "end": 27.26,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 27.26,
+         "end": 27.813000000000002,
+         "highlight": false
+        },
+        {
+         "text": "way",
+         "start": 27.813000000000002,
+         "end": 28.367,
+         "highlight": false
+        },
+        {
+         "text": "home",
+         "start": 28.367,
+         "end": 28.92,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 29.0,
+       "end": 32.32,
+       "text": "{\\k84}Running {\\k83}every {\\k84}signal {\\k83}red",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Running",
+         "start": 29.0,
+         "end": 29.830000000000002,
+         "highlight": false
+        },
+        {
+         "text": "every",
+         "start": 29.830000000000002,
+         "end": 30.66,
+         "highlight": false
+        },
+        {
+         "text": "signal",
+         "start": 30.66,
+         "end": 31.490000000000002,
+         "highlight": false
+        },
+        {
+         "text": "red",
+         "start": 31.490000000000002,
+         "end": 32.32,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 32.4,
+       "end": 35.72,
+       "text": "{\\k83}Running {\\k83}every {\\k84}signal {\\k83}red",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Running",
+         "start": 32.4,
+         "end": 33.23,
+         "highlight": false
+        },
+        {
+         "text": "every",
+         "start": 33.23,
+         "end": 34.059999999999995,
+         "highlight": false
+        },
+        {
+         "text": "signal",
+         "start": 34.059999999999995,
+         "end": 34.89,
+         "highlight": false
+        },
+        {
+         "text": "red",
+         "start": 34.89,
+         "end": 35.72,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 35.8,
+       "end": 39.12,
+       "text": "{\\k48}Hold {\\k48}the {\\k48}wheel {\\k48}and {\\k48}close {\\k48}your {\\k48}eyes",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Hold",
+         "start": 35.8,
+         "end": 36.273999999999994,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 36.273999999999994,
+         "end": 36.748999999999995,
+         "highlight": false
+        },
+        {
+         "text": "wheel",
+         "start": 36.748999999999995,
+         "end": 37.223,
+         "highlight": false
+        },
+        {
+         "text": "and",
+         "start": 37.223,
+         "end": 37.696999999999996,
+         "highlight": false
+        },
+        {
+         "text": "close",
+         "start": 37.696999999999996,
+         "end": 38.171,
+         "highlight": false
+        },
+        {
+         "text": "your",
+         "start": 38.171,
+         "end": 38.645999999999994,
+         "highlight": false
+        },
+        {
+         "text": "eyes",
+         "start": 38.645999999999994,
+         "end": 39.12,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 39.199999999999996,
+       "end": 42.519999999999996,
+       "text": "{\\k67}City {\\k67}humming {\\k67}in {\\k67}the {\\k67}dark",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "City",
+         "start": 39.199999999999996,
+         "end": 39.864,
+         "highlight": false
+        },
+        {
+         "text": "humming",
+         "start": 39.864,
+         "end": 40.528,
+         "highlight": false
+        },
+        {
+         "text": "in",
+         "start": 40.528,
+         "end": 41.192,
+         "highlight": false
+        },
+        {
+         "text": "the",
+         "start": 41.192,
+         "end": 41.855999999999995,
+         "highlight": false
+        },
+        {
+         "text": "dark",
+         "start": 41.855999999999995,
+         "end": 42.519999999999996,
+         "highlight": false
+        }
+       ]
+      },
+      {
+       "start": 42.599999999999994,
+       "end": 43.0,
+       "text": "{\\k41}Static",
+       "style": "Karaoke",
+       "layer": 0,
+       "words": [
+        {
+         "text": "Static",
+         "start": 42.599999999999994,
+         "end": 43.0,
+         "highlight": false
+        }
+       ]
+      }
+     ],
+     "ffmpeg_command": [
+      "ffmpeg",
+      "-y",
+      "-loop",
+      "1",
+      "-i",
+      "storage/manual-intake/prod/0b6b13d86b6f4db9a1273205b3a088bf/Test Artist - Night Drive.png",
+      "-i",
+      "storage/manual-intake/prod/0b6b13d86b6f4db9a1273205b3a088bf/Test Artist - Night Drive.mp3",
+      "-ss",
+      "0.200",
+      "-t",
+      "43.000",
+      "-filter_complex",
+      "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,drawbox=x=0:y=0:w=iw:h=ih:color=0x020805@1.0:t=fill,ass=filename='output/render_work/night-drive-9f533716e51c.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+      "-map",
+      "[vout]",
+      "-map",
+      "1:a",
+      "-r",
+      "30",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "medium",
+      "-crf",
+      "23",
+      "-maxrate",
+      "8M",
+      "-bufsize",
+      "16M",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-shortest",
+      "-pix_fmt",
+      "yuv420p",
+      "output/videos/test-artist-night-drive-9f533716e51c.mp4"
+     ]
+    },
+    "created_at": "2026-10-03T10:45:19.852365",
+    "updated_at": "2026-10-03T10:45:48.303775",
+    "completed_at": "2026-10-03T10:45:48.295397"
+   }
+  ],
+  "upload_jobs": [
+   {
+    "id": "518d260779e546c4b07981952e184a9e",
+    "job_type": "upload",
+    "clip_id": "e3ac1c6134844adb87c3f9eaf795826f",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T20:23:37",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:45:48.305964",
+    "updated_at": "2026-10-03T12:07:49.666425",
+    "completed_at": "2026-10-03T12:07:49.661084"
+   }
+  ],
+  "state_events": [
+   {
+    "id": "3b3e0a5b1e4b4a5aba4f81ab5006bcae",
+    "subject_type": "upload_job",
+    "subject_id": "518d260779e546c4b07981952e184a9e",
+    "event_type": "status_change",
+    "from_state": "waiting_window",
+    "to_state": "cancelled",
+    "payload": {
+     "reason": "cancelled from schedule"
+    },
+    "actor_user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "created_at": "2026-10-03T12:07:49.662683"
+   },
+   {
+    "id": "37bdd921dd894158a799683c1341e58d",
+    "subject_type": "render_job",
+    "subject_id": "b7fbf456571f4ec0ab9bd30c833b6c2a",
+    "event_type": "render_finished",
+    "from_state": "rendering",
+    "to_state": "rendered",
+    "payload": {
+     "clip_id": "e3ac1c6134844adb87c3f9eaf795826f",
+     "song_id": "fb23102d993943a7ae526271da898377"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:45:48.311298"
+   },
+   {
+    "id": "7fa65a2551e24c9c807b14c846c2b653",
+    "subject_type": "render_job",
+    "subject_id": "b7fbf456571f4ec0ab9bd30c833b6c2a",
+    "event_type": "render_started",
+    "from_state": "claimed",
+    "to_state": "rendering",
+    "payload": {
+     "worker_name": "platform-worker"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:45:19.927325"
+   }
+  ]
+ },
+ "/clips/67d73f5545fc4d038a926f9b014ffc97": {
+  "clip": {
+   "id": "67d73f5545fc4d038a926f9b014ffc97",
+   "song_id": "e7103d781e9e48e692203da9ad7d038d",
+   "segment_candidate_id": "639af6adac72420ea5c48fb66b287ad9",
+   "environment": "prod",
+   "status": "rendered",
+   "review_required": false,
+   "caption": "[healing songs] Say my name like it's the last | Test Artist - Golden Hour",
+   "hook_category": "healing songs",
+   "lyric_style": "stacked_3_line",
+   "layout_template": "blurred_cover_center_lyrics",
+   "font_family": "Cuprum",
+   "text_color": "#f7ead8",
+   "highlight_color": "#e96b42",
+   "preset_id": "amber",
+   "duration_seconds": 43.0,
+   "render_manifest_path": "output/render_work/golden-hour-5dc806140250.json",
+   "subtitle_path": "/demo/golden-hour.ass",
+   "video_path": "/demo/golden-hour.mp4",
+   "preview_path": null,
+   "scheduled_at": "2026-10-04T20:23:37",
+   "last_error": null,
+   "created_at": "2026-10-03T10:36:01.463142",
+   "updated_at": "2026-10-03T10:36:44.124088"
+  },
+  "segment": {
+   "id": "639af6adac72420ea5c48fb66b287ad9",
+   "start_second": 0.2,
+   "end_second": 43.2,
+   "score": 0.714,
+   "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+   "caption_seed": "Say my name like it's the last"
+  },
+  "render_jobs": [
+   {
+    "id": "6313d0a822c74e5db90d670155644b5d",
+    "job_type": "render",
+    "clip_id": "67d73f5545fc4d038a926f9b014ffc97",
+    "status": "rendered",
+    "priority": 0,
+    "attempt_count": 1,
+    "claimed_by": "platform-worker",
+    "claimed_at": "2026-10-03T10:36:01.472053",
+    "lease_expires_at": "2026-10-03T10:46:01.472053",
+    "ffmpeg_command": [
+     "ffmpeg",
+     "-y",
+     "-loop",
+     "1",
+     "-i",
+     "storage/manual-intake/prod/77f5e6966e8441b9923ac87780268a55/Test Artist - Golden Hour.png",
+     "-i",
+     "storage/manual-intake/prod/77f5e6966e8441b9923ac87780268a55/Test Artist - Golden Hour.wav",
+     "-ss",
+     "0.200",
+     "-t",
+     "43.000",
+     "-filter_complex",
+     "[0:v]split[base][art];[base]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:1,noise=alls=12:allf=t+u,eq=contrast=1.06:saturation=1.08,zoompan=z='min(1.08,1+0.0005*on)':d=1:s=1080x1920[bg];[art]scale=420:-1[cover];[bg][cover]overlay=(W-w)/2:(H-h)/2:shortest=1,ass=filename='output/render_work/golden-hour-5dc806140250.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+     "-map",
+     "[vout]",
+     "-map",
+     "1:a",
+     "-r",
+     "30",
+     "-c:v",
+     "libx264",
+     "-preset",
+     "medium",
+     "-crf",
+     "23",
+     "-maxrate",
+     "8M",
+     "-bufsize",
+     "16M",
+     "-c:a",
+     "aac",
+     "-b:a",
+     "192k",
+     "-shortest",
+     "-pix_fmt",
+     "yuv420p",
+     "output/videos/test-artist-golden-hour-5dc806140250.mp4"
+    ],
+    "stderr_text": null,
+    "artifact_metadata": {
+     "render_id": "5dc806140250",
+     "song_id": "77f5e6966e8441b9923ac87780268a55",
+     "segment_id": "639af6adac72420ea5c48fb66b287ad9",
+     "song_title": "Golden Hour",
+     "artist": "Test Artist",
+     "audio_path": "/demo/golden-hour.mp3",
+     "output_path": "/demo/golden-hour.mp4",
+     "ass_path": "/demo/golden-hour.ass",
+     "style": {
+      "lyric_style": "stacked_3_line",
+      "layout_template": "blurred_cover_center_lyrics",
+      "font_family": "Cuprum",
+      "text_color": "#f7ead8",
+      "highlight_color": "#e96b42",
+      "use_album_palette": false,
+      "hook_category": "healing songs",
+      "hook_phrase": null,
+      "preset_id": "amber",
+      "background_color": "#0b0907",
+      "grain_strength": 12
+     },
+     "layout_description": "Blurred album-art background with centered cover and lyrics below",
+     "segment": {
+      "start": 0.2,
+      "end": 43.2,
+      "duration": 43.0,
+      "score": 0.714,
+      "reason": "repetition=1.00, loudness=0.40, musicality=0.47",
+      "caption_seed": "Say my name like it's the last"
+     },
+     "ass_lines": [
+      {
+       "start": 1.8,
+       "end": 5.12,
+       "text": "{\\c&H00426be9&}Golden hour on the city glass{\\r}\\NEvery shadow running past",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 5.2,
+       "end": 8.520000000000001,
+       "text": "Golden hour on the city glass\\N{\\c&H00426be9&}Every shadow running past{\\r}\\NSay my name like it's the last",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 8.600000000000001,
+       "end": 11.92,
+       "text": "Every shadow running past\\N{\\c&H00426be9&}Say my name like it's the last{\\r}\\NSay my name like it's the last",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 12.0,
+       "end": 15.32,
+       "text": "Say my name like it's the last\\N{\\c&H00426be9&}Say my name like it's the last{\\r}\\NTurn it up and let it ring",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 15.4,
+       "end": 18.720000000000002,
+       "text": "Say my name like it's the last\\N{\\c&H00426be9&}Turn it up and let it ring{\\r}\\NAmber lights on everything",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 18.8,
+       "end": 22.12,
+       "text": "Turn it up and let it ring\\N{\\c&H00426be9&}Amber lights on everything{\\r}\\NGolden hour on the city glass",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 22.2,
+       "end": 25.52,
+       "text": "Amber lights on everything\\N{\\c&H00426be9&}Golden hour on the city glass{\\r}\\NEvery shadow running past",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 25.6,
+       "end": 28.92,
+       "text": "Golden hour on the city glass\\N{\\c&H00426be9&}Every shadow running past{\\r}\\NSay my name like it's the last",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 29.0,
+       "end": 32.32,
+       "text": "Every shadow running past\\N{\\c&H00426be9&}Say my name like it's the last{\\r}\\NSay my name like it's the last",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 32.4,
+       "end": 35.72,
+       "text": "Say my name like it's the last\\N{\\c&H00426be9&}Say my name like it's the last{\\r}\\NTurn it up and let it ring",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 35.8,
+       "end": 39.12,
+       "text": "Say my name like it's the last\\N{\\c&H00426be9&}Turn it up and let it ring{\\r}\\NAmber lights on everything",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 39.199999999999996,
+       "end": 42.519999999999996,
+       "text": "Turn it up and let it ring\\N{\\c&H00426be9&}Amber lights on everything{\\r}\\NGolden hour on the city glass",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      },
+      {
+       "start": 42.599999999999994,
+       "end": 43.0,
+       "text": "Amber lights on everything\\N{\\c&H00426be9&}Golden hour on the city glass{\\r}",
+       "style": "Stacked",
+       "layer": 0,
+       "words": []
+      }
+     ],
+     "ffmpeg_command": [
+      "ffmpeg",
+      "-y",
+      "-loop",
+      "1",
+      "-i",
+      "storage/manual-intake/prod/77f5e6966e8441b9923ac87780268a55/Test Artist - Golden Hour.png",
+      "-i",
+      "storage/manual-intake/prod/77f5e6966e8441b9923ac87780268a55/Test Artist - Golden Hour.wav",
+      "-ss",
+      "0.200",
+      "-t",
+      "43.000",
+      "-filter_complex",
+      "[0:v]split[base][art];[base]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,boxblur=24:1,noise=alls=12:allf=t+u,eq=contrast=1.06:saturation=1.08,zoompan=z='min(1.08,1+0.0005*on)':d=1:s=1080x1920[bg];[art]scale=420:-1[cover];[bg][cover]overlay=(W-w)/2:(H-h)/2:shortest=1,ass=filename='output/render_work/golden-hour-5dc806140250.ass':fontsdir='apps/web/public/visualizer/fonts'[vout]",
+      "-map",
+      "[vout]",
+      "-map",
+      "1:a",
+      "-r",
+      "30",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "medium",
+      "-crf",
+      "23",
+      "-maxrate",
+      "8M",
+      "-bufsize",
+      "16M",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-shortest",
+      "-pix_fmt",
+      "yuv420p",
+      "output/videos/test-artist-golden-hour-5dc806140250.mp4"
+     ]
+    },
+    "created_at": "2026-10-03T10:36:01.465139",
+    "updated_at": "2026-10-03T10:36:44.127470",
+    "completed_at": "2026-10-03T10:36:44.113718"
+   }
+  ],
+  "upload_jobs": [
+   {
+    "id": "61c2db80fa334055ba6f719ccafc569a",
+    "job_type": "upload",
+    "clip_id": "67d73f5545fc4d038a926f9b014ffc97",
+    "status": "cancelled",
+    "publish_mode": "auto",
+    "scheduled_at": "2026-10-04T20:23:37",
+    "attempt_count": 0,
+    "claimed_by": null,
+    "claimed_at": null,
+    "lease_expires_at": null,
+    "platform_post_id": null,
+    "platform_response": {},
+    "last_error": null,
+    "approved_at": null,
+    "approved_by_id": null,
+    "created_at": "2026-10-03T10:36:44.132024",
+    "updated_at": "2026-10-03T12:07:50.790387",
+    "completed_at": "2026-10-03T12:07:50.788150"
+   }
+  ],
+  "state_events": [
+   {
+    "id": "c1c59dd242314eb7a161354023256795",
+    "subject_type": "upload_job",
+    "subject_id": "61c2db80fa334055ba6f719ccafc569a",
+    "event_type": "status_change",
+    "from_state": "waiting_window",
+    "to_state": "cancelled",
+    "payload": {
+     "reason": "cancelled from schedule"
+    },
+    "actor_user_id": "7f3a8e5bb2564bbe9d719b47024a6806",
+    "created_at": "2026-10-03T12:07:50.788598"
+   },
+   {
+    "id": "eb86b9427dd243b599c407f109fe8b52",
+    "subject_type": "render_job",
+    "subject_id": "6313d0a822c74e5db90d670155644b5d",
+    "event_type": "render_finished",
+    "from_state": "rendering",
+    "to_state": "rendered",
+    "payload": {
+     "clip_id": "67d73f5545fc4d038a926f9b014ffc97",
+     "song_id": "e7103d781e9e48e692203da9ad7d038d"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:36:44.128448"
+   },
+   {
+    "id": "5cefcbcd6cf941b2ad05c5f4dafa05ab",
+    "subject_type": "render_job",
+    "subject_id": "6313d0a822c74e5db90d670155644b5d",
+    "event_type": "render_started",
+    "from_state": "claimed",
+    "to_state": "rendering",
+    "payload": {
+     "worker_name": "platform-worker"
+    },
+    "actor_user_id": null,
+    "created_at": "2026-10-03T10:36:01.498730"
+   }
+  ]
+ }
+}
