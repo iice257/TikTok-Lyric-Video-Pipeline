@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { apiFetch, getApiBaseUrl, getSafeRedirectPath, setCsrfToken } from "@/lib/api";
+import { enterDemo } from "@/lib/demo";
 import { useThemeSync } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,11 @@ export function LoginForm() {
   useEffect(() => {
     setBackendless(getApiBaseUrl() === "/api");
   }, []);
+
+  function openDemo() {
+    enterDemo();
+    router.replace("/");
+  }
 
   async function onSubmit(event) {
     event.preventDefault();
@@ -73,16 +79,22 @@ export function LoginForm() {
               className="h-11 rounded-xl"
             />
           </div>
-          {backendless ? (
-            <p className="text-sm text-muted-foreground">
-              This deployment is frontend only. The pipeline backend runs locally, so sign-in is available on a local install.
-            </p>
-          ) : null}
           {error ? <p aria-live="polite" className="text-sm text-destructive">{error}</p> : null}
-          <Button type="submit" disabled={submitting || backendless} size="lg" className="mt-2 h-11 rounded-full">
+          <Button type="submit" disabled={submitting || backendless} variant={backendless ? "outline" : "default"} size="lg" className="mt-2 h-11 rounded-full">
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
+        {backendless ? (
+          <div className="mt-8 border-t border-border pt-6">
+            <p className="text-sm text-muted-foreground">
+              This deployment is frontend only: the API, worker and renderer run on a local install. The demo opens the
+              real interface on sample data captured from a local run.
+            </p>
+            <Button type="button" onClick={openDemo} size="lg" className="mt-4 h-11 w-full rounded-full">
+              Explore the demo
+            </Button>
+          </div>
+        ) : null}
       </div>
     </main>
   );

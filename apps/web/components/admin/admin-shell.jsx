@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { apiFetch, clearCsrfToken, getApiBaseUrl, setCsrfToken } from "@/lib/api";
+import { hasEnteredDemo, isDemoMode, leaveDemo } from "@/lib/demo";
 import { cn } from "@/lib/utils";
 import { useThemeSync } from "@/lib/theme";
 
@@ -39,13 +40,16 @@ export function AdminShell({ title, subtitle, children, actions, bleed = false }
   const router = useRouter();
   const [session, setSession] = useState(null);
   const [signingOut, setSigningOut] = useState(false);
+  const [demo, setDemo] = useState(false);
 
   useEffect(() => {
-    if (getApiBaseUrl() === "/api") {
-      // Frontend-only deployment: there is no backend to authenticate against.
+    // Frontend-only deployments run on demo data (lib/demo.js); sending
+    // first-time visitors to /login lets them see why before entering.
+    if (isDemoMode(getApiBaseUrl()) && !hasEnteredDemo()) {
       router.replace("/login");
       return undefined;
     }
+    setDemo(isDemoMode(getApiBaseUrl()));
     // Old links opened intake as an overlay; it is a page now.
     if (new URLSearchParams(window.location.search).get("overlay") === "intake") {
       router.replace("/new");
@@ -78,6 +82,7 @@ export function AdminShell({ title, subtitle, children, actions, bleed = false }
       // Local session state is still cleared so a failed logout request cannot trap the user.
     } finally {
       clearCsrfToken();
+      leaveDemo();
       router.push("/login");
       setSigningOut(false);
     }
@@ -138,6 +143,12 @@ export function AdminShell({ title, subtitle, children, actions, bleed = false }
             <ExitIcon />
           </button>
         </div>
+
+        {demo ? (
+          <div role="status" className="border-b border-border bg-accent px-5 py-2 text-xs text-muted-foreground lg:px-10">
+            Demo mode: sample data from a local run. Changes stay in this tab, and rendering and TikTok posting need a local install.
+          </div>
+        ) : null}
 
         {title ? (
           <header className={cn("flex flex-col gap-4 px-5 pt-6 sm:flex-row sm:items-end sm:justify-between lg:px-10 lg:pt-9", bleed && "pb-4")}>
